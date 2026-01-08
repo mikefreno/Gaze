@@ -102,7 +102,7 @@ struct OnboardingContainerView: View {
                                     minWidth: 100, maxWidth: .infinity, minHeight: 44,
                                     maxHeight: 44, alignment: .center
                                 )
-                                .foregroundColor(.white)
+                                .foregroundColor(.black)
                             }
                             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
                         }
@@ -126,7 +126,9 @@ struct OnboardingContainerView: View {
                             )
                             .foregroundColor(.white)
                         }
-                        .glassEffect(.regular.tint(currentPage == 5 ? .green : .blue).interactive(), in: .rect(cornerRadius: 10))
+                        .glassEffect(
+                            .regular.tint(currentPage == 5 ? .green : .blue).interactive(),
+                            in: .rect(cornerRadius: 10))
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 20)

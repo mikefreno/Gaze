@@ -13,7 +13,9 @@ struct MenuBarButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(configuration.isPressed ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
+                    .fill(
+                        configuration.isPressed ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1)
+                    )
                     .opacity(configuration.isPressed ? 1 : 0)
             )
             .contentShape(Rectangle())
@@ -23,12 +25,12 @@ struct MenuBarButtonStyle: ButtonStyle {
 
 struct MenuBarHoverButtonStyle: ButtonStyle {
     @State private var isHovered = false
-    
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.gray.opacity(0.15) : Color.clear)
+                    .fill(isHovered ? Color.blue.opacity(0.55) : Color.clear)
             )
             .contentShape(Rectangle())
             .onHover { hovering in
@@ -44,7 +46,7 @@ struct MenuBarContentView: View {
     @ObservedObject var timerEngine: TimerEngine
     @ObservedObject var settingsManager: SettingsManager
     var onQuit: () -> Void
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -57,9 +59,9 @@ struct MenuBarContentView: View {
                     .fontWeight(.semibold)
             }
             .padding()
-            
+
             Divider()
-            
+
             // Timer Status
             if !timerEngine.timerStates.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
@@ -68,7 +70,7 @@ struct MenuBarContentView: View {
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
                         .padding(.top, 8)
-                    
+
                     ForEach(TimerType.allCases) { timerType in
                         if let state = timerEngine.timerStates[timerType] {
                             TimerStatusRow(
@@ -82,10 +84,10 @@ struct MenuBarContentView: View {
                     }
                 }
                 .padding(.bottom, 8)
-                
+
                 Divider()
             }
-            
+
             // Controls
             VStack(spacing: 4) {
                 Button(action: {
@@ -104,7 +106,7 @@ struct MenuBarContentView: View {
                     .padding(.vertical, 6)
                 }
                 .buttonStyle(MenuBarHoverButtonStyle())
-                
+
                 Button(action: {
                     // TODO: Open settings window
                 }) {
@@ -120,9 +122,9 @@ struct MenuBarContentView: View {
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 8)
-            
+
             Divider()
-            
+
             // Quit
             Button(action: onQuit) {
                 HStack {
@@ -140,7 +142,7 @@ struct MenuBarContentView: View {
         }
         .frame(width: 300)
     }
-    
+
     private var isPaused: Bool {
         timerEngine.timerStates.values.first?.isPaused ?? false
     }
@@ -151,13 +153,13 @@ struct TimerStatusRow: View {
     let state: TimerState
     var onSkip: () -> Void
     @State private var isHovered = false
-    
+
     var body: some View {
         HStack {
             Image(systemName: type.iconName)
                 .foregroundColor(iconColor)
                 .frame(width: 20)
-            
+
             VStack(alignment: .leading, spacing: 2) {
                 Text(type.displayName)
                     .font(.subheadline)
@@ -167,9 +169,9 @@ struct TimerStatusRow: View {
                     .foregroundColor(.secondary)
                     .monospacedDigit()
             }
-            
+
             Spacer()
-            
+
             Button(action: onSkip) {
                 Image(systemName: "forward.fill")
                     .font(.caption)
@@ -189,7 +191,7 @@ struct TimerStatusRow: View {
         .padding(.horizontal)
         .padding(.vertical, 4)
     }
-    
+
     private var iconColor: Color {
         switch type {
         case .lookAway: return .blue
@@ -197,12 +199,12 @@ struct TimerStatusRow: View {
         case .posture: return .orange
         }
     }
-    
+
     private var timeRemaining: String {
         let seconds = state.remainingSeconds
         let minutes = seconds / 60
         let remainingSeconds = seconds % 60
-        
+
         if minutes >= 60 {
             let hours = minutes / 60
             let remainingMinutes = minutes % 60

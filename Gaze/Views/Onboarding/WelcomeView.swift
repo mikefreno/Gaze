@@ -31,6 +31,7 @@ struct WelcomeView: View {
                 FeatureRow(icon: "figure.stand", title: "Maintain Good Posture", description: "Gentle reminders to sit up straight")
             }
             .padding()
+            .glassEffect(in: .rect(cornerRadius: 16))
             
             Spacer()
             
@@ -39,15 +40,14 @@ struct WelcomeView: View {
                     .font(.headline)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
             }
             .buttonStyle(.plain)
+            .glassEffect(.regular.tint(.blue).interactive())
             .padding(.horizontal, 40)
         }
         .frame(width: 600, height: 500)
         .padding()
+        .background(.clear)
     }
 }
 

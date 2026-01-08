@@ -16,7 +16,7 @@ class TimerEngine: ObservableObject {
     private var timerSubscription: AnyCancellable?
     private let settingsManager: SettingsManager
     
-    nonisolated init(settingsManager: SettingsManager = .shared) {
+    init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
     }
     

@@ -11,6 +11,7 @@ struct BlinkSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
     var onContinue: () -> Void
+    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -49,27 +50,41 @@ struct BlinkSetupView: View {
                 }
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
+            .glassEffect(in: .rect(cornerRadius: 12))
             
             InfoBox(text: "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes")
             
             Spacer()
             
-            Button(action: onContinue) {
-                Text("Continue")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            HStack(spacing: 12) {
+                if let onBack = onBack {
+                    Button(action: onBack) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive())
+                }
+                
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(.blue).interactive())
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 40)
         }
         .frame(width: 600, height: 500)
         .padding()
+        .background(.clear)
     }
 }
 
@@ -77,6 +92,7 @@ struct BlinkSetupView: View {
     BlinkSetupView(
         enabled: .constant(true),
         intervalMinutes: .constant(5),
-        onContinue: {}
+        onContinue: {},
+        onBack: {}
     )
 }

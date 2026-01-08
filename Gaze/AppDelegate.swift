@@ -191,4 +191,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         reminderWindowController?.close()
         reminderWindowController = nil
     }
+    
+    // Public method to get menubar icon position for animations
+    func getMenuBarIconPosition() -> NSRect? {
+        return statusItem?.button?.window?.frame
+    }
 }

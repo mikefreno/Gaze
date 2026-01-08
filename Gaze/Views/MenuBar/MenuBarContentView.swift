@@ -7,6 +7,39 @@
 
 import SwiftUI
 
+// Hover button style for menubar items
+struct MenuBarButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(configuration.isPressed ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
+                    .opacity(configuration.isPressed ? 1 : 0)
+            )
+            .contentShape(Rectangle())
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+struct MenuBarHoverButtonStyle: ButtonStyle {
+    @State private var isHovered = false
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(isHovered ? Color.gray.opacity(0.15) : Color.clear)
+            )
+            .contentShape(Rectangle())
+            .onHover { hovering in
+                isHovered = hovering
+            }
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isHovered)
+            .animation(.easeInOut(duration: 0.05), value: configuration.isPressed)
+    }
+}
+
 struct MenuBarContentView: View {
     @ObservedObject var timerEngine: TimerEngine
     @ObservedObject var settingsManager: SettingsManager
@@ -54,7 +87,7 @@ struct MenuBarContentView: View {
             }
             
             // Controls
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Button(action: {
                     if timerEngine.timerStates.values.first?.isPaused == true {
                         timerEngine.resume()
@@ -67,10 +100,10 @@ struct MenuBarContentView: View {
                         Text(isPaused ? "Resume All Timers" : "Pause All Timers")
                         Spacer()
                     }
-                    .contentShape(Rectangle())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal)
+                .buttonStyle(MenuBarHoverButtonStyle())
                 
                 Button(action: {
                     // TODO: Open settings window
@@ -80,12 +113,13 @@ struct MenuBarContentView: View {
                         Text("Settings...")
                         Spacer()
                     }
-                    .contentShape(Rectangle())
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
-                .buttonStyle(.plain)
-                .padding(.horizontal)
+                .buttonStyle(MenuBarHoverButtonStyle())
             }
             .padding(.vertical, 8)
+            .padding(.horizontal, 8)
             
             Divider()
             
@@ -93,13 +127,16 @@ struct MenuBarContentView: View {
             Button(action: onQuit) {
                 HStack {
                     Image(systemName: "power")
+                        .foregroundColor(.red)
                     Text("Quit Gaze")
                     Spacer()
                 }
-                .contentShape(Rectangle())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
             }
-            .buttonStyle(.plain)
-            .padding()
+            .buttonStyle(MenuBarHoverButtonStyle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
         }
         .frame(width: 300)
     }
@@ -113,6 +150,7 @@ struct TimerStatusRow: View {
     let type: TimerType
     let state: TimerState
     var onSkip: () -> Void
+    @State private var isHovered = false
     
     var body: some View {
         HStack {
@@ -136,9 +174,17 @@ struct TimerStatusRow: View {
                 Image(systemName: "forward.fill")
                     .font(.caption)
                     .foregroundColor(.blue)
+                    .padding(6)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? Color.blue.opacity(0.1) : Color.clear)
+                    )
             }
             .buttonStyle(.plain)
             .help("Skip to next \(type.displayName) reminder")
+            .onHover { hovering in
+                isHovered = hovering
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 4)
@@ -170,9 +216,11 @@ struct TimerStatusRow: View {
 }
 
 #Preview {
+    let settingsManager = SettingsManager.shared
+    let timerEngine = TimerEngine(settingsManager: settingsManager)
     MenuBarContentView(
-        timerEngine: TimerEngine(settingsManager: .shared),
-        settingsManager: .shared,
+        timerEngine: timerEngine,
+        settingsManager: settingsManager,
         onQuit: {}
     )
 }

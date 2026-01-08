@@ -22,6 +22,10 @@ class SettingsManager: ObservableObject {
     private let settingsKey = "gazeAppSettings"
     
     private init() {
+        #if DEBUG
+        // Clear settings on every development build
+        UserDefaults.standard.removeObject(forKey: "gazeAppSettings")
+        #endif
         self.settings = Self.loadSettings()
     }
     

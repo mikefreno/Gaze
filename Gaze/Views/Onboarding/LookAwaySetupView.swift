@@ -66,27 +66,41 @@ struct LookAwaySetupView: View {
                 }
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
+            .glassEffect(in: .rect(cornerRadius: 12))
             
-            InfoBox(text: "Every 20 minutes, look at something 20 feet away for 20 seconds to reduce eye strain")
+            InfoBox(text: "Every \(intervalMinutes) minutes, look in the distance for \(countdownSeconds) seconds to reduce eye strain")
             
             Spacer()
             
-            Button(action: onContinue) {
-                Text("Continue")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            HStack(spacing: 12) {
+                if let onBack = onBack {
+                    Button(action: onBack) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive())
+                }
+                
+                Button(action: onContinue) {
+                    Text("Continue")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(.blue).interactive())
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 40)
         }
         .frame(width: 600, height: 500)
         .padding()
+        .background(.clear)
     }
 }
 
@@ -102,8 +116,7 @@ struct InfoBox: View {
                 .foregroundColor(.secondary)
         }
         .padding()
-        .background(Color.blue.opacity(0.1))
-        .cornerRadius(8)
+        .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 8))
     }
 }
 
@@ -112,6 +125,7 @@ struct InfoBox: View {
         enabled: .constant(true),
         intervalMinutes: .constant(20),
         countdownSeconds: .constant(20),
-        onContinue: {}
+        onContinue: {},
+        onBack: {}
     )
 }

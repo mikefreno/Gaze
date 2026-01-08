@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CompletionView: View {
     var onComplete: () -> Void
+    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -60,28 +61,42 @@ struct CompletionView: View {
                 .padding(.horizontal)
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
-            .cornerRadius(12)
+            .glassEffect(in: .rect(cornerRadius: 12))
             
             Spacer()
             
-            Button(action: onComplete) {
-                Text("Get Started")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+            HStack(spacing: 12) {
+                if let onBack = onBack {
+                    Button(action: onBack) {
+                        HStack {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive())
+                }
+                
+                Button(action: onComplete) {
+                    Text("Get Started")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                }
+                .buttonStyle(.plain)
+                .glassEffect(.regular.tint(.green).interactive())
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, 40)
         }
         .frame(width: 600, height: 500)
         .padding()
+        .background(.clear)
     }
 }
 
 #Preview {
-    CompletionView(onComplete: {})
+    CompletionView(onComplete: {}, onBack: {})
 }

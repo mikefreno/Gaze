@@ -104,7 +104,7 @@ struct Arc: Shape {
     }
 }
 
-#Preview {
+#Preview("Animated Face") {
     AnimatedFaceView(size: 200)
         .frame(width: 400, height: 400)
 }

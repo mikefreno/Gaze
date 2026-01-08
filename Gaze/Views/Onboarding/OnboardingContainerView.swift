@@ -104,7 +104,7 @@ struct OnboardingContainerView: View {
                                 )
                                 .foregroundColor(.white)
                             }
-                            .glassEffect(.regular.interactive())
+                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
                         }
 
                         Button(action: {
@@ -126,7 +126,7 @@ struct OnboardingContainerView: View {
                             )
                             .foregroundColor(.white)
                         }
-                        .glassEffect(.regular.tint(currentPage == 5 ? .green : .blue).interactive())
+                        .glassEffect(.regular.tint(currentPage == 5 ? .green : .blue).interactive(), in: .rect(cornerRadius: 10))
                     }
                     .padding(.horizontal, 40)
                     .padding(.bottom, 20)
@@ -230,6 +230,6 @@ struct OnboardingContainerView: View {
             })
     }
 }
-#Preview {
-    OnboardingContainerView(s)
+#Preview("Onboarding Container") {
+    OnboardingContainerView(settingsManager: SettingsManager.shared)
 }

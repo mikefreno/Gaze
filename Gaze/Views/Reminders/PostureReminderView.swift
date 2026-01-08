@@ -63,7 +63,7 @@ struct PostureReminderView: View {
     }
 }
 
-#Preview {
+#Preview("Posture Reminder") {
     PostureReminderView(onDismiss: {})
         .frame(width: 800, height: 600)
 }

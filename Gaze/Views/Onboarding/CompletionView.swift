@@ -58,7 +58,7 @@ struct CompletionView: View {
                 .padding(.horizontal)
             }
             .padding()
-            .glassEffect(in: .rect(cornerRadius: 12))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
             
             Spacer()
         }
@@ -68,6 +68,6 @@ struct CompletionView: View {
     }
 }
 
-#Preview {
+#Preview("Completion View") {
     CompletionView()
 }

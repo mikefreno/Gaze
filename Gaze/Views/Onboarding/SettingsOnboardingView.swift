@@ -45,7 +45,7 @@ struct SettingsOnboardingView: View {
                         }
                 }
                 .padding()
-                .glassEffect(in: .rect(cornerRadius: 12))
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
                 
                 // Links Section
                 VStack(spacing: 12) {
@@ -133,8 +133,14 @@ struct SettingsOnboardingView: View {
     }
 }
 
-#Preview {
+#Preview("Settings Onboarding - Launch Disabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(false)
+    )
+}
+
+#Preview("Settings Onboarding - Launch Enabled") {
+    SettingsOnboardingView(
+        launchAtLogin: .constant(true)
     )
 }

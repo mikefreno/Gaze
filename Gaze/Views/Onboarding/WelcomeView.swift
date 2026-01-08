@@ -29,7 +29,7 @@ struct WelcomeView: View {
                 FeatureRow(icon: "figure.stand", title: "Maintain Good Posture", description: "Gentle reminders to sit up straight")
             }
             .padding()
-            .glassEffect(in: .rect(cornerRadius: 16))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
             Spacer()
         }
@@ -62,6 +62,15 @@ struct FeatureRow: View {
     }
 }
 
-#Preview {
+#Preview("Welcome View") {
     WelcomeView()
+}
+
+#Preview("Feature Row") {
+    FeatureRow(
+        icon: "eye.circle",
+        title: "Reduce Eye Strain",
+        description: "Regular breaks help prevent digital eye strain"
+    )
+    .padding()
 }

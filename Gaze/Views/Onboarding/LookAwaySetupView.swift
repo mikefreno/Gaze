@@ -64,7 +64,7 @@ struct LookAwaySetupView: View {
                 }
             }
             .padding()
-            .glassEffect(in: .rect(cornerRadius: 12))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
             
             InfoBox(text: "Every \(intervalMinutes) minutes, look in the distance for \(countdownSeconds) seconds to reduce eye strain")
             
@@ -92,10 +92,15 @@ struct InfoBox: View {
     }
 }
 
-#Preview {
+#Preview("Look Away Setup View") {
     LookAwaySetupView(
         enabled: .constant(true),
         intervalMinutes: .constant(20),
         countdownSeconds: .constant(20)
     )
+}
+
+#Preview("Info Box") {
+    InfoBox(text: "This is an informational message that provides helpful context to the user.")
+        .padding()
 }

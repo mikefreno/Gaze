@@ -48,7 +48,7 @@ struct PostureSetupView: View {
                 }
             }
             .padding()
-            .glassEffect(in: .rect(cornerRadius: 12))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
             
             InfoBox(text: "Regular posture checks help prevent back and neck pain from prolonged sitting")
             
@@ -60,9 +60,16 @@ struct PostureSetupView: View {
     }
 }
 
-#Preview {
+#Preview("Posture Setup - Enabled") {
     PostureSetupView(
         enabled: .constant(true),
+        intervalMinutes: .constant(30)
+    )
+}
+
+#Preview("Posture Setup - Disabled") {
+    PostureSetupView(
+        enabled: .constant(false),
         intervalMinutes: .constant(30)
     )
 }

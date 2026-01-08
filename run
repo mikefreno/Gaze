@@ -77,7 +77,18 @@ elif [ "$ACTION" = "run" ]; then
     
     if [ $? -eq 0 ]; then
         echo "✅ Build succeeded!"
-        run_with_output "open -a \"Gaze\""
+        # Get the actual build output directory from xcodebuild
+        BUILD_DIR="$(xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | sed 's/.*= //')"
+        APP_PATH="${BUILD_DIR}/Gaze.app"
+        
+        if [ -d "$APP_PATH" ]; then
+            echo "🚀 Launching: $APP_PATH"
+            open "$APP_PATH"
+        else
+            echo "⚠️  App not found at expected location, trying fallback..."
+            # Fallback to derived data location
+            open "$HOME/Library/Developer/Xcode/DerivedData/Gaze-*/Build/Products/Debug/Gaze.app"
+        fi
     else
         echo "❌ Build failed!"
         exit 1

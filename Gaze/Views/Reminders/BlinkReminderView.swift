@@ -135,7 +135,7 @@ struct BlinkingFace: View {
     }
 }
 
-#Preview {
+#Preview("Blink Reminder") {
     BlinkReminderView(onDismiss: {})
         .frame(width: 800, height: 600)
 }

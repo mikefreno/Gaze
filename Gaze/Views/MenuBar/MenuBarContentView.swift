@@ -215,7 +215,7 @@ struct TimerStatusRow: View {
     }
 }
 
-#Preview {
+#Preview("Menu Bar Content") {
     let settingsManager = SettingsManager.shared
     let timerEngine = TimerEngine(settingsManager: settingsManager)
     MenuBarContentView(

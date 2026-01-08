@@ -113,6 +113,6 @@ struct LookAwayReminderView: View {
     }
 }
 
-#Preview {
+#Preview("Look Away Reminder") {
     LookAwayReminderView(countdownSeconds: 20, onDismiss: {})
 }

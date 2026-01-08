@@ -48,7 +48,7 @@ struct BlinkSetupView: View {
                 }
             }
             .padding()
-            .glassEffect(in: .rect(cornerRadius: 12))
+            .glassEffect(.regular, in: .rect(cornerRadius: 12))
             
             InfoBox(text: "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes")
             
@@ -60,9 +60,16 @@ struct BlinkSetupView: View {
     }
 }
 
-#Preview {
+#Preview("Blink Setup - Enabled") {
     BlinkSetupView(
         enabled: .constant(true),
+        intervalMinutes: .constant(5)
+    )
+}
+
+#Preview("Blink Setup - Disabled") {
+    BlinkSetupView(
+        enabled: .constant(false),
         intervalMinutes: .constant(5)
     )
 }

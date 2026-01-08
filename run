@@ -1,0 +1,101 @@
+#!/bin/bash
+
+# Build and run Gaze application
+# Usage: ./run [build|test|run]
+
+# Default action is build and run
+ACTION=${1:-build}
+VERBOSE=false
+OUTPUT_FILE=""
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            VERBOSE=true
+            shift 2
+            ;;
+        *)
+            ACTION="$1"
+            shift
+            ;;
+    esac
+done
+
+# Function to run command with output control
+run_with_output() {
+    local cmd="$1"
+    if [ "$VERBOSE" = true ] && [ -n "$OUTPUT_FILE" ]; then
+        # Both verbose and output file specified
+        eval "$cmd" | tee "$OUTPUT_FILE"
+    elif [ "$VERBOSE" = true ]; then
+        # Verbose only
+        eval "$cmd"
+    elif [ -n "$OUTPUT_FILE" ]; then
+        # Output file only (treat as verbose)
+        eval "$cmd" > "$OUTPUT_FILE" 2>&1
+    else
+        # Neither verbose nor output file, send to /dev/null
+        eval "$cmd" > /dev/null 2>&1
+    fi
+}
+
+echo "=== Gaze Application Script ==="
+
+if [ "$ACTION" = "build" ]; then
+    echo "Building Gaze project..."
+    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Build succeeded!"
+        echo "💡 The app is located at: build/Debug/Gaze.app"
+    else
+        echo "❌ Build failed!"
+        exit 1
+    fi
+    
+elif [ "$ACTION" = "test" ]; then
+    echo "Running unit tests..."
+    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme GazeTests -configuration Debug test"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Tests passed!"
+    else
+        echo "❌ Tests failed!"
+        exit 1
+    fi
+
+elif [ "$ACTION" = "run" ]; then
+    echo "Running Gaze application..."
+    # First ensure we have a built app
+    if [ -d "build/Debug/Gaze.app" ]; then
+        run_with_output "open -a \"Gaze\""
+    else
+        echo "⚠️  No built app found. Building first..."
+        run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
+        if [ $? -eq 0 ]; then
+            run_with_output "open -a \"Gaze\""
+        else
+            echo "❌ Build failed during run attempt!"
+            exit 1
+        fi
+    fi
+    
+else
+    echo "Usage: $0 [build|test|run] [-v|--verbose] [-o|--output <file_name>]"
+    echo ""
+    echo "Commands:"
+    echo "  build   - Build the application"
+    echo "  test    - Run unit tests"
+    echo "  run     - Build and run the application (default)"
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose    - Show output in stdout"
+    echo "  -o, --output     - Write output to log file"
+    exit 1
+fi

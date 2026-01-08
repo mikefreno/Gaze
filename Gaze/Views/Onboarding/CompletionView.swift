@@ -9,7 +9,6 @@ import SwiftUI
 
 struct CompletionView: View {
     var onComplete: () -> Void
-    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -64,39 +63,13 @@ struct CompletionView: View {
             .glassEffect(in: .rect(cornerRadius: 12))
             
             Spacer()
-            
-            HStack(spacing: 12) {
-                if let onBack = onBack {
-                    Button(action: onBack) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive())
-                }
-                
-                Button(action: onComplete) {
-                    Text("Get Started")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.tint(.green).interactive())
-            }
-            .padding(.horizontal, 40)
         }
-        .frame(width: 600, height: 500)
+        .frame(width: 600, height: 450)
         .padding()
         .background(.clear)
     }
 }
 
 #Preview {
-    CompletionView(onComplete: {}, onBack: {})
+    CompletionView(onComplete: {})
 }

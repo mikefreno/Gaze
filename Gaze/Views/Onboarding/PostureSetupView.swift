@@ -10,8 +10,6 @@ import SwiftUI
 struct PostureSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
-    var onContinue: () -> Void
-    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -55,34 +53,8 @@ struct PostureSetupView: View {
             InfoBox(text: "Regular posture checks help prevent back and neck pain from prolonged sitting")
             
             Spacer()
-            
-            HStack(spacing: 12) {
-                if let onBack = onBack {
-                    Button(action: onBack) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive())
-                }
-                
-                Button(action: onContinue) {
-                    Text("Continue")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.tint(.blue).interactive())
-            }
-            .padding(.horizontal, 40)
         }
-        .frame(width: 600, height: 500)
+        .frame(width: 600, height: 450)
         .padding()
         .background(.clear)
     }
@@ -91,8 +63,6 @@ struct PostureSetupView: View {
 #Preview {
     PostureSetupView(
         enabled: .constant(true),
-        intervalMinutes: .constant(30),
-        onContinue: {},
-        onBack: {}
+        intervalMinutes: .constant(30)
     )
 }

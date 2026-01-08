@@ -11,8 +11,6 @@ struct LookAwaySetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
     @Binding var countdownSeconds: Int
-    var onContinue: () -> Void
-    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -71,34 +69,8 @@ struct LookAwaySetupView: View {
             InfoBox(text: "Every \(intervalMinutes) minutes, look in the distance for \(countdownSeconds) seconds to reduce eye strain")
             
             Spacer()
-            
-            HStack(spacing: 12) {
-                if let onBack = onBack {
-                    Button(action: onBack) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive())
-                }
-                
-                Button(action: onContinue) {
-                    Text("Continue")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.tint(.blue).interactive())
-            }
-            .padding(.horizontal, 40)
         }
-        .frame(width: 600, height: 500)
+        .frame(width: 600, height: 450)
         .padding()
         .background(.clear)
     }
@@ -124,8 +96,6 @@ struct InfoBox: View {
     LookAwaySetupView(
         enabled: .constant(true),
         intervalMinutes: .constant(20),
-        countdownSeconds: .constant(20),
-        onContinue: {},
-        onBack: {}
+        countdownSeconds: .constant(20)
     )
 }

@@ -4,7 +4,7 @@
 # Usage: ./run [build|test|run]
 
 # Default action is build and run
-ACTION=${1:-build}
+ACTION=${1:-run}
 VERBOSE=false
 OUTPUT_FILE=""
 
@@ -71,19 +71,16 @@ elif [ "$ACTION" = "test" ]; then
     fi
 
 elif [ "$ACTION" = "run" ]; then
-    echo "Running Gaze application..."
-    # First ensure we have a built app
-    if [ -d "build/Debug/Gaze.app" ]; then
+    echo "Building and running Gaze application..."
+    # Always build first, then run
+    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Build succeeded!"
         run_with_output "open -a \"Gaze\""
     else
-        echo "⚠️  No built app found. Building first..."
-        run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
-        if [ $? -eq 0 ]; then
-            run_with_output "open -a \"Gaze\""
-        else
-            echo "❌ Build failed during run attempt!"
-            exit 1
-        fi
+        echo "❌ Build failed!"
+        exit 1
     fi
     
 else

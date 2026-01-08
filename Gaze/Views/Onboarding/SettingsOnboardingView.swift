@@ -9,8 +9,6 @@ import SwiftUI
 
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
-    var onContinue: () -> Void
-    var onBack: (() -> Void)?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -116,34 +114,8 @@ struct SettingsOnboardingView: View {
             }
             
             Spacer()
-            
-            HStack(spacing: 12) {
-                if let onBack = onBack {
-                    Button(action: onBack) {
-                        HStack {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
-                        }
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive())
-                }
-                
-                Button(action: onContinue) {
-                    Text("Continue")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.tint(.blue).interactive())
-            }
-            .padding(.horizontal, 40)
         }
-        .frame(width: 600, height: 500)
+        .frame(width: 600, height: 450)
         .padding()
         .background(.clear)
     }
@@ -163,8 +135,6 @@ struct SettingsOnboardingView: View {
 
 #Preview {
     SettingsOnboardingView(
-        launchAtLogin: .constant(false),
-        onContinue: {},
-        onBack: {}
+        launchAtLogin: .constant(false)
     )
 }

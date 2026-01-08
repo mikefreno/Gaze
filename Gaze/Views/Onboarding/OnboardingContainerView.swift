@@ -1,18 +1,10 @@
-//
-//  OnboardingContainerView.swift
-//  Gaze
-//
-//  Created by Mike Freno on 1/7/26.
-//
-
-import SwiftUI
 import AppKit
+import SwiftUI
 
-// NSVisualEffectView wrapper for SwiftUI
 struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
-    
+
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
         view.material = material
@@ -20,7 +12,7 @@ struct VisualEffectView: NSViewRepresentable {
         view.state = .active
         return view
     }
-    
+
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
         nsView.material = material
         nsView.blendingMode = blendingMode
@@ -40,13 +32,11 @@ struct OnboardingContainerView: View {
     @State private var launchAtLogin = false
     @State private var isAnimatingOut = false
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ZStack {
-            // Semi-transparent background with blur
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
                 .ignoresSafeArea()
-            
             VStack(spacing: 0) {
                 TabView(selection: $currentPage) {
                     WelcomeView(
@@ -56,56 +46,47 @@ struct OnboardingContainerView: View {
                     .tabItem {
                         Image(systemName: "hand.wave.fill")
                     }
-                    
+
                     LookAwaySetupView(
                         enabled: $lookAwayEnabled,
                         intervalMinutes: $lookAwayIntervalMinutes,
-                        countdownSeconds: $lookAwayCountdownSeconds,
-                        onContinue: { currentPage = 2 },
-                        onBack: { currentPage = 0 }
+                        countdownSeconds: $lookAwayCountdownSeconds
                     )
                     .tag(1)
                     .tabItem {
                         Image(systemName: "eye.fill")
                     }
-                    
+
                     BlinkSetupView(
                         enabled: $blinkEnabled,
-                        intervalMinutes: $blinkIntervalMinutes,
-                        onContinue: { currentPage = 3 },
-                        onBack: { currentPage = 1 }
+                        intervalMinutes: $blinkIntervalMinutes
                     )
                     .tag(2)
                     .tabItem {
                         Image(systemName: "eye.circle.fill")
                     }
-                    
+
                     PostureSetupView(
                         enabled: $postureEnabled,
-                        intervalMinutes: $postureIntervalMinutes,
-                        onContinue: { currentPage = 4 },
-                        onBack: { currentPage = 2 }
+                        intervalMinutes: $postureIntervalMinutes
                     )
                     .tag(3)
                     .tabItem {
                         Image(systemName: "figure.stand")
                     }
-                    
+
                     SettingsOnboardingView(
-                        launchAtLogin: $launchAtLogin,
-                        onContinue: { currentPage = 5 },
-                        onBack: { currentPage = 3 }
+                        launchAtLogin: $launchAtLogin
                     )
                     .tag(4)
                     .tabItem {
                         Image(systemName: "gearshape.fill")
                     }
-                    
+
                     CompletionView(
                         onComplete: {
                             completeOnboarding()
-                        },
-                        onBack: { currentPage = 4 }
+                        }
                     )
                     .tag(5)
                     .tabItem {
@@ -113,12 +94,45 @@ struct OnboardingContainerView: View {
                     }
                 }
                 .tabViewStyle(.automatic)
+
+                if currentPage >= 1 {
+                    HStack(spacing: 12) {
+                        Button(action: { currentPage -= 1 }) {
+                            HStack {
+                                Image(systemName: "chevron.left")
+                                Text("Back")
+                            }
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.interactive())
+
+                        Button(action: {
+                            if currentPage == 5 {
+                                completeOnboarding()
+                            } else {
+                                currentPage += 1
+                            }
+                        }) {
+                            Text(currentPage == 5 ? "Get Started" : "Continue")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(.regular.tint(currentPage == 5 ? .green : .blue).interactive())
+                    }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 20)
+                }
             }
         }
         .opacity(isAnimatingOut ? 0 : 1)
         .scaleEffect(isAnimatingOut ? 0.3 : 1.0)
     }
-    
+
     private func completeOnboarding() {
         // Save settings
         settingsManager.settings.lookAwayTimer = TimerConfiguration(
@@ -126,20 +140,20 @@ struct OnboardingContainerView: View {
             intervalSeconds: lookAwayIntervalMinutes * 60
         )
         settingsManager.settings.lookAwayCountdownSeconds = lookAwayCountdownSeconds
-        
+
         settingsManager.settings.blinkTimer = TimerConfiguration(
             enabled: blinkEnabled,
             intervalSeconds: blinkIntervalMinutes * 60
         )
-        
+
         settingsManager.settings.postureTimer = TimerConfiguration(
             enabled: postureEnabled,
             intervalSeconds: postureIntervalMinutes * 60
         )
-        
+
         settingsManager.settings.launchAtLogin = launchAtLogin
         settingsManager.settings.hasCompletedOnboarding = true
-        
+
         // Apply launch at login setting
         do {
             if launchAtLogin {
@@ -150,23 +164,27 @@ struct OnboardingContainerView: View {
         } catch {
             print("Failed to set launch at login: \(error)")
         }
-        
+
         // Perform vacuum animation
         performVacuumAnimation()
     }
-    
+
     private func performVacuumAnimation() {
         // Get the NSWindow reference
-        guard let window = NSApplication.shared.windows.first(where: { $0.isVisible && $0.contentView != nil }) else {
+        guard
+            let window = NSApplication.shared.windows.first(where: {
+                $0.isVisible && $0.contentView != nil
+            })
+        else {
             // Fallback: just dismiss without animation
             dismiss()
             return
         }
-        
+
         // Get menubar icon position from AppDelegate
         let appDelegate = NSApplication.shared.delegate as? AppDelegate
         let targetFrame = appDelegate?.getMenuBarIconPosition()
-        
+
         // Calculate target position (menubar icon or top-center as fallback)
         let targetRect: NSRect
         if let menuBarFrame = targetFrame {
@@ -187,26 +205,24 @@ struct OnboardingContainerView: View {
                 height: 0
             )
         }
-        
+
         // Start SwiftUI animation for visual effects
         withAnimation(.easeInOut(duration: 0.7)) {
             isAnimatingOut = true
         }
-        
-        // Animate window frame using AppKit
-        NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.7
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            window.animator().setFrame(targetRect, display: true)
-            window.animator().alphaValue = 0
-        }, completionHandler: {
-            // Close window after animation completes
-            self.dismiss()
-            window.close()
-        })
-    }
-}
 
-#Preview {
-    OnboardingContainerView(settingsManager: SettingsManager.shared)
+        // Animate window frame using AppKit
+        NSAnimationContext.runAnimationGroup(
+            { context in
+                context.duration = 0.7
+                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+                window.animator().setFrame(targetRect, display: true)
+                window.animator().alphaValue = 0
+            },
+            completionHandler: {
+                // Close window after animation completes
+                self.dismiss()
+                window.close()
+            })
+    }
 }

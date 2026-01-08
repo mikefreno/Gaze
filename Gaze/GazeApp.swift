@@ -9,9 +9,20 @@ import SwiftUI
 
 @main
 struct GazeApp: App {
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var settingsManager = SettingsManager.shared
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if settingsManager.settings.hasCompletedOnboarding {
+                EmptyView()
+            } else {
+                OnboardingContainerView(settingsManager: settingsManager)
+            }
+        }
+        .windowStyle(.hiddenTitleBar)
+        .commands {
+            CommandGroup(replacing: .newItem) { }
         }
     }
 }

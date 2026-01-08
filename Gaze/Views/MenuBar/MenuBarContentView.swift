@@ -30,7 +30,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.blue.opacity(0.55) : Color.clear)
+                    .fill(isHovered ? Color.blue.opacity(0.35) : Color.clear)
             )
             .contentShape(Rectangle())
             .onHover { hovering in
@@ -152,7 +152,8 @@ struct TimerStatusRow: View {
     let type: TimerType
     let state: TimerState
     var onSkip: () -> Void
-    @State private var isHovered = false
+    @State private var isHoveredSkip = false
+    @State private var isHoveredBody = false
 
     var body: some View {
         HStack {
@@ -179,15 +180,21 @@ struct TimerStatusRow: View {
                     .padding(6)
                     .background(
                         Circle()
-                            .fill(isHovered ? Color.blue.opacity(0.1) : Color.clear)
+                            .fill(isHoveredSkip ? Color.blue.opacity(0.35) : Color.clear)
                     )
             }
             .buttonStyle(.plain)
             .help("Skip to next \(type.displayName) reminder")
             .onHover { hovering in
-                isHovered = hovering
+                isHoveredSkip = hovering
             }
         }
+        .onHover { hovering in
+            isHoveredBody = hovering
+        }.background(
+            RoundedRectangle(cornerRadius: 6).fill(
+                isHoveredBody ? Color.blue.opacity(0.35) : Color.clear)
+        )
         .padding(.horizontal)
         .padding(.vertical, 4)
     }

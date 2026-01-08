@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var reminderWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var timerStateBeforeSleep: [TimerType: Date] = [:]
+    private var hasStartedTimers = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         settingsManager = SettingsManager.shared
@@ -25,12 +26,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         setupMenuBar()
         setupLifecycleObservers()
+        observeSettingsChanges()
         
         // Start timers if onboarding is complete
         if settingsManager!.settings.hasCompletedOnboarding {
-            timerEngine?.start()
-            observeReminderEvents()
+            startTimers()
         }
+    }
+    
+    func onboardingCompleted() {
+        startTimers()
+    }
+    
+    private func startTimers() {
+        guard !hasStartedTimers else { return }
+        hasStartedTimers = true
+        timerEngine?.start()
+        observeReminderEvents()
+    }
+    
+    private func observeSettingsChanges() {
+        settingsManager?.$settings
+            .sink { [weak self] settings in
+                if settings.hasCompletedOnboarding {
+                    self?.startTimers()
+                }
+            }
+            .store(in: &cancellables)
     }
     
     func applicationWillTerminate(_ notification: Notification) {

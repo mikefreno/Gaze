@@ -6,6 +6,11 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
 struct LookAwaySetupView: View {
     @Binding var enabled: Bool
@@ -21,9 +26,7 @@ struct LookAwaySetupView: View {
             Text("Look Away Reminder")
                 .font(.system(size: 28, weight: .bold))
             
-            Text("Follow the 20-20-20 rule")
-                .font(.title3)
-                .foregroundColor(.secondary)
+            InfoBox(text: "Suggested: 20-20-20 rule")
             
             VStack(alignment: .leading, spacing: 20) {
                 Toggle("Enable Look Away Reminders", isOn: $enabled)
@@ -66,7 +69,7 @@ struct LookAwaySetupView: View {
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
             
-            InfoBox(text: "Every \(intervalMinutes) minutes, look in the distance for \(countdownSeconds) seconds to reduce eye strain")
+            Text("You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds")
             
             Spacer()
         }
@@ -81,11 +84,21 @@ struct InfoBox: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: "info.circle")
-                .foregroundColor(.blue)
+            Button(action: {
+                if let url = URL(string: "https://www.healthline.com/health/eye-health/20-20-20-rule") {
+                    #if os(iOS)
+                    UIApplication.shared.open(url)
+                    #elseif os(macOS)
+                    NSWorkspace.shared.open(url)
+                    #endif
+                }
+            }) {
+                Image(systemName: "info.circle")
+                    .foregroundColor(.white)
+            }.buttonStyle(.plain)
             Text(text)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(.headline)
+                .foregroundColor(.white)
         }
         .padding()
         .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 8))

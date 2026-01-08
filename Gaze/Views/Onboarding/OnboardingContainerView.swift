@@ -39,13 +39,11 @@ struct OnboardingContainerView: View {
                 .ignoresSafeArea()
             VStack(spacing: 0) {
                 TabView(selection: $currentPage) {
-                    WelcomeView(
-                        onContinue: { currentPage = 1 }
-                    )
-                    .tag(0)
-                    .tabItem {
-                        Image(systemName: "hand.wave.fill")
-                    }
+                    WelcomeView()
+                        .tag(0)
+                        .tabItem {
+                            Image(systemName: "hand.wave.fill")
+                        }
 
                     LookAwaySetupView(
                         enabled: $lookAwayEnabled,
@@ -83,31 +81,31 @@ struct OnboardingContainerView: View {
                         Image(systemName: "gearshape.fill")
                     }
 
-                    CompletionView(
-                        onComplete: {
-                            completeOnboarding()
+                    CompletionView()
+                        .tag(5)
+                        .tabItem {
+                            Image(systemName: "checkmark.circle.fill")
                         }
-                    )
-                    .tag(5)
-                    .tabItem {
-                        Image(systemName: "checkmark.circle.fill")
-                    }
                 }
                 .tabViewStyle(.automatic)
 
-                if currentPage >= 1 {
+                if currentPage >= 0 {
                     HStack(spacing: 12) {
-                        Button(action: { currentPage -= 1 }) {
-                            HStack {
-                                Image(systemName: "chevron.left")
-                                Text("Back")
+                        if currentPage > 0 {
+                            Button(action: { currentPage -= 1 }) {
+                                HStack {
+                                    Image(systemName: "chevron.left")
+                                    Text("Back")
+                                }
+                                .font(.headline)
+                                .frame(
+                                    minWidth: 100, maxWidth: .infinity, minHeight: 44,
+                                    maxHeight: 44, alignment: .center
+                                )
+                                .foregroundColor(.white)
                             }
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
+                            .glassEffect(.regular.interactive())
                         }
-                        .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive())
 
                         Button(action: {
                             if currentPage == 5 {
@@ -116,12 +114,18 @@ struct OnboardingContainerView: View {
                                 currentPage += 1
                             }
                         }) {
-                            Text(currentPage == 5 ? "Get Started" : "Continue")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                                .padding()
+                            Text(
+                                currentPage == 0
+                                    ? "Let's Get Started"
+                                    : currentPage == 5 ? "Get Started" : "Continue"
+                            )
+                            .font(.headline)
+                            .frame(
+                                minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44,
+                                alignment: .center
+                            )
+                            .foregroundColor(.white)
                         }
-                        .buttonStyle(.plain)
                         .glassEffect(.regular.tint(currentPage == 5 ? .green : .blue).interactive())
                     }
                     .padding(.horizontal, 40)
@@ -225,4 +229,7 @@ struct OnboardingContainerView: View {
                 window.close()
             })
     }
+}
+#Preview {
+    OnboardingContainerView(s)
 }

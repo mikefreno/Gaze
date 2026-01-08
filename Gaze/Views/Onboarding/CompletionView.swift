@@ -8,8 +8,6 @@
 import SwiftUI
 
 struct CompletionView: View {
-    var onComplete: () -> Void
-    
     var body: some View {
         VStack(spacing: 30) {
             Spacer()
@@ -71,5 +69,5 @@ struct CompletionView: View {
 }
 
 #Preview {
-    CompletionView(onComplete: {})
+    CompletionView()
 }

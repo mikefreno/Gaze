@@ -7,11 +7,23 @@
 
 import Foundation
 
+// MARK: - Centralized Configuration System
+
+/// Unified configuration class that manages all app settings in a centralized way
 struct AppSettings: Codable, Equatable {
+    // Timer configurations
     var lookAwayTimer: TimerConfiguration
     var lookAwayCountdownSeconds: Int
     var blinkTimer: TimerConfiguration
     var postureTimer: TimerConfiguration
+    
+    // User-defined timers (up to 3)
+    var userTimers: [UserTimer]
+    
+    // UI and display settings
+    var subtleReminderSizePercentage: Double  // 2-35% of screen width
+    
+    // App state and behavior
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
     var playSounds: Bool
@@ -20,8 +32,10 @@ struct AppSettings: Codable, Equatable {
         AppSettings(
             lookAwayTimer: TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),
             lookAwayCountdownSeconds: 20,
-            blinkTimer: TimerConfiguration(enabled: true, intervalSeconds: 5 * 60),
+            blinkTimer: TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
             postureTimer: TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
+            userTimers: [],
+            subtleReminderSizePercentage: 5.0,
             hasCompletedOnboarding: false,
             launchAtLogin: false,
             playSounds: true
@@ -33,6 +47,8 @@ struct AppSettings: Codable, Equatable {
         lhs.lookAwayCountdownSeconds == rhs.lookAwayCountdownSeconds &&
         lhs.blinkTimer == rhs.blinkTimer &&
         lhs.postureTimer == rhs.postureTimer &&
+        lhs.userTimers == rhs.userTimers &&
+        lhs.subtleReminderSizePercentage == rhs.subtleReminderSizePercentage &&
         lhs.hasCompletedOnboarding == rhs.hasCompletedOnboarding &&
         lhs.launchAtLogin == rhs.launchAtLogin &&
         lhs.playSounds == rhs.playSounds

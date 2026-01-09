@@ -48,6 +48,7 @@ struct MenuBarContentView: View {
     @ObservedObject var settingsManager: SettingsManager
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
+    var onOpenSettingsTab: (Int) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -65,33 +66,41 @@ struct MenuBarContentView: View {
             Divider()
 
             // Timer Status
-            if !timerEngine.timerStates.isEmpty {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Active Timers")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                        .padding(.top, 8)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Active Timers")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
 
-                    ForEach(TimerType.allCases) { timerType in
-                        if let state = timerEngine.timerStates[timerType] {
-                            TimerStatusRow(
-                                type: timerType,
-                                state: state,
-                                onSkip: {
-                                    timerEngine.skipNext(type: timerType)
-                                },
-                                onDevTrigger: {
-                                    timerEngine.triggerReminder(for: timerType)
-                                }
-                            )
-                        }
+                ForEach(TimerType.allCases) { timerType in
+                    if let state = timerEngine.timerStates[timerType] {
+                        TimerStatusRow(
+                            type: timerType,
+                            state: state,
+                            onSkip: {
+                                timerEngine.skipNext(type: timerType)
+                            },
+                            onDevTrigger: {
+                                timerEngine.triggerReminder(for: timerType)
+                            },
+                            onTap: {
+                                onOpenSettingsTab(timerType.tabIndex)
+                            }
+                        )
+                    } else {
+                        InactiveTimerRow(
+                            type: timerType,
+                            onTap: {
+                                onOpenSettingsTab(timerType.tabIndex)
+                            }
+                        )
                     }
                 }
-                .padding(.bottom, 8)
-
-                Divider()
             }
+            .padding(.bottom, 8)
+
+            Divider()
 
             // Controls
             VStack(spacing: 4) {
@@ -158,74 +167,85 @@ struct TimerStatusRow: View {
     let state: TimerState
     var onSkip: () -> Void
     var onDevTrigger: (() -> Void)? = nil
+    var onTap: (() -> Void)? = nil
     @State private var isHoveredSkip = false
     @State private var isHoveredDevTrigger = false
     @State private var isHoveredBody = false
 
     var body: some View {
-        HStack {
-            Image(systemName: type.iconName)
-                .foregroundColor(iconColor)
-                .frame(width: 20)
+        Button(action: {
+            onTap?()
+        }) {
+            HStack {
+                Image(systemName: type.iconName)
+                    .foregroundColor(iconColor)
+                    .frame(width: 20)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(type.displayName)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                Text(timeRemaining)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .monospacedDigit()
-            }
-
-            Spacer()
-
-            #if DEBUG
-                if let onDevTrigger = onDevTrigger {
-                    Button(action: onDevTrigger) {
-                        Image(systemName: "bolt.fill")
-                            .font(.caption)
-                            .foregroundColor(.yellow)
-                            .padding(6)
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(
-                        isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
-                        in: .circle
-                    )
-                    .help("Trigger \(type.displayName) reminder now (dev)")
-                    .onHover { hovering in
-                        isHoveredDevTrigger = hovering
-                    }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(type.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text(timeRemaining)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .monospacedDigit()
                 }
-            #endif
 
-            Button(action: onSkip) {
-                Image(systemName: "forward.fill")
-                    .font(.caption)
-                    .foregroundColor(.accentColor)
-                    .padding(6)
+                Spacer()
+
+                #if DEBUG
+                    if let onDevTrigger = onDevTrigger {
+                        Button(action: onDevTrigger) {
+                            Image(systemName: "bolt.fill")
+                                .font(.caption)
+                                .foregroundColor(.yellow)
+                                .padding(6)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffect(
+                            isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
+                            in: .circle
+                        )
+                        .help("Trigger \(type.displayName) reminder now (dev)")
+                        .onHover { hovering in
+                            isHoveredDevTrigger = hovering
+                        }
+                    }
+                #endif
+
+                Button(action: onSkip) {
+                    Image(systemName: "forward.fill")
+                        .font(.caption)
+                        .foregroundColor(.accentColor)
+                        .padding(6)
+                }
+                .buttonStyle(.plain)
+                .glassEffect(
+                    isHoveredSkip ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+                    in: .circle
+                )
+                .help("Skip to next \(type.displayName) reminder")
+                .onHover { hovering in
+                    isHoveredSkip = hovering
+                }
             }
-            .buttonStyle(.plain)
-            .glassEffect(
-                isHoveredSkip ? .regular.tint(.accentColor) : .regular,
-                in: .circle
-            )
-            .help("Skip to next \(type.displayName) reminder")
-            .onHover { hovering in
-                isHoveredSkip = hovering
-            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .buttonStyle(.plain)
         .glassEffect(
-            isHoveredBody ? .regular.tint(.accentColor) : .regular,
+            isHoveredBody ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
         .onHover { hovering in
             isHoveredBody = hovering
         }
+        .help(tooltipText)
+    }
+
+    private var tooltipText: String {
+        type.tooltipText
     }
 
     private var iconColor: Color {
@@ -253,6 +273,48 @@ struct TimerStatusRow: View {
     }
 }
 
+struct InactiveTimerRow: View {
+    let type: TimerType
+    var onTap: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: type.iconName)
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(type.displayName)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "plus.circle")
+                    .font(.title3)
+                    .foregroundColor(.accentColor)
+                    .padding(6)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(
+            isHovered ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+            in: .rect(cornerRadius: 6)
+        )
+        .padding(.horizontal, 8)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .help("Enable \(type.displayName) reminders")
+    }
+}
+
 #Preview("Menu Bar Content") {
     let settingsManager = SettingsManager.shared
     let timerEngine = TimerEngine(settingsManager: settingsManager)
@@ -260,6 +322,7 @@ struct TimerStatusRow: View {
         timerEngine: timerEngine,
         settingsManager: settingsManager,
         onQuit: {},
-        onOpenSettings: {}
+        onOpenSettings: {},
+        onOpenSettingsTab: { _ in }
     )
 }

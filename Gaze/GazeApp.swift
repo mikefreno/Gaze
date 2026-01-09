@@ -42,7 +42,8 @@ struct GazeApp: App {
                     timerEngine: timerEngine,
                     settingsManager: settingsManager,
                     onQuit: { NSApplication.shared.terminate(nil) },
-                    onOpenSettings: { appDelegate.openSettings() }
+                    onOpenSettings: { appDelegate.openSettings() },
+                    onOpenSettingsTab: { tab in appDelegate.openSettings(tab: tab) }
                 )
             }
         }

@@ -41,7 +41,7 @@ struct LookAwayReminderView: View {
                 LottieView(
                     animationName: AnimationAsset.lookAway.fileName,
                     loopMode: .loop,
-                    animationSpeed: 1.0
+                    animationSpeed: 0.75
                 )
                 .frame(width: 200, height: 200)
                 .padding(.vertical, 30)

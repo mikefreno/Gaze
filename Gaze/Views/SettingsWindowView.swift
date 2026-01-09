@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsWindowView: View {
     @ObservedObject var settingsManager: SettingsManager
-    @State private var currentTab = 0
+    @State private var currentTab: Int
     @State private var lookAwayEnabled: Bool
     @State private var lookAwayIntervalMinutes: Int
     @State private var lookAwayCountdownSeconds: Int
@@ -19,9 +19,10 @@ struct SettingsWindowView: View {
     @State private var postureIntervalMinutes: Int
     @State private var launchAtLogin: Bool
     
-    init(settingsManager: SettingsManager) {
+    init(settingsManager: SettingsManager, initialTab: Int = 0) {
         self.settingsManager = settingsManager
         
+        _currentTab = State(initialValue: initialTab)
         _lookAwayEnabled = State(initialValue: settingsManager.settings.lookAwayTimer.enabled)
         _lookAwayIntervalMinutes = State(initialValue: settingsManager.settings.lookAwayTimer.intervalSeconds / 60)
         _lookAwayCountdownSeconds = State(initialValue: settingsManager.settings.lookAwayCountdownSeconds)

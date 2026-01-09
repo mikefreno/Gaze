@@ -187,7 +187,7 @@ private func showReminderWindow(_ content: AnyView) {
     }
     
     // Public method to open settings window
-    func openSettings() {
+    func openSettings(tab: Int = 0) {
         // If window already exists, just bring it to front
         if let existingWindow = settingsWindowController?.window {
             existingWindow.makeKeyAndOrderFront(nil)
@@ -207,7 +207,7 @@ private func showReminderWindow(_ content: AnyView) {
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(
-            rootView: SettingsWindowView(settingsManager: settingsManager!)
+            rootView: SettingsWindowView(settingsManager: settingsManager!, initialTab: tab)
         )
         
         let windowController = NSWindowController(window: window)

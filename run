@@ -8,6 +8,22 @@ ACTION=${1:-run}
 VERBOSE=false
 OUTPUT_FILE=""
 
+# Function to kill any existing Gaze processes
+kill_existing_gaze_processes() {
+    echo "🔍 Checking for existing Gaze processes..."
+    
+    # Find and kill any running Gaze processes
+    pids=$(pgrep -f "Gaze.app")
+    if [ -n "$pids" ]; then
+        echo "🛑 Killing existing Gaze processes (PID(s): $pids)..."
+        kill $pids 2>/dev/null
+        # Wait a moment for processes to terminate
+        sleep 1
+    else
+        echo "✅ No existing Gaze processes found"
+    fi
+}
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -72,6 +88,10 @@ elif [ "$ACTION" = "test" ]; then
 
 elif [ "$ACTION" = "run" ]; then
     echo "Building and running Gaze application..."
+    
+    # Kill any existing Gaze processes first
+    kill_existing_gaze_processes
+    
     # Always build first, then run
     run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
     

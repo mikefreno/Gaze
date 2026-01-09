@@ -35,4 +35,26 @@ enum TimerType: String, Codable, CaseIterable, Identifiable {
             return "figure.stand"
         }
     }
+    
+    var tabIndex: Int {
+        switch self {
+        case .lookAway:
+            return 0
+        case .blink:
+            return 1
+        case .posture:
+            return 2
+        }
+    }
+    
+    var tooltipText: String {
+        switch self {
+        case .lookAway:
+            return "Full screen reminder"
+        case .blink:
+            return "Subtle reminder"
+        case .posture:
+            return "Subtle reminder"
+        }
+    }
 }

@@ -25,7 +25,7 @@ struct OnboardingContainerView: View {
     @State private var lookAwayEnabled = true
     @State private var lookAwayIntervalMinutes = 20
     @State private var lookAwayCountdownSeconds = 20
-    @State private var blinkEnabled = true
+    @State private var blinkEnabled = false
     @State private var blinkIntervalMinutes = 5
     @State private var postureEnabled = true
     @State private var postureIntervalMinutes = 30

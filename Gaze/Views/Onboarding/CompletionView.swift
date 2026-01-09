@@ -32,7 +32,7 @@ struct CompletionView: View {
                 
                 HStack(spacing: 16) {
                     Image(systemName: "menubar.rectangle")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.accentColor)
                         .frame(width: 30)
                     Text("Gaze will appear in your menu bar")
                         .font(.subheadline)
@@ -41,7 +41,7 @@ struct CompletionView: View {
                 
                 HStack(spacing: 16) {
                     Image(systemName: "clock")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.accentColor)
                         .frame(width: 30)
                     Text("Timers will start automatically")
                         .font(.subheadline)
@@ -50,7 +50,7 @@ struct CompletionView: View {
                 
                 HStack(spacing: 16) {
                     Image(systemName: "gearshape")
-                        .foregroundColor(.blue)
+                        .foregroundColor(.accentColor)
                         .frame(width: 30)
                     Text("Adjust settings anytime from the menu bar")
                         .font(.subheadline)

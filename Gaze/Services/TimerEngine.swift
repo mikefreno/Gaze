@@ -99,7 +99,7 @@ class TimerEngine: ObservableObject {
         }
     }
     
-    private func triggerReminder(for type: TimerType) {
+    func triggerReminder(for type: TimerType) {
         switch type {
         case .lookAway:
             pause()

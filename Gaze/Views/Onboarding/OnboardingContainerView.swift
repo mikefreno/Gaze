@@ -127,7 +127,7 @@ struct OnboardingContainerView: View {
                             .foregroundColor(.white)
                         }
                         .glassEffect(
-                            .regular.tint(currentPage == 5 ? .green : .blue).interactive(),
+                            .regular.tint(currentPage == 5 ? .green : .accentColor).interactive(),
                             in: .rect(cornerRadius: 10))
                     }
                     .padding(.horizontal, 40)

@@ -16,7 +16,7 @@ struct AnimatedFaceView: View {
         ZStack {
             // Face circle
             Circle()
-                .fill(Color.yellow)
+                .stroke(Color.accentColor, lineWidth: size * 0.04)
                 .frame(width: size, height: size)
             
             // Eyes
@@ -28,7 +28,7 @@ struct AnimatedFaceView: View {
             
             // Smile
             Arc(startAngle: .degrees(20), endAngle: .degrees(160), clockwise: false)
-                .stroke(Color.black, lineWidth: size * 0.05)
+                .stroke(Color.accentColor, lineWidth: size * 0.04)
                 .frame(width: size * 0.5, height: size * 0.3)
                 .offset(y: size * 0.15)
         }
@@ -75,12 +75,12 @@ struct Eye: View {
     var body: some View {
         ZStack {
             Circle()
-                .fill(Color.white)
+                .stroke(Color.accentColor, lineWidth: size * 0.15)
                 .frame(width: size, height: size)
             
             Circle()
-                .fill(Color.black)
-                .frame(width: size * 0.5, height: size * 0.5)
+                .fill(Color.accentColor)
+                .frame(width: size * 0.3, height: size * 0.3)
                 .offset(offset)
         }
     }

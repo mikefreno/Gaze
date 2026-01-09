@@ -14,7 +14,7 @@ struct WelcomeView: View {
 
             Image(systemName: "eye.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(.accentColor)
 
             Text("Welcome to Gaze")
                 .font(.system(size: 36, weight: .bold))
@@ -48,7 +48,7 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.blue)
+                .foregroundColor(.accentColor)
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {

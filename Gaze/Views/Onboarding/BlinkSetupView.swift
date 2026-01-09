@@ -47,7 +47,7 @@ struct BlinkSetupView: View {
                 .foregroundColor(.white)
             }
             .padding()
-            .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 8))
+            .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 20) {
                 Toggle("Enable Blink Reminders", isOn: $enabled)

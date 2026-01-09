@@ -22,7 +22,7 @@ struct LookAwaySetupView: View {
         VStack(spacing: 30) {
             Image(systemName: "eye.fill")
                 .font(.system(size: 60))
-                .foregroundColor(.blue)
+                .foregroundColor(.accentColor)
 
             Text("Look Away Reminder")
                 .font(.system(size: 28, weight: .bold))
@@ -48,7 +48,7 @@ struct LookAwaySetupView: View {
                     .foregroundColor(.white)
             }
             .padding()
-            .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 8))
+            .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
             VStack(alignment: .leading, spacing: 20) {
                 Toggle("Enable Look Away Reminders", isOn: $enabled)

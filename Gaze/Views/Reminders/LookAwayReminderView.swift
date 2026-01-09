@@ -46,7 +46,7 @@ struct LookAwayReminderView: View {
                     
                     Circle()
                         .trim(from: 0, to: progress)
-                        .stroke(Color.blue, lineWidth: 8)
+                        .stroke(Color.accentColor, lineWidth: 8)
                         .frame(width: 120, height: 120)
                         .rotationEffect(.degrees(-90))
                         .animation(.linear(duration: 1), value: progress)

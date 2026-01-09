@@ -16,7 +16,7 @@ struct SettingsOnboardingView: View {
 
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 80))
-                .foregroundColor(.blue)
+                .foregroundColor(.accentColor)
 
             Text("Final Settings")
                 .font(.system(size: 36, weight: .bold))

@@ -14,7 +14,7 @@ struct MenuBarButtonStyle: ButtonStyle {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(
-                        configuration.isPressed ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1)
+                        configuration.isPressed ? Color.accentColor.opacity(0.2) : Color.gray.opacity(0.1)
                     )
                     .opacity(configuration.isPressed ? 1 : 0)
             )
@@ -30,7 +30,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
         configuration.label
             .background(
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.blue.opacity(0.35) : Color.clear)
+                    .fill(isHovered ? Color.accentColor.opacity(0.35) : Color.clear)
             )
             .contentShape(Rectangle())
             .onHover { hovering in
@@ -54,7 +54,7 @@ struct MenuBarContentView: View {
             HStack {
                 Image(systemName: "eye.fill")
                     .font(.title2)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.accentColor)
                 Text("Gaze")
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -79,6 +79,9 @@ struct MenuBarContentView: View {
                                 state: state,
                                 onSkip: {
                                     timerEngine.skipNext(type: timerType)
+                                },
+                                onDevTrigger: {
+                                    timerEngine.triggerReminder(for: timerType)
                                 }
                             )
                         }
@@ -153,7 +156,9 @@ struct TimerStatusRow: View {
     let type: TimerType
     let state: TimerState
     var onSkip: () -> Void
+    var onDevTrigger: (() -> Void)? = nil
     @State private var isHoveredSkip = false
+    @State private var isHoveredDevTrigger = false
     @State private var isHoveredBody = false
 
     var body: some View {
@@ -174,14 +179,34 @@ struct TimerStatusRow: View {
 
             Spacer()
 
+            #if DEBUG
+            if let onDevTrigger = onDevTrigger {
+                Button(action: onDevTrigger) {
+                    Image(systemName: "bolt.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                        .padding(6)
+                        .background(
+                            Circle()
+                                .fill(isHoveredDevTrigger ? Color.yellow.opacity(0.35) : Color.clear)
+                        )
+                }
+                .buttonStyle(.plain)
+                .help("Trigger \(type.displayName) reminder now (dev)")
+                .onHover { hovering in
+                    isHoveredDevTrigger = hovering
+                }
+            }
+            #endif
+
             Button(action: onSkip) {
                 Image(systemName: "forward.fill")
                     .font(.caption)
-                    .foregroundColor(.blue)
+                    .foregroundColor(.accentColor)
                     .padding(6)
                     .background(
                         Circle()
-                            .fill(isHoveredSkip ? Color.blue.opacity(0.35) : Color.clear)
+                            .fill(isHoveredSkip ? Color.accentColor.opacity(0.35) : Color.clear)
                     )
             }
             .buttonStyle(.plain)
@@ -194,7 +219,7 @@ struct TimerStatusRow: View {
             isHoveredBody = hovering
         }.background(
             RoundedRectangle(cornerRadius: 6).fill(
-                isHoveredBody ? Color.blue.opacity(0.35) : Color.clear)
+                isHoveredBody ? Color.accentColor.opacity(0.35) : Color.clear)
         )
         .padding(.horizontal)
         .padding(.vertical, 4)
@@ -202,7 +227,7 @@ struct TimerStatusRow: View {
 
     private var iconColor: Color {
         switch type {
-        case .lookAway: return .blue
+        case .lookAway: return .accentColor
         case .blink: return .green
         case .posture: return .orange
         }

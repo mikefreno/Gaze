@@ -188,30 +188,14 @@ struct OnboardingContainerView: View {
             return
         }
 
-        // Get menubar icon position from AppDelegate
-        let appDelegate = NSApplication.shared.delegate as? AppDelegate
-        let targetFrame = appDelegate?.getMenuBarIconPosition()
-
-        // Calculate target position (menubar icon or top-center as fallback)
-        let targetRect: NSRect
-        if let menuBarFrame = targetFrame {
-            // Use menubar icon position
-            targetRect = NSRect(
-                x: menuBarFrame.midX,
-                y: menuBarFrame.midY,
-                width: 0,
-                height: 0
-            )
-        } else {
-            // Fallback to top-center of screen
-            let screen = NSScreen.main?.frame ?? .zero
-            targetRect = NSRect(
-                x: screen.midX,
-                y: screen.maxY,
-                width: 0,
-                height: 0
-            )
-        }
+        // Calculate target position (top-center of screen where menu bar is)
+        let screen = NSScreen.main?.frame ?? .zero
+        let targetRect = NSRect(
+            x: screen.midX,
+            y: screen.maxY,
+            width: 0,
+            height: 0
+        )
 
         // Start SwiftUI animation for visual effects
         withAnimation(.easeInOut(duration: 0.7)) {

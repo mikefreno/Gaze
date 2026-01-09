@@ -13,6 +13,7 @@ struct GazeApp: App {
     @StateObject private var settingsManager = SettingsManager.shared
     
     var body: some Scene {
+        // Onboarding window (only shown when not completed)
         WindowGroup {
             if settingsManager.settings.hasCompletedOnboarding {
                 EmptyView()
@@ -33,6 +34,19 @@ struct GazeApp: App {
         .commands {
             CommandGroup(replacing: .newItem) { }
         }
+        
+        // Menu bar extra (always present once onboarding is complete)
+        MenuBarExtra("Gaze", systemImage: "eye.fill") {
+            if let timerEngine = appDelegate.timerEngine {
+                MenuBarContentView(
+                    timerEngine: timerEngine,
+                    settingsManager: settingsManager,
+                    onQuit: { NSApplication.shared.terminate(nil) },
+                    onOpenSettings: { appDelegate.openSettings() }
+                )
+            }
+        }
+        .menuBarExtraStyle(.window)
     }
     
     private func closeAllWindows() {

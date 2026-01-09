@@ -12,8 +12,6 @@ import Combine
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     var timerEngine: TimerEngine?
-    private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
     private var settingsManager: SettingsManager?
     private var reminderWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
@@ -28,7 +26,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsManager = SettingsManager.shared
         timerEngine = TimerEngine(settingsManager: settingsManager!)
         
-        setupMenuBar()
         setupLifecycleObservers()
         observeSettingsChanges()
         
@@ -40,48 +37,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func onboardingCompleted() {
         startTimers()
-    }
-    
-    private func setupMenuBar() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
-        if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Gaze")
-            button.action = #selector(togglePopover)
-            button.target = self
-        }
-    }
-    
-    @objc private func togglePopover() {
-        if let popover = popover, popover.isShown {
-            popover.close()
-        } else {
-            showPopover()
-        }
-    }
-    
-    private func showPopover() {
-        // Reuse existing popover or create new one
-        if popover == nil {
-            let newPopover = NSPopover()
-            newPopover.contentSize = NSSize(width: 300, height: 400)
-            newPopover.behavior = .transient
-            popover = newPopover
-        }
-        
-        // Always set fresh content
-        popover?.contentViewController = NSHostingController(
-            rootView: MenuBarContentView(
-                timerEngine: timerEngine!,
-                settingsManager: settingsManager!,
-                onQuit: { NSApplication.shared.terminate(nil) },
-                onOpenSettings: { [weak self] in self?.openSettings() }
-            )
-        )
-        
-        if let button = statusItem?.button {
-            popover?.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
     }
     
     private func startTimers() {
@@ -224,11 +179,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func dismissReminder() {
         reminderWindowController?.close()
         reminderWindowController = nil
-    }
-    
-    // Public method to get menubar icon position for animations
-    func getMenuBarIconPosition() -> NSRect? {
-        return statusItem?.button?.window?.frame
     }
     
     // Public method to open settings window

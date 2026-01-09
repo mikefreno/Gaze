@@ -6,10 +6,10 @@
 //
 
 import SwiftUI
+import Combine
 
 struct AnimatedFaceView: View {
     @State private var eyeOffset: CGSize = .zero
-    @State private var animationStep = 0
     let size: CGFloat
     
     var body: some View {
@@ -38,32 +38,26 @@ struct AnimatedFaceView: View {
     }
     
     private func startAnimation() {
-        let sequence: [CGSize] = [
-            .zero,                              // Center
-            CGSize(width: -15, height: 0),      // Left
-            .zero,                              // Center
-            CGSize(width: 15, height: 0),       // Right
-            .zero,                              // Center
-            CGSize(width: 0, height: -10),      // Up
-            .zero                               // Center
-        ]
-        
-        animateSequence(sequence, index: 0)
+        // Continuous eye movement animation using spring
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            animateEyeMovement()
+        }
     }
     
-    private func animateSequence(_ sequence: [CGSize], index: Int) {
-        guard index < sequence.count else {
-            // Loop the animation
-            animateSequence(sequence, index: 0)
-            return
+    private func animateEyeMovement() {
+        // Random, smooth eye movement using spring animation for natural effect
+        let randomOffset = CGSize(
+            width: CGFloat.random(in: -10...10),
+            height: CGFloat.random(in: -5...5)
+        )
+        
+        withAnimation(.spring(duration: 1.2, bounce: 0.2)) {
+            eyeOffset = randomOffset
         }
         
-        withAnimation(.easeInOut(duration: 0.8)) {
-            eyeOffset = sequence[index]
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            animateSequence(sequence, index: index + 1)
+        // Schedule next animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            animateEyeMovement()
         }
     }
 }

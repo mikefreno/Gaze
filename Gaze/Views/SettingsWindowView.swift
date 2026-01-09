@@ -95,6 +95,11 @@ struct SettingsWindowView: View {
             .padding()
         }
         .frame(width: 600, height: 550)
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))) { notification in
+            if let tab = notification.object as? Int {
+                currentTab = tab
+            }
+        }
     }
     
     private func applySettings() {

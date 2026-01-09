@@ -188,8 +188,12 @@ private func showReminderWindow(_ content: AnyView) {
     
     // Public method to open settings window
     func openSettings(tab: Int = 0) {
-        // If window already exists, just bring it to front
+        // If window already exists, switch to the tab and bring it to front
         if let existingWindow = settingsWindowController?.window {
+            NotificationCenter.default.post(
+                name: Notification.Name("SwitchToSettingsTab"),
+                object: tab
+            )
             existingWindow.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
             return

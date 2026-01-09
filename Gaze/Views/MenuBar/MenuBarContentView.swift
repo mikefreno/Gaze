@@ -173,9 +173,7 @@ struct TimerStatusRow: View {
     @State private var isHoveredBody = false
 
     var body: some View {
-        Button(action: {
-            onTap?()
-        }) {
+        HStack {
             HStack {
                 Image(systemName: type.iconName)
                     .foregroundColor(iconColor)
@@ -190,51 +188,54 @@ struct TimerStatusRow: View {
                         .foregroundColor(.secondary)
                         .monospacedDigit()
                 }
-
+                
                 Spacer()
-
-                #if DEBUG
-                    if let onDevTrigger = onDevTrigger {
-                        Button(action: onDevTrigger) {
-                            Image(systemName: "bolt.fill")
-                                .font(.caption)
-                                .foregroundColor(.yellow)
-                                .padding(6)
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffect(
-                            isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
-                            in: .circle
-                        )
-                        .help("Trigger \(type.displayName) reminder now (dev)")
-                        .onHover { hovering in
-                            isHoveredDevTrigger = hovering
-                        }
-                    }
-                #endif
-
-                Button(action: onSkip) {
-                    Image(systemName: "forward.fill")
-                        .font(.caption)
-                        .foregroundColor(.accentColor)
-                        .padding(6)
-                }
-                .buttonStyle(.plain)
-                .glassEffect(
-                    isHoveredSkip ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
-                    in: .circle
-                )
-                .help("Skip to next \(type.displayName) reminder")
-                .onHover { hovering in
-                    isHoveredSkip = hovering
-                }
             }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                onTap?()
+            }
+
+            #if DEBUG
+                if let onDevTrigger = onDevTrigger {
+                    Button(action: onDevTrigger) {
+                        Image(systemName: "bolt.fill")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                            .padding(6)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(
+                        isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
+                        in: .circle
+                    )
+                    .help("Trigger \(type.displayName) reminder now (dev)")
+                    .onHover { hovering in
+                        isHoveredDevTrigger = hovering
+                    }
+                }
+            #endif
+
+            Button(action: onSkip) {
+                Image(systemName: "forward.fill")
+                    .font(.caption)
+                    .foregroundColor(.accentColor)
+                    .padding(6)
+            }
+            .buttonStyle(.plain)
+            .glassEffect(
+                isHoveredSkip ? .regular.tint(.accentColor) : .regular,
+                in: .circle
+            )
+            .help("Skip to next \(type.displayName) reminder")
+            .onHover { hovering in
+                isHoveredSkip = hovering
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .glassEffect(
-            isHoveredBody ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+            isHoveredBody ? .regular.tint(.accentColor) : .regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)

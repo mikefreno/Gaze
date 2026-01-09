@@ -46,6 +46,7 @@ struct MenuBarContentView: View {
     @ObservedObject var timerEngine: TimerEngine
     @ObservedObject var settingsManager: SettingsManager
     var onQuit: () -> Void
+    var onOpenSettings: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -108,7 +109,7 @@ struct MenuBarContentView: View {
                 .buttonStyle(MenuBarHoverButtonStyle())
 
                 Button(action: {
-                    // TODO: Open settings window
+                    onOpenSettings()
                 }) {
                     HStack {
                         Image(systemName: "gearshape")
@@ -230,6 +231,7 @@ struct TimerStatusRow: View {
     MenuBarContentView(
         timerEngine: timerEngine,
         settingsManager: settingsManager,
-        onQuit: {}
+        onQuit: {},
+        onOpenSettings: {}
     )
 }

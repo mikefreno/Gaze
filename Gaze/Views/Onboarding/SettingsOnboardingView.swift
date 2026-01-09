@@ -9,24 +9,24 @@ import SwiftUI
 
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
-    
+
     var body: some View {
         VStack(spacing: 30) {
             Spacer()
-            
+
             Image(systemName: "gearshape.fill")
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
-            
+
             Text("Final Settings")
                 .font(.system(size: 36, weight: .bold))
-            
+
             Text("Configure app preferences and support the project")
                 .font(.title3)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
-            
+
             VStack(spacing: 20) {
                 // Launch at Login Toggle
                 HStack {
@@ -46,13 +46,13 @@ struct SettingsOnboardingView: View {
                 }
                 .padding()
                 .glassEffect(.regular, in: .rect(cornerRadius: 12))
-                
+
                 // Links Section
                 VStack(spacing: 12) {
                     Text("Support & Contribute")
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    
+
                     // GitHub Link
                     Button(action: {
                         if let url = URL(string: "https://github.com/mikefreno/Gaze") {
@@ -79,7 +79,7 @@ struct SettingsOnboardingView: View {
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
-                    
+
                     // Buy Me a Coffee
                     Button(action: {
                         if let url = URL(string: "https://buymeacoffee.com/placeholder") {
@@ -112,14 +112,14 @@ struct SettingsOnboardingView: View {
                 }
                 .padding()
             }
-            
+
             Spacer()
         }
         .frame(width: 600, height: 450)
         .padding()
         .background(.clear)
     }
-    
+
     private func applyLaunchAtLoginSetting(enabled: Bool) {
         do {
             if enabled {

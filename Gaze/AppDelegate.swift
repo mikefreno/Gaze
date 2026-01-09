@@ -11,16 +11,20 @@ import Combine
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
+    var timerEngine: TimerEngine?
     private var statusItem: NSStatusItem?
     private var popover: NSPopover?
-    private var timerEngine: TimerEngine?
     private var settingsManager: SettingsManager?
     private var reminderWindowController: NSWindowController?
+    private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var timerStateBeforeSleep: [TimerType: Date] = [:]
     private var hasStartedTimers = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set activation policy to hide dock icon
+        NSApplication.shared.setActivationPolicy(.accessory)
+        
         settingsManager = SettingsManager.shared
         timerEngine = TimerEngine(settingsManager: settingsManager!)
         
@@ -38,6 +42,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         startTimers()
     }
     
+    private func setupMenuBar() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        if let button = statusItem?.button {
+            button.image = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Gaze")
+            button.action = #selector(togglePopover)
+            button.target = self
+        }
+    }
+    
+    @objc private func togglePopover() {
+        if let popover = popover, popover.isShown {
+            popover.close()
+        } else {
+            showPopover()
+        }
+    }
+    
+    private func showPopover() {
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: 300, height: 400)
+        popover.behavior = .transient
+        popover.contentViewController = NSHostingController(
+            rootView: MenuBarContentView(
+                timerEngine: timerEngine!,
+                settingsManager: settingsManager!,
+                onQuit: { NSApplication.shared.terminate(nil) },
+                onOpenSettings: { [weak self] in self?.openSettings() }
+            )
+        )
+        
+        if let button = statusItem?.button {
+            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        }
+        
+        self.popover = popover
+    }
+    
     private func startTimers() {
         guard !hasStartedTimers else { return }
         hasStartedTimers = true
@@ -50,6 +92,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] settings in
                 if settings.hasCompletedOnboarding {
                     self?.startTimers()
+                } else if self?.hasStartedTimers == true {
+                    // Restart timers when settings change (only if already started)
+                    self?.timerEngine?.start()
                 }
             }
             .store(in: &cancellables)
@@ -109,43 +154,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         timerStateBeforeSleep.removeAll()
         timerEngine.resume()
-    }
-    
-    private func setupMenuBar() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
-        if let button = statusItem?.button {
-            button.image = NSImage(systemSymbolName: "eye.fill", accessibilityDescription: "Gaze")
-            button.action = #selector(togglePopover)
-            button.target = self
-        }
-    }
-    
-    @objc private func togglePopover() {
-        if let popover = popover, popover.isShown {
-            popover.close()
-        } else {
-            showPopover()
-        }
-    }
-    
-    private func showPopover() {
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 400)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
-            rootView: MenuBarContentView(
-                timerEngine: timerEngine!,
-                settingsManager: settingsManager!,
-                onQuit: { NSApplication.shared.terminate(nil) }
-            )
-        )
-        
-        if let button = statusItem?.button {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-        }
-        
-        self.popover = popover
     }
     
     private func observeReminderEvents() {
@@ -217,5 +225,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Public method to get menubar icon position for animations
     func getMenuBarIconPosition() -> NSRect? {
         return statusItem?.button?.window?.frame
+    }
+    
+    // Public method to open settings window
+    func openSettings() {
+        // If window already exists, just bring it to front
+        if let existingWindow = settingsWindowController?.window {
+            existingWindow.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+        
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 550),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.title = "Settings"
+        window.center()
+        window.setFrameAutosaveName("SettingsWindow")
+        window.isReleasedWhenClosed = false
+        window.contentView = NSHostingView(
+            rootView: SettingsWindowView(settingsManager: settingsManager!)
+        )
+        
+        let windowController = NSWindowController(window: window)
+        windowController.showWindow(nil)
+        
+        settingsWindowController = windowController
+        
+        NSApp.activate(ignoringOtherApps: true)
+        
+        // Observe when window is closed to clean up reference
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.settingsWindowController = nil
+        }
     }
 }

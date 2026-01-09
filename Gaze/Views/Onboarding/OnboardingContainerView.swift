@@ -102,7 +102,7 @@ struct OnboardingContainerView: View {
                                     minWidth: 100, maxWidth: .infinity, minHeight: 44,
                                     maxHeight: 44, alignment: .center
                                 )
-                                .foregroundColor(.black)
+                                .foregroundColor(.primary)
                             }
                             .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
                         }

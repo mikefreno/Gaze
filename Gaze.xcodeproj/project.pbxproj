@@ -112,6 +112,7 @@
 			);
 			name = Gaze;
 			packageProductDependencies = (
+				27AE10B12F10B1FC00E00DBC /* Lottie */,
 			);
 			productName = Gaze;
 			productReference = 27A21B3C2F0F69DC0018C4F3 /* Gaze.app */;
@@ -195,6 +196,9 @@
 			);
 			mainGroup = 27A21B332F0F69DC0018C4F3;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27A21B3D2F0F69DC0018C4F3 /* Products */;
 			projectDirPath = "";
@@ -573,6 +577,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/airbnb/lottie-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+		27AE10B12F10B1FC00E00DBC /* Lottie */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */;
+			productName = Lottie;
+		};
+/* End XCSwiftPackageProductDependency section */
+
 	};
 	rootObject = 27A21B342F0F69DC0018C4F3 /* Project object */;
 }

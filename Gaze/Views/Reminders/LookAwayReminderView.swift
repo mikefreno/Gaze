@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Lottie
 
 struct LookAwayReminderView: View {
     let countdownSeconds: Int
@@ -35,8 +36,13 @@ struct LookAwayReminderView: View {
                     .font(.system(size: 28))
                     .foregroundColor(.white.opacity(0.9))
                 
-                AnimatedFaceView(size: 200)
-                    .padding(.vertical, 30)
+                LottieView(
+                    animationName: AnimationAsset.lookAway.fileName,
+                    loopMode: .loop,
+                    animationSpeed: 1.0
+                )
+                .frame(width: 200, height: 200)
+                .padding(.vertical, 30)
                 
                 // Countdown display
                 ZStack {

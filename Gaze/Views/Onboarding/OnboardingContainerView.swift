@@ -74,7 +74,8 @@ struct OnboardingContainerView: View {
                     }
 
                     SettingsOnboardingView(
-                        launchAtLogin: $launchAtLogin
+                        launchAtLogin: $launchAtLogin,
+                        isOnboarding: true
                     )
                     .tag(4)
                     .tabItem {

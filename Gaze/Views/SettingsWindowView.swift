@@ -64,7 +64,8 @@ struct SettingsWindowView: View {
                 }
                 
                 SettingsOnboardingView(
-                    launchAtLogin: $launchAtLogin
+                    launchAtLogin: $launchAtLogin,
+                    isOnboarding: false
                 )
                 .tag(3)
                 .tabItem {

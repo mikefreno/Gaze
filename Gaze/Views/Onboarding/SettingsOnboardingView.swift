@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
+    var isOnboarding: Bool = true
 
     var body: some View {
         VStack(spacing: 30) {
@@ -18,7 +19,7 @@ struct SettingsOnboardingView: View {
                 .font(.system(size: 80))
                 .foregroundColor(.accentColor)
 
-            Text("Final Settings")
+            Text(isOnboarding ? "Final Settings" : "General Settings")
                 .font(.system(size: 36, weight: .bold))
 
             Text("Configure app preferences and support the project")
@@ -135,12 +136,14 @@ struct SettingsOnboardingView: View {
 
 #Preview("Settings Onboarding - Launch Disabled") {
     SettingsOnboardingView(
-        launchAtLogin: .constant(false)
+        launchAtLogin: .constant(false),
+        isOnboarding: true
     )
 }
 
 #Preview("Settings Onboarding - Launch Enabled") {
     SettingsOnboardingView(
-        launchAtLogin: .constant(true)
+        launchAtLogin: .constant(true),
+        isOnboarding: true
     )
 }

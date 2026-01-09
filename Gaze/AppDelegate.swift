@@ -61,10 +61,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func showPopover() {
-        let popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 400)
-        popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
+        // Reuse existing popover or create new one
+        if popover == nil {
+            let newPopover = NSPopover()
+            newPopover.contentSize = NSSize(width: 300, height: 400)
+            newPopover.behavior = .transient
+            popover = newPopover
+        }
+        
+        // Always set fresh content
+        popover?.contentViewController = NSHostingController(
             rootView: MenuBarContentView(
                 timerEngine: timerEngine!,
                 settingsManager: settingsManager!,
@@ -74,10 +80,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         
         if let button = statusItem?.button {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+            popover?.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         }
-        
-        self.popover = popover
     }
     
     private func startTimers() {

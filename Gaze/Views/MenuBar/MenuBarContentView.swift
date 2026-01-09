@@ -14,7 +14,8 @@ struct MenuBarButtonStyle: ButtonStyle {
             .background(
                 RoundedRectangle(cornerRadius: 6)
                     .fill(
-                        configuration.isPressed ? Color.accentColor.opacity(0.2) : Color.gray.opacity(0.1)
+                        configuration.isPressed
+                            ? Color.accentColor.opacity(0.2) : Color.gray.opacity(0.1)
                     )
                     .opacity(configuration.isPressed ? 1 : 0)
             )
@@ -28,9 +29,9 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isHovered ? Color.accentColor.opacity(0.35) : Color.clear)
+            .glassEffect(
+                isHovered ? .regular.tint(.accentColor).interactive() : .regular,
+                in: .rect(cornerRadius: 6)
             )
             .contentShape(Rectangle())
             .onHover { hovering in
@@ -180,23 +181,23 @@ struct TimerStatusRow: View {
             Spacer()
 
             #if DEBUG
-            if let onDevTrigger = onDevTrigger {
-                Button(action: onDevTrigger) {
-                    Image(systemName: "bolt.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                        .padding(6)
-                        .background(
-                            Circle()
-                                .fill(isHoveredDevTrigger ? Color.yellow.opacity(0.35) : Color.clear)
-                        )
+                if let onDevTrigger = onDevTrigger {
+                    Button(action: onDevTrigger) {
+                        Image(systemName: "bolt.fill")
+                            .font(.caption)
+                            .foregroundColor(.yellow)
+                            .padding(6)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(
+                        isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
+                        in: .circle
+                    )
+                    .help("Trigger \(type.displayName) reminder now (dev)")
+                    .onHover { hovering in
+                        isHoveredDevTrigger = hovering
+                    }
                 }
-                .buttonStyle(.plain)
-                .help("Trigger \(type.displayName) reminder now (dev)")
-                .onHover { hovering in
-                    isHoveredDevTrigger = hovering
-                }
-            }
             #endif
 
             Button(action: onSkip) {
@@ -204,25 +205,27 @@ struct TimerStatusRow: View {
                     .font(.caption)
                     .foregroundColor(.accentColor)
                     .padding(6)
-                    .background(
-                        Circle()
-                            .fill(isHoveredSkip ? Color.accentColor.opacity(0.35) : Color.clear)
-                    )
             }
             .buttonStyle(.plain)
+            .glassEffect(
+                isHoveredSkip ? .regular.tint(.accentColor) : .regular,
+                in: .circle
+            )
             .help("Skip to next \(type.displayName) reminder")
             .onHover { hovering in
                 isHoveredSkip = hovering
             }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .glassEffect(
+            isHoveredBody ? .regular.tint(.accentColor) : .regular,
+            in: .rect(cornerRadius: 6)
+        )
+        .padding(.horizontal, 8)
         .onHover { hovering in
             isHoveredBody = hovering
-        }.background(
-            RoundedRectangle(cornerRadius: 6).fill(
-                isHoveredBody ? Color.accentColor.opacity(0.35) : Color.clear)
-        )
-        .padding(.horizontal)
-        .padding(.vertical, 4)
+        }
     }
 
     private var iconColor: Color {

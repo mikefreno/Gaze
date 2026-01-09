@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Lottie
+import AppKit
 
 struct LookAwayReminderView: View {
     let countdownSeconds: Int
@@ -14,6 +15,7 @@ struct LookAwayReminderView: View {
     
     @State private var remainingSeconds: Int
     @State private var timer: Timer?
+    @State private var keyMonitor: Any?
     
     init(countdownSeconds: Int, onDismiss: @escaping () -> Void) {
         self.countdownSeconds = countdownSeconds
@@ -85,17 +87,11 @@ struct LookAwayReminderView: View {
         }
         .onAppear {
             startCountdown()
+            setupKeyMonitor()
         }
         .onDisappear {
             timer?.invalidate()
-        }
-        .onKeyPress(.escape) {
-            dismiss()
-            return .handled
-        }
-        .onKeyPress(.space) {
-            dismiss()
-            return .handled
+            removeKeyMonitor()
         }
     }
     
@@ -116,6 +112,26 @@ struct LookAwayReminderView: View {
     private func dismiss() {
         timer?.invalidate()
         onDismiss()
+    }
+    
+    private func setupKeyMonitor() {
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            if event.keyCode == 53 { // ESC key
+                dismiss()
+                return nil
+            } else if event.keyCode == 49 { // Space key
+                dismiss()
+                return nil
+            }
+            return event
+        }
+    }
+    
+    private func removeKeyMonitor() {
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
+        }
     }
 }
 

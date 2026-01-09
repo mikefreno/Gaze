@@ -154,7 +154,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showReminderWindow(contentView)
     }
     
-    private func showReminderWindow(_ content: AnyView) {
+private func showReminderWindow(_ content: AnyView) {
         guard let screen = NSScreen.main else { return }
         
         let window = NSWindow(
@@ -169,9 +169,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        // Ensure this window can receive key events
+        window.acceptsMouseMovedEvents = true
+        window.makeFirstResponder(window.contentView)
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
+        // Make sure the window is brought to front and made key for key events
+        window.makeKeyAndOrderFront(nil)
         
         reminderWindowController = windowController
     }

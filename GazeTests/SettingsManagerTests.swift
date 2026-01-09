@@ -74,7 +74,7 @@ final class SettingsManagerTests: XCTestCase {
     }
     
     func testUpdateTimerConfiguration() {
-        var newConfig = TimerConfiguration(enabled: false, intervalSeconds: 10 * 60)
+        let newConfig = TimerConfiguration(enabled: false, intervalSeconds: 10 * 60)
         settingsManager.updateTimerConfiguration(for: .lookAway, configuration: newConfig)
         
         let retrieved = settingsManager.timerConfiguration(for: .lookAway)

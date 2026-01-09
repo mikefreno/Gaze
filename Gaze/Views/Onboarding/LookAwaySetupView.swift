@@ -93,9 +93,20 @@ struct LookAwaySetupView: View {
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
-            Text(
-                "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds"
-            )
+            if enabled {
+                Text(
+                    "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds"
+                )
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            } else {
+                Text(
+                    "Look away reminders are currently disabled."
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
 
             Spacer()
         }
@@ -112,4 +123,3 @@ struct LookAwaySetupView: View {
         countdownSeconds: .constant(20)
     )
 }
-

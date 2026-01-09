@@ -56,6 +56,15 @@ struct CompletionView: View {
                         .font(.subheadline)
                 }
                 .padding(.horizontal)
+                
+                HStack(spacing: 16) {
+                    Image(systemName: "plus.circle")
+                        .foregroundColor(.accentColor)
+                        .frame(width: 30)
+                    Text("Create custom timers in Settings for additional reminders")
+                        .font(.subheadline)
+                }
+                .padding(.horizontal)
             }
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))

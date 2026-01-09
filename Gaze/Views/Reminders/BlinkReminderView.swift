@@ -17,6 +17,8 @@ struct BlinkReminderView: View {
     private let screenHeight = NSScreen.main?.frame.height ?? 800
     private let screenWidth = NSScreen.main?.frame.width ?? 1200
     
+    // For now, we'll use hardcoded size but leave framework for configuration
+    // In a real implementation, this would be passed in from SettingsManager
     var body: some View {
         VStack {
             LottieView(

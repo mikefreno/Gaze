@@ -28,6 +28,29 @@ struct AppSettings: Codable, Equatable {
     var launchAtLogin: Bool
     var playSounds: Bool
     
+    init(
+        lookAwayTimer: TimerConfiguration = TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),
+        lookAwayCountdownSeconds: Int = 20,
+        blinkTimer: TimerConfiguration = TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
+        postureTimer: TimerConfiguration = TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
+        userTimers: [UserTimer] = [],
+        subtleReminderSizePercentage: Double = 5.0,
+        hasCompletedOnboarding: Bool = false,
+        launchAtLogin: Bool = false,
+        playSounds: Bool = true
+    ) {
+        self.lookAwayTimer = lookAwayTimer
+        self.lookAwayCountdownSeconds = lookAwayCountdownSeconds
+        self.blinkTimer = blinkTimer
+        self.postureTimer = postureTimer
+        self.userTimers = userTimers
+        // Clamp the subtle reminder size to valid range (2-35%)
+        self.subtleReminderSizePercentage = max(2.0, min(35.0, subtleReminderSizePercentage))
+        self.hasCompletedOnboarding = hasCompletedOnboarding
+        self.launchAtLogin = launchAtLogin
+        self.playSounds = playSounds
+    }
+    
     static var defaults: AppSettings {
         AppSettings(
             lookAwayTimer: TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),

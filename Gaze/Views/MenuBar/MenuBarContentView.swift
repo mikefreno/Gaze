@@ -30,7 +30,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .glassEffect(
-                isHovered ? .regular.tint(.accentColor).interactive() : .regular,
+                isHovered ? .regular.tint(.accentColor.opacity(0.5)).interactive() : .regular,
                 in: .rect(cornerRadius: 6)
             )
             .contentShape(Rectangle())

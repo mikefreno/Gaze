@@ -24,9 +24,18 @@ struct WelcomeView: View {
                 .foregroundColor(.secondary)
 
             VStack(alignment: .leading, spacing: 16) {
-                FeatureRow(icon: "eye.circle", title: "Reduce Eye Strain", description: "Regular breaks help prevent digital eye strain")
-                FeatureRow(icon: "eye.trianglebadge.exclamationmark", title: "Remember to Blink", description: "We blink less when focused on screens")
-                FeatureRow(icon: "figure.stand", title: "Maintain Good Posture", description: "Gentle reminders to sit up straight")
+                FeatureRow(
+                    icon: "eye.trianglebadge.exclamationmark", title: "Reduce Eye Strain",
+                    description: "Regular breaks help prevent digital eye strain")
+                FeatureRow(
+                    icon: "eye.circle", title: "Remember to Blink",
+                    description: "We blink less when focused on screens")
+                FeatureRow(
+                    icon: "figure.stand", title: "Maintain Good Posture",
+                    description: "Gentle reminders to sit up straight")
+                FeatureRow(
+                    icon: "plus.circle", title: "Custom Timers",
+                    description: "Create your own timers for specific needs")
             }
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -44,11 +53,20 @@ struct FeatureRow: View {
     let title: String
     let description: String
 
+    private var iconColor: Color {
+        switch icon {
+        case "eye.trianglebadge.exclamationmark": return .accentColor
+        case "eye.circle": return .green
+        case "figure.stand": return .orange
+        default: return .primary
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(.accentColor)
+                .foregroundColor(iconColor)
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 4) {

@@ -76,9 +76,19 @@ struct PostureSetupView: View {
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
-            Text(
-                "You will be subtly reminded every \(intervalMinutes) minutes to check your posture"
-            )
+            if enabled {
+                Text(
+                    "You will be subtly reminded every \(intervalMinutes) minutes to check your posture"
+                )
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            } else {
+                Text(
+                    "Posture reminders are currently disabled."
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
 
             Spacer()
         }

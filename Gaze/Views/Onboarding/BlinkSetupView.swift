@@ -76,9 +76,19 @@ struct BlinkSetupView: View {
             .padding()
             .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
-            Text(
-                "You will be subtly reminded every \(intervalMinutes) minutes to blink"
-            )
+            if enabled {
+                Text(
+                    "You will be subtly reminded every \(intervalMinutes) minutes to blink"
+                )
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            } else {
+                Text(
+                    "Blink reminders are currently disabled."
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
+            }
 
             Spacer()
         }

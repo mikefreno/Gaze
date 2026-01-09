@@ -7,16 +7,18 @@
 
 import Foundation
 
-struct TimerState: Equatable {
+struct TimerState {
     let type: TimerType
     var remainingSeconds: Int
     var isPaused: Bool
     var isActive: Bool
-    
+    var targetDate: Date
+
     init(type: TimerType, intervalSeconds: Int, isPaused: Bool = false, isActive: Bool = true) {
         self.type = type
         self.remainingSeconds = intervalSeconds
         self.isPaused = isPaused
         self.isActive = isActive
+        self.targetDate = Date().addingTimeInterval(Double(intervalSeconds))
     }
 }

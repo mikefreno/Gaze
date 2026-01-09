@@ -1,13 +1,10 @@
 #!/bin/bash
-
 # Build and run Gaze application
 # Usage: ./run [build|test|run]
-
 # Default action is build and run
 ACTION=${1:-run}
 VERBOSE=false
 OUTPUT_FILE=""
-
 # Function to kill any existing Gaze processes
 kill_existing_gaze_processes() {
     echo "🔍 Checking for existing Gaze processes..."
@@ -23,7 +20,25 @@ kill_existing_gaze_processes() {
         echo "✅ No existing Gaze processes found"
     fi
 }
-
+# Function to update LSP configuration
+update_lsp_config() {
+    echo "🔧 Updating LSP configuration..."
+    
+    # Check if xcode-build-server is installed
+    if command -v xcode-build-server &> /dev/null; then
+        # Generate buildServer.json for LSP
+        xcode-build-server config -project Gaze.xcodeproj -scheme Gaze > /dev/null 2>&1
+        
+        if [ $? -eq 0 ]; then
+            echo "✅ LSP configuration updated (buildServer.json created)"
+        else
+            echo "⚠️  Could not update LSP configuration"
+        fi
+    else
+        echo "⚠️  xcode-build-server not found. Install with: brew install xcode-build-server"
+        echo "    This helps Neovim's LSP recognize your Swift modules"
+    fi
+}
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -36,13 +51,16 @@ while [[ $# -gt 0 ]]; do
             VERBOSE=true
             shift 2
             ;;
+        --no-lsp)
+            SKIP_LSP=true
+            shift
+            ;;
         *)
             ACTION="$1"
             shift
             ;;
     esac
 done
-
 # Function to run command with output control
 run_with_output() {
     local cmd="$1"
@@ -60,9 +78,7 @@ run_with_output() {
         eval "$cmd" > /dev/null 2>&1
     fi
 }
-
 echo "=== Gaze Application Script ==="
-
 if [ "$ACTION" = "build" ]; then
     echo "Building Gaze project..."
     run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
@@ -70,6 +86,11 @@ if [ "$ACTION" = "build" ]; then
     if [ $? -eq 0 ]; then
         echo "✅ Build succeeded!"
         echo "💡 The app is located at: build/Debug/Gaze.app"
+        
+        # Update LSP config after successful build
+        if [ "$SKIP_LSP" != true ]; then
+            update_lsp_config
+        fi
     else
         echo "❌ Build failed!"
         exit 1
@@ -85,7 +106,6 @@ elif [ "$ACTION" = "test" ]; then
         echo "❌ Tests failed!"
         exit 1
     fi
-
 elif [ "$ACTION" = "run" ]; then
     echo "Building and running Gaze application..."
     
@@ -97,6 +117,12 @@ elif [ "$ACTION" = "run" ]; then
     
     if [ $? -eq 0 ]; then
         echo "✅ Build succeeded!"
+        
+        # Update LSP config after successful build
+        if [ "$SKIP_LSP" != true ]; then
+            update_lsp_config
+        fi
+        
         # Get the actual build output directory from xcodebuild
         BUILD_DIR="$(xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | sed 's/.*= //')"
         APP_PATH="${BUILD_DIR}/Gaze.app"
@@ -113,17 +139,23 @@ elif [ "$ACTION" = "run" ]; then
         echo "❌ Build failed!"
         exit 1
     fi
+elif [ "$ACTION" = "lsp" ]; then
+    # New command to just update LSP config
+    echo "Updating LSP configuration only..."
+    update_lsp_config
     
 else
-    echo "Usage: $0 [build|test|run] [-v|--verbose] [-o|--output <file_name>]"
+    echo "Usage: $0 [build|test|run|lsp] [-v|--verbose] [-o|--output <file_name>] [--no-lsp]"
     echo ""
     echo "Commands:"
     echo "  build   - Build the application"
     echo "  test    - Run unit tests"
     echo "  run     - Build and run the application (default)"
+    echo "  lsp     - Update LSP configuration only (buildServer.json)"
     echo ""
     echo "Options:"
     echo "  -v, --verbose    - Show output in stdout"
     echo "  -o, --output     - Write output to log file"
+    echo "  --no-lsp         - Skip LSP configuration update"
     exit 1
 fi

@@ -110,7 +110,7 @@ struct LookAwaySetupView: View {
 
             Spacer()
         }
-        .frame(width: 600, height: 450)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
     }

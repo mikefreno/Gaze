@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents a user-defined timer with customizable properties
-struct UserTimer: Codable, Equatable {
+struct UserTimer: Codable, Equatable, Identifiable {
     let id: String
     var type: UserTimerType
     var timeOnScreenSeconds: Int

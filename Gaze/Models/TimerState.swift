@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct TimerState {
+struct TimerState: Equatable {
     let type: TimerType
     var remainingSeconds: Int
     var isPaused: Bool
@@ -20,5 +20,12 @@ struct TimerState {
         self.isPaused = isPaused
         self.isActive = isActive
         self.targetDate = Date().addingTimeInterval(Double(intervalSeconds))
+    }
+
+    static func == (lhs: TimerState, rhs: TimerState) -> Bool {
+        lhs.type == rhs.type && lhs.remainingSeconds == rhs.remainingSeconds
+            && lhs.isPaused == rhs.isPaused && lhs.isActive == rhs.isActive
+            && lhs.targetDate.timeIntervalSince1970.rounded()
+                == rhs.targetDate.timeIntervalSince1970.rounded()
     }
 }

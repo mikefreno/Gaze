@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
+    @Binding var subtleReminderSizePercentage: Double
     var isOnboarding: Bool = true
 
     var body: some View {
@@ -44,6 +45,29 @@ struct SettingsOnboardingView: View {
                         .onChange(of: launchAtLogin) { oldValue, newValue in
                             applyLaunchAtLoginSetting(enabled: newValue)
                         }
+                }
+                .padding()
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+
+                // Subtle Reminder Size Configuration
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Subtle Reminder Size")
+                        .font(.headline)
+                    
+                    Text("Adjust the size of blink and posture reminders")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    HStack {
+                        Slider(
+                            value: $subtleReminderSizePercentage,
+                            in: 2...35,
+                            step: 1
+                        )
+                        Text("\(Int(subtleReminderSizePercentage))%")
+                            .frame(width: 50, alignment: .trailing)
+                            .monospacedDigit()
+                    }
                 }
                 .padding()
                 .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -116,7 +140,7 @@ struct SettingsOnboardingView: View {
 
             Spacer()
         }
-        .frame(width: 600, height: 450)
+        .frame(minWidth: 650, minHeight: 650)
         .padding()
         .background(.clear)
     }
@@ -137,6 +161,7 @@ struct SettingsOnboardingView: View {
 #Preview("Settings Onboarding - Launch Disabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(false),
+        subtleReminderSizePercentage: .constant(5.0),
         isOnboarding: true
     )
 }
@@ -144,6 +169,7 @@ struct SettingsOnboardingView: View {
 #Preview("Settings Onboarding - Launch Enabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(true),
+        subtleReminderSizePercentage: .constant(10.0),
         isOnboarding: true
     )
 }

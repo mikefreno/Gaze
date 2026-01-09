@@ -18,21 +18,28 @@ struct SettingsWindowView: View {
     @State private var postureEnabled: Bool
     @State private var postureIntervalMinutes: Int
     @State private var launchAtLogin: Bool
-    
+    @State private var subtleReminderSizePercentage: Double
+
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
         self.settingsManager = settingsManager
-        
+
         _currentTab = State(initialValue: initialTab)
         _lookAwayEnabled = State(initialValue: settingsManager.settings.lookAwayTimer.enabled)
-        _lookAwayIntervalMinutes = State(initialValue: settingsManager.settings.lookAwayTimer.intervalSeconds / 60)
-        _lookAwayCountdownSeconds = State(initialValue: settingsManager.settings.lookAwayCountdownSeconds)
+        _lookAwayIntervalMinutes = State(
+            initialValue: settingsManager.settings.lookAwayTimer.intervalSeconds / 60)
+        _lookAwayCountdownSeconds = State(
+            initialValue: settingsManager.settings.lookAwayCountdownSeconds)
         _blinkEnabled = State(initialValue: settingsManager.settings.blinkTimer.enabled)
-        _blinkIntervalMinutes = State(initialValue: settingsManager.settings.blinkTimer.intervalSeconds / 60)
+        _blinkIntervalMinutes = State(
+            initialValue: settingsManager.settings.blinkTimer.intervalSeconds / 60)
         _postureEnabled = State(initialValue: settingsManager.settings.postureTimer.enabled)
-        _postureIntervalMinutes = State(initialValue: settingsManager.settings.postureTimer.intervalSeconds / 60)
+        _postureIntervalMinutes = State(
+            initialValue: settingsManager.settings.postureTimer.intervalSeconds / 60)
         _launchAtLogin = State(initialValue: settingsManager.settings.launchAtLogin)
+        _subtleReminderSizePercentage = State(
+            initialValue: settingsManager.settings.subtleReminderSizePercentage)
     }
-    
+
     var body: some View {
         VStack(spacing: 0) {
             TabView(selection: $currentTab) {
@@ -45,7 +52,7 @@ struct SettingsWindowView: View {
                 .tabItem {
                     Label("Look Away", systemImage: "eye.fill")
                 }
-                
+
                 BlinkSetupView(
                     enabled: $blinkEnabled,
                     intervalMinutes: $blinkIntervalMinutes
@@ -54,7 +61,7 @@ struct SettingsWindowView: View {
                 .tabItem {
                     Label("Blink", systemImage: "eye.circle.fill")
                 }
-                
+
                 PostureSetupView(
                     enabled: $postureEnabled,
                     intervalMinutes: $postureIntervalMinutes
@@ -63,28 +70,34 @@ struct SettingsWindowView: View {
                 .tabItem {
                     Label("Posture", systemImage: "figure.stand")
                 }
-                
+
+                UserTimersView(userTimers: $settingsManager.settings.userTimers)
+                    .tag(3)
+                    .tabItem {
+                        Label("User Timers", systemImage: "plus.circle")
+                    }
+
                 SettingsOnboardingView(
                     launchAtLogin: $launchAtLogin,
+                    subtleReminderSizePercentage: $subtleReminderSizePercentage,
                     isOnboarding: false
                 )
-                .tag(3)
+                .tag(4)
                 .tabItem {
                     Label("General", systemImage: "gearshape.fill")
                 }
             }
-            .padding()
-            
+
             Divider()
-            
+
             HStack {
                 Spacer()
-                
+
                 Button("Cancel") {
                     closeWindow()
                 }
                 .keyboardShortcut(.escape)
-                
+
                 Button("Apply") {
                     applySettings()
                     closeWindow()
@@ -94,33 +107,36 @@ struct SettingsWindowView: View {
             }
             .padding()
         }
-        .frame(width: 600, height: 550)
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))) { notification in
+        .frame(minWidth: 700, minHeight: 800)
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
+        ) { notification in
             if let tab = notification.object as? Int {
                 currentTab = tab
             }
         }
     }
-    
+
     private func applySettings() {
         settingsManager.settings.lookAwayTimer = TimerConfiguration(
             enabled: lookAwayEnabled,
             intervalSeconds: lookAwayIntervalMinutes * 60
         )
         settingsManager.settings.lookAwayCountdownSeconds = lookAwayCountdownSeconds
-        
+
         settingsManager.settings.blinkTimer = TimerConfiguration(
             enabled: blinkEnabled,
             intervalSeconds: blinkIntervalMinutes * 60
         )
-        
+
         settingsManager.settings.postureTimer = TimerConfiguration(
             enabled: postureEnabled,
             intervalSeconds: postureIntervalMinutes * 60
         )
-        
+
         settingsManager.settings.launchAtLogin = launchAtLogin
-        
+        settingsManager.settings.subtleReminderSizePercentage = subtleReminderSizePercentage
+
         do {
             if launchAtLogin {
                 try LaunchAtLoginManager.enable()
@@ -131,7 +147,7 @@ struct SettingsWindowView: View {
             print("Failed to set launch at login: \(error)")
         }
     }
-    
+
     private func closeWindow() {
         if let window = NSApplication.shared.windows.first(where: { $0.title == "Settings" }) {
             window.close()

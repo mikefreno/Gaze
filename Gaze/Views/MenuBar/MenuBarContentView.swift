@@ -97,6 +97,17 @@ struct MenuBarContentView: View {
                         )
                     }
                 }
+                
+                // Show user timers if any exist
+                ForEach(settingsManager.settings.userTimers, id: \.id) { userTimer in
+                    UserTimerStatusRow(
+                        timer: userTimer,
+                        state: nil, // We'll implement proper state tracking later
+                        onTap: {
+                            onOpenSettingsTab(3) // Switch to User Timers tab
+                        }
+                    )
+                }
             }
             .padding(.bottom, 8)
 
@@ -313,6 +324,82 @@ struct InactiveTimerRow: View {
             isHovered = hovering
         }
         .help("Enable \(type.displayName) reminders")
+    }
+}
+
+struct UserTimerStatusRow: View {
+    let timer: UserTimer
+    let state: TimerState?
+    var onTap: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Image(systemName: "clock.fill")
+                    .foregroundColor(.purple)
+                    .frame(width: 20)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(timer.message ?? "Custom Timer")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .lineLimit(1)
+                    
+                    if let state = state {
+                        Text(timeRemaining(state))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .monospacedDigit()
+                    } else {
+                        Text("Not active")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(6)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(
+            isHovered ? .regular.tint(.purple.opacity(0.5)) : .regular,
+            in: .rect(cornerRadius: 6)
+        )
+        .padding(.horizontal, 8)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+        .help(tooltipText)
+    }
+
+    private var tooltipText: String {
+        let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
+        let durationText = "\(timer.timeOnScreenSeconds)s on screen"
+        return "\(typeText) timer - \(durationText)"
+    }
+
+    private func timeRemaining(_ state: TimerState) -> String {
+        let seconds = state.remainingSeconds
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+
+        if minutes >= 60 {
+            let hours = minutes / 60
+            let remainingMinutes = minutes % 60
+            return String(format: "%dh %dm", hours, remainingMinutes)
+        } else if minutes > 0 {
+            return String(format: "%dm %ds", minutes, remainingSeconds)
+        } else {
+            return String(format: "%ds", remainingSeconds)
+        }
     }
 }
 

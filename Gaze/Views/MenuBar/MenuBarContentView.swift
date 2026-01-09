@@ -188,7 +188,7 @@ struct TimerStatusRow: View {
                         .foregroundColor(.secondary)
                         .monospacedDigit()
                 }
-                
+
                 Spacer()
             }
             .contentShape(Rectangle())
@@ -206,7 +206,7 @@ struct TimerStatusRow: View {
                     }
                     .buttonStyle(.plain)
                     .glassEffect(
-                        isHoveredDevTrigger ? .regular.tint(.yellow) : .regular,
+                        isHoveredDevTrigger ? .regular.tint(.yellow.opacity(0.5)) : .regular,
                         in: .circle
                     )
                     .help("Trigger \(type.displayName) reminder now (dev)")
@@ -224,7 +224,7 @@ struct TimerStatusRow: View {
             }
             .buttonStyle(.plain)
             .glassEffect(
-                isHoveredSkip ? .regular.tint(.accentColor) : .regular,
+                isHoveredSkip ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
                 in: .circle
             )
             .help("Skip to next \(type.displayName) reminder")
@@ -235,7 +235,7 @@ struct TimerStatusRow: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .glassEffect(
-            isHoveredBody ? .regular.tint(.accentColor) : .regular,
+            isHoveredBody ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)

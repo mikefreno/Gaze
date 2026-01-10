@@ -37,18 +37,16 @@ struct GazeApp: App {
             CommandGroup(replacing: .newItem) { }
         }
         
-        // Menu bar extra (always present once onboarding is complete)
+        // Menu bar extra (always present)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
-            if let timerEngine = appDelegate.timerEngine {
-                MenuBarContentView(
-                    timerEngine: timerEngine,
-                    settingsManager: settingsManager,
-                    onQuit: { NSApplication.shared.terminate(nil) },
-                    onOpenSettings: { appDelegate.openSettings() },
-                    onOpenSettingsTab: { tab in appDelegate.openSettings(tab: tab) },
-                    onOpenOnboarding: { appDelegate.openOnboarding() }
-                )
-            }
+            MenuBarContentView(
+                timerEngine: appDelegate.timerEngine,
+                settingsManager: settingsManager,
+                onQuit: { NSApplication.shared.terminate(nil) },
+                onOpenSettings: { appDelegate.openSettings() },
+                onOpenSettingsTab: { tab in appDelegate.openSettings(tab: tab) },
+                onOpenOnboarding: { appDelegate.openOnboarding() }
+            )
         }
         .menuBarExtraStyle(.window)
     }

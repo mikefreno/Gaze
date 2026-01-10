@@ -6,12 +6,12 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct PostureSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
-    
-    @State private var isPreviewShowing = false
+    @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -99,26 +99,17 @@ struct PostureSetupView: View {
                 
                 // Preview button
                 Button(action: {
-                    isPreviewShowing = true
+                    showPreviewWindow()
                 }) {
                     HStack {
                         Image(systemName: "eye")
-                            .foregroundColor(.white)
+                            .foregroundColor(.accentColor)
                         Text("Preview Reminder")
-                            .foregroundColor(.white)
+                            .font(.headline)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(.blue)
-                    .cornerRadius(8)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
                 }
-                .fullScreenCover(isPresented: $isPreviewShowing) {
-                    PostureReminderView(sizePercentage: 10.0, onDismiss: {
-                        isPreviewShowing = false
-                    })
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(.black.opacity(0.85))
-                }
+                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -126,6 +117,36 @@ struct PostureSetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
+    }
+    
+    private func showPreviewWindow() {
+        guard let screen = NSScreen.main else { return }
+        
+        let window = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.level = .floating
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.acceptsMouseMovedEvents = true
+        
+        let contentView = PostureReminderView(sizePercentage: 10.0) { [weak window] in
+            window?.close()
+        }
+        
+        window.contentView = NSHostingView(rootView: contentView)
+        window.makeFirstResponder(window.contentView)
+        
+        let windowController = NSWindowController(window: window)
+        windowController.showWindow(nil)
+        window.makeKeyAndOrderFront(nil)
+        
+        previewWindowController = windowController
     }
 }
 

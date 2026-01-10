@@ -44,7 +44,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 }
 
 struct MenuBarContentView: View {
-    @ObservedObject var timerEngine: TimerEngine
+    var timerEngine: TimerEngine?
     @ObservedObject var settingsManager: SettingsManager
     @Environment(\.dismiss) private var dismiss
     var onQuit: () -> Void
@@ -53,6 +53,92 @@ struct MenuBarContentView: View {
     var onOpenOnboarding: () -> Void
 
     var body: some View {
+        if !settingsManager.settings.hasCompletedOnboarding {
+            // Simplified view when onboarding is not complete
+            onboardingIncompleteView
+        } else if let timerEngine = timerEngine {
+            // Full view when onboarding is complete and timers are running
+            fullMenuBarView(timerEngine: timerEngine)
+        } else {
+            // Fallback view
+            EmptyView()
+        }
+    }
+    
+    private var onboardingIncompleteView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                Image(systemName: "eye.fill")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text("Gaze")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+            }
+            .padding()
+
+            Divider()
+            
+            // Message
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Welcome to Gaze!")
+                    .font(.headline)
+                    .padding(.horizontal)
+                    .padding(.top, 16)
+                
+                Text("Please complete the onboarding to start using Gaze.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
+            }
+
+            Divider()
+
+            // Complete Onboarding Button
+            VStack(spacing: 4) {
+                Button(action: {
+                    onOpenOnboarding()
+                }) {
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.accentColor)
+                        Text("Complete Onboarding")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                }
+                .buttonStyle(MenuBarHoverButtonStyle())
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 8)
+
+            Divider()
+
+            // Quit
+            Button(action: onQuit) {
+                HStack {
+                    Image(systemName: "power")
+                        .foregroundColor(.red)
+                    Text("Quit Gaze")
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+            }
+            .buttonStyle(MenuBarHoverButtonStyle())
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+        }
+        .frame(width: 300)
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))) { _ in
+            dismiss()
+        }
+    }
+    
+    private func fullMenuBarView(timerEngine: TimerEngine) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
             HStack {
@@ -117,33 +203,16 @@ struct MenuBarContentView: View {
 
             // Controls
             VStack(spacing: 4) {
-                // Show "Complete Onboarding" button if not completed
-                if !settingsManager.settings.hasCompletedOnboarding {
-                    Button(action: {
-                        onOpenOnboarding()
-                    }) {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.accentColor)
-                            Text("Complete Onboarding")
-                            Spacer()
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                    }
-                    .buttonStyle(MenuBarHoverButtonStyle())
-                }
-                
                 Button(action: {
-                    if timerEngine.timerStates.values.first?.isPaused == true {
+                    if isPaused(timerEngine: timerEngine) {
                         timerEngine.resume()
                     } else {
                         timerEngine.pause()
                     }
                 }) {
                     HStack {
-                        Image(systemName: isPaused ? "play.circle" : "pause.circle")
-                        Text(isPaused ? "Resume All Timers" : "Pause All Timers")
+                        Image(systemName: isPaused(timerEngine: timerEngine) ? "play.circle" : "pause.circle")
+                        Text(isPaused(timerEngine: timerEngine) ? "Resume All Timers" : "Pause All Timers")
                         Spacer()
                     }
                     .padding(.horizontal, 8)
@@ -190,7 +259,7 @@ struct MenuBarContentView: View {
         }
     }
 
-    private var isPaused: Bool {
+    private func isPaused(timerEngine: TimerEngine) -> Bool {
         timerEngine.timerStates.values.first?.isPaused ?? false
     }
 }

@@ -25,8 +25,9 @@ struct LookAwayReminderView: View {
 
     var body: some View {
         ZStack {
-            // Semi-transparent dark background
-            Color.black.opacity(0.85)
+            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+            Color.black.opacity(0.5)
                 .ignoresSafeArea()
 
             VStack(spacing: 40) {

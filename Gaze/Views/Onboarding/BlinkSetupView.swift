@@ -6,10 +6,12 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct BlinkSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
+    @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -94,6 +96,20 @@ struct BlinkSetupView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
+                
+                // Preview button
+                Button(action: {
+                    showPreviewWindow()
+                }) {
+                    HStack {
+                        Image(systemName: "eye")
+                            .foregroundColor(.accentColor)
+                        Text("Preview Reminder")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+                }
+                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -101,6 +117,36 @@ struct BlinkSetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
+    }
+    
+    private func showPreviewWindow() {
+        guard let screen = NSScreen.main else { return }
+        
+        let window = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.level = .floating
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.acceptsMouseMovedEvents = true
+        
+        let contentView = BlinkReminderView(sizePercentage: 15.0) { [weak window] in
+            window?.close()
+        }
+        
+        window.contentView = NSHostingView(rootView: contentView)
+        window.makeFirstResponder(window.contentView)
+        
+        let windowController = NSWindowController(window: window)
+        windowController.showWindow(nil)
+        window.makeKeyAndOrderFront(nil)
+        
+        previewWindowController = windowController
     }
 }
 

@@ -6,17 +6,17 @@
 //
 
 import SwiftUI
+import AppKit
 
 #if os(iOS)
     import UIKit
-#else
-    import AppKit
 #endif
 
 struct LookAwaySetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
     @Binding var countdownSeconds: Int
+    @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -117,6 +117,20 @@ struct LookAwaySetupView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
+                
+                // Preview button
+                Button(action: {
+                    showPreviewWindow()
+                }) {
+                    HStack {
+                        Image(systemName: "eye")
+                            .foregroundColor(.accentColor)
+                        Text("Preview Reminder")
+                            .font(.headline)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+                }
+                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -124,6 +138,36 @@ struct LookAwaySetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
+    }
+    
+    private func showPreviewWindow() {
+        guard let screen = NSScreen.main else { return }
+        
+        let window = NSWindow(
+            contentRect: screen.frame,
+            styleMask: [.borderless, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        
+        window.level = .floating
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.acceptsMouseMovedEvents = true
+        
+        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak window] in
+            window?.close()
+        }
+        
+        window.contentView = NSHostingView(rootView: contentView)
+        window.makeFirstResponder(window.contentView)
+        
+        let windowController = NSWindowController(window: window)
+        windowController.showWindow(nil)
+        window.makeKeyAndOrderFront(nil)
+        
+        previewWindowController = windowController
     }
 }
 

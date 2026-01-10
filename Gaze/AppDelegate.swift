@@ -188,6 +188,16 @@ private func showReminderWindow(_ content: AnyView) {
     
     // Public method to open settings window
     func openSettings(tab: Int = 0) {
+        // Post notification to close menu bar popover
+        NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
+        
+        // Small delay to allow menu bar to close before opening settings
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.openSettingsWindow(tab: tab)
+        }
+    }
+    
+    private func openSettingsWindow(tab: Int) {
         // If window already exists, switch to the tab and bring it to front
         if let existingWindow = settingsWindowController?.window {
             NotificationCenter.default.post(

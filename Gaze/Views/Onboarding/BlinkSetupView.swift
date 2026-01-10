@@ -12,84 +12,94 @@ struct BlinkSetupView: View {
     @Binding var intervalMinutes: Int
 
     var body: some View {
-        VStack(spacing: 30) {
-            Image(systemName: "eye.circle")
-                .font(.system(size: 60))
-                .foregroundColor(.green)
+        VStack(spacing: 0) {
+            // Fixed header section
+            VStack(spacing: 16) {
+                Image(systemName: "eye.circle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.green)
 
-            Text("Blink Reminder")
-                .font(.system(size: 28, weight: .bold))
-
-            Text("Keep your eyes hydrated")
-                .font(.title3)
-                .foregroundColor(.secondary)
-
-            // InfoBox with link functionality
-            HStack(spacing: 12) {
-                Button(action: {
-                    if let url = URL(
-                        string: "https://www.healthline.com/health/eye-health/eye-strain#symptoms")
-                    {
-                        #if os(iOS)
-                            UIApplication.shared.open(url)
-                        #elseif os(macOS)
-                            NSWorkspace.shared.open(url)
-                        #endif
-                    }
-                }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.white)
-                }.buttonStyle(.plain)
-                Text(
-                    "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes"
-                )
-                .font(.headline)
-                .foregroundColor(.white)
+                Text("Blink Reminder")
+                    .font(.system(size: 28, weight: .bold))
             }
-            .padding()
-            .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+            .padding(.top, 20)
+            .padding(.bottom, 30)
 
-            VStack(alignment: .leading, spacing: 20) {
-                Toggle("Enable Blink Reminders", isOn: $enabled)
+            // Vertically centered content
+            Spacer()
+            
+            VStack(spacing: 30) {
+                Text("Keep your eyes hydrated")
+                    .font(.title3)
+                    .foregroundColor(.secondary)
+
+                // InfoBox with link functionality
+                HStack(spacing: 12) {
+                    Button(action: {
+                        if let url = URL(
+                            string: "https://www.healthline.com/health/eye-health/eye-strain#symptoms")
+                        {
+                            #if os(iOS)
+                                UIApplication.shared.open(url)
+                            #elseif os(macOS)
+                                NSWorkspace.shared.open(url)
+                            #endif
+                        }
+                    }) {
+                        Image(systemName: "info.circle")
+                            .foregroundColor(.white)
+                    }.buttonStyle(.plain)
+                    Text(
+                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes"
+                    )
                     .font(.headline)
+                    .foregroundColor(.white)
+                }
+                .padding()
+                .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
-                if enabled {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Remind me every:")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 20) {
+                    Toggle("Enable Blink Reminders", isOn: $enabled)
+                        .font(.headline)
 
-                        HStack {
-                            Slider(
-                                value: Binding(
-                                    get: { Double(intervalMinutes) },
-                                    set: { intervalMinutes = Int($0) }
-                                ), in: 1...15, step: 1)
+                    if enabled {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Remind me every:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
 
-                            Text("\(intervalMinutes) min")
-                                .frame(width: 60, alignment: .trailing)
-                                .monospacedDigit()
+                            HStack {
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(intervalMinutes) },
+                                        set: { intervalMinutes = Int($0) }
+                                    ), in: 1...15, step: 1)
+
+                                Text("\(intervalMinutes) min")
+                                    .frame(width: 60, alignment: .trailing)
+                                    .monospacedDigit()
+                            }
                         }
                     }
                 }
-            }
-            .padding()
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .padding()
+                .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
-            if enabled {
-                Text(
-                    "You will be subtly reminded every \(intervalMinutes) minutes to blink"
-                )
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            } else {
-                Text(
-                    "Blink reminders are currently disabled."
-                )
-                .font(.caption)
-                .foregroundColor(.secondary)
+                if enabled {
+                    Text(
+                        "You will be subtly reminded every \(intervalMinutes) minutes to blink"
+                    )
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                } else {
+                    Text(
+                        "Blink reminders are currently disabled."
+                    )
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
             }
-
+            
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

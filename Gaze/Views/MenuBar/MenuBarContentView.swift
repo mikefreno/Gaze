@@ -46,6 +46,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 struct MenuBarContentView: View {
     @ObservedObject var timerEngine: TimerEngine
     @ObservedObject var settingsManager: SettingsManager
+    @Environment(\.dismiss) private var dismiss
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
     var onOpenSettingsTab: (Int) -> Void
@@ -98,8 +99,8 @@ struct MenuBarContentView: View {
                     }
                 }
                 
-                // Show user timers if any exist
-                ForEach(settingsManager.settings.userTimers, id: \.id) { userTimer in
+                // Show user timers if any exist and are enabled
+                ForEach(settingsManager.settings.userTimers.filter { $0.enabled }, id: \.id) { userTimer in
                     UserTimerStatusRow(
                         timer: userTimer,
                         state: nil, // We'll implement proper state tracking later
@@ -166,6 +167,9 @@ struct MenuBarContentView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 300)
+        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))) { _ in
+            dismiss()
+        }
     }
 
     private var isPaused: Bool {
@@ -336,12 +340,16 @@ struct UserTimerStatusRow: View {
     var body: some View {
         Button(action: onTap) {
             HStack {
+                Circle()
+                    .fill(timer.color)
+                    .frame(width: 8, height: 8)
+                
                 Image(systemName: "clock.fill")
-                    .foregroundColor(.purple)
+                    .foregroundColor(timer.color)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(timer.message ?? "Custom Timer")
+                    Text(timer.title)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(1)
@@ -352,7 +360,7 @@ struct UserTimerStatusRow: View {
                             .foregroundColor(.secondary)
                             .monospacedDigit()
                     } else {
-                        Text("Not active")
+                        Text(timer.enabled ? "Not active" : "Disabled")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -370,7 +378,7 @@ struct UserTimerStatusRow: View {
         }
         .buttonStyle(.plain)
         .glassEffect(
-            isHovered ? .regular.tint(.purple.opacity(0.5)) : .regular,
+            isHovered ? .regular.tint(timer.color.opacity(0.3)) : .regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
@@ -383,7 +391,8 @@ struct UserTimerStatusRow: View {
     private var tooltipText: String {
         let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
         let durationText = "\(timer.timeOnScreenSeconds)s on screen"
-        return "\(typeText) timer - \(durationText)"
+        let statusText = timer.enabled ? "" : " (Disabled)"
+        return "\(typeText) timer - \(durationText)\(statusText)"
     }
 
     private func timeRemaining(_ state: TimerState) -> String {

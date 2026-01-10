@@ -19,6 +19,7 @@ struct SettingsWindowView: View {
     @State private var postureIntervalMinutes: Int
     @State private var launchAtLogin: Bool
     @State private var subtleReminderSizePercentage: Double
+    @State private var userTimers: [UserTimer]
 
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
         self.settingsManager = settingsManager
@@ -38,6 +39,7 @@ struct SettingsWindowView: View {
         _launchAtLogin = State(initialValue: settingsManager.settings.launchAtLogin)
         _subtleReminderSizePercentage = State(
             initialValue: settingsManager.settings.subtleReminderSizePercentage)
+        _userTimers = State(initialValue: settingsManager.settings.userTimers)
     }
 
     var body: some View {
@@ -71,7 +73,7 @@ struct SettingsWindowView: View {
                     Label("Posture", systemImage: "figure.stand")
                 }
 
-                UserTimersView(userTimers: $settingsManager.settings.userTimers)
+                UserTimersView(userTimers: $userTimers)
                     .tag(3)
                     .tabItem {
                         Label("User Timers", systemImage: "plus.circle")
@@ -107,7 +109,7 @@ struct SettingsWindowView: View {
             }
             .padding()
         }
-        .frame(minWidth: 700, minHeight: 800)
+        .frame(minWidth: 700, minHeight: 750)
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
         ) { notification in
@@ -136,6 +138,10 @@ struct SettingsWindowView: View {
 
         settingsManager.settings.launchAtLogin = launchAtLogin
         settingsManager.settings.subtleReminderSizePercentage = subtleReminderSizePercentage
+        settingsManager.settings.userTimers = userTimers
+
+        // Save settings to persist changes
+        settingsManager.save()
 
         do {
             if launchAtLogin {

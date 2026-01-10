@@ -140,14 +140,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
             )
         case .blinkTriggered:
-            let sizePercentage = settingsManager?.settings.subtleReminderSizePercentage ?? 15.0
+            let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
             contentView = AnyView(
                 BlinkReminderView(sizePercentage: sizePercentage) { [weak self] in
                     self?.timerEngine?.dismissReminder()
                 }
             )
         case .postureTriggered:
-            let sizePercentage = settingsManager?.settings.subtleReminderSizePercentage ?? 10.0
+            let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
             contentView = AnyView(
                 PostureReminderView(sizePercentage: sizePercentage) { [weak self] in
                     self?.timerEngine?.dismissReminder()

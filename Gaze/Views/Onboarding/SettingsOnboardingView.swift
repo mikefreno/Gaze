@@ -9,7 +9,7 @@ import SwiftUI
 
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
-    @Binding var subtleReminderSizePercentage: Double
+    @Binding var subtleReminderSize: ReminderSize
     var isOnboarding: Bool = true
 
     var body: some View {
@@ -62,16 +62,13 @@ struct SettingsOnboardingView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        HStack {
-                            Slider(
-                                value: $subtleReminderSizePercentage,
-                                in: 0.5...25,
-                                step: 0.5
-                            )
-                            Text("\(String(format: "%.1f", subtleReminderSizePercentage))%")
-                                .frame(width: 50, alignment: .trailing)
-                                .monospacedDigit()
+                        Picker("Size", selection: $subtleReminderSize) {
+                            ForEach(ReminderSize.allCases, id: \.self) { size in
+                                Text(size.displayName).tag(size)
+                            }
                         }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
                     }
                     .padding()
                     .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -166,7 +163,7 @@ struct SettingsOnboardingView: View {
 #Preview("Settings Onboarding - Launch Disabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(false),
-        subtleReminderSizePercentage: .constant(5.0),
+        subtleReminderSize: .constant(.large),
         isOnboarding: true
     )
 }
@@ -174,7 +171,7 @@ struct SettingsOnboardingView: View {
 #Preview("Settings Onboarding - Launch Enabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(true),
-        subtleReminderSizePercentage: .constant(10.0),
+        subtleReminderSize: .constant(.medium),
         isOnboarding: true
     )
 }

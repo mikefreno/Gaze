@@ -7,6 +7,30 @@
 
 import Foundation
 
+// MARK: - Reminder Size
+
+enum ReminderSize: String, Codable, CaseIterable {
+    case small
+    case medium
+    case large
+
+    var percentage: Double {
+        switch self {
+        case .small: return 1.5
+        case .medium: return 2.5
+        case .large: return 5.0
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .small: return "Small"
+        case .medium: return "Medium"
+        case .large: return "Large"
+        }
+    }
+}
+
 // MARK: - Centralized Configuration System
 
 /// Unified configuration class that manages all app settings in a centralized way
@@ -17,11 +41,9 @@ struct AppSettings: Codable, Equatable, Hashable {
     var blinkTimer: TimerConfiguration
     var postureTimer: TimerConfiguration
 
-    // User-defined timers (up to 3)
     var userTimers: [UserTimer]
 
-    // UI and display settings
-    var subtleReminderSizePercentage: Double  // 0.5-25% of screen width
+    var subtleReminderSize: ReminderSize
 
     // App state and behavior
     var hasCompletedOnboarding: Bool
@@ -37,7 +59,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         postureTimer: TimerConfiguration = TimerConfiguration(
             enabled: true, intervalSeconds: 30 * 60),
         userTimers: [UserTimer] = [],
-        subtleReminderSizePercentage: Double = 5.0,
+        subtleReminderSize: ReminderSize = .large,
         hasCompletedOnboarding: Bool = false,
         launchAtLogin: Bool = false,
         playSounds: Bool = true
@@ -47,8 +69,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         self.blinkTimer = blinkTimer
         self.postureTimer = postureTimer
         self.userTimers = userTimers
-        // Clamp the subtle reminder size to valid range (2-35%)
-        self.subtleReminderSizePercentage = max(2.0, min(35.0, subtleReminderSizePercentage))
+        self.subtleReminderSize = subtleReminderSize
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.launchAtLogin = launchAtLogin
         self.playSounds = playSounds
@@ -61,7 +82,7 @@ struct AppSettings: Codable, Equatable, Hashable {
             blinkTimer: TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
             postureTimer: TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
             userTimers: [],
-            subtleReminderSizePercentage: 5.0,
+            subtleReminderSize: .large,
             hasCompletedOnboarding: false,
             launchAtLogin: false,
             playSounds: true
@@ -73,7 +94,7 @@ struct AppSettings: Codable, Equatable, Hashable {
             && lhs.lookAwayCountdownSeconds == rhs.lookAwayCountdownSeconds
             && lhs.blinkTimer == rhs.blinkTimer && lhs.postureTimer == rhs.postureTimer
             && lhs.userTimers == rhs.userTimers
-            && lhs.subtleReminderSizePercentage == rhs.subtleReminderSizePercentage
+            && lhs.subtleReminderSize == rhs.subtleReminderSize
             && lhs.hasCompletedOnboarding == rhs.hasCompletedOnboarding
             && lhs.launchAtLogin == rhs.launchAtLogin && lhs.playSounds == rhs.playSounds
     }

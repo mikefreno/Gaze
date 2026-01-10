@@ -30,7 +30,7 @@ struct OnboardingContainerView: View {
     @State private var postureEnabled = true
     @State private var postureIntervalMinutes = 30
     @State private var launchAtLogin = false
-    @State private var subtleReminderSizePercentage = 5.0
+    @State private var subtleReminderSize: ReminderSize = .large
     @State private var isAnimatingOut = false
     @Environment(\.dismiss) private var dismiss
 
@@ -76,7 +76,7 @@ struct OnboardingContainerView: View {
 
                     SettingsOnboardingView(
                         launchAtLogin: $launchAtLogin,
-                        subtleReminderSizePercentage: $subtleReminderSizePercentage,
+                        subtleReminderSize: $subtleReminderSize,
                         isOnboarding: true
                     )
                     .tag(4)
@@ -162,7 +162,7 @@ struct OnboardingContainerView: View {
         )
 
         settingsManager.settings.launchAtLogin = launchAtLogin
-        settingsManager.settings.subtleReminderSizePercentage = subtleReminderSizePercentage
+        settingsManager.settings.subtleReminderSize = subtleReminderSize
         settingsManager.settings.hasCompletedOnboarding = true
 
         // Apply launch at login setting

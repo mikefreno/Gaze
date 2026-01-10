@@ -18,7 +18,7 @@ struct SettingsWindowView: View {
     @State private var postureEnabled: Bool
     @State private var postureIntervalMinutes: Int
     @State private var launchAtLogin: Bool
-    @State private var subtleReminderSizePercentage: Double
+    @State private var subtleReminderSize: ReminderSize
     @State private var userTimers: [UserTimer]
 
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
@@ -37,8 +37,8 @@ struct SettingsWindowView: View {
         _postureIntervalMinutes = State(
             initialValue: settingsManager.settings.postureTimer.intervalSeconds / 60)
         _launchAtLogin = State(initialValue: settingsManager.settings.launchAtLogin)
-        _subtleReminderSizePercentage = State(
-            initialValue: settingsManager.settings.subtleReminderSizePercentage)
+        _subtleReminderSize = State(
+            initialValue: settingsManager.settings.subtleReminderSize)
         _userTimers = State(initialValue: settingsManager.settings.userTimers)
     }
 
@@ -81,7 +81,7 @@ struct SettingsWindowView: View {
 
                 SettingsOnboardingView(
                     launchAtLogin: $launchAtLogin,
-                    subtleReminderSizePercentage: $subtleReminderSizePercentage,
+                    subtleReminderSize: $subtleReminderSize,
                     isOnboarding: false
                 )
                 .tag(4)
@@ -137,7 +137,7 @@ struct SettingsWindowView: View {
                 intervalSeconds: postureIntervalMinutes * 60
             ),
             userTimers: userTimers,
-            subtleReminderSizePercentage: subtleReminderSizePercentage,
+            subtleReminderSize: subtleReminderSize,
             hasCompletedOnboarding: settingsManager.settings.hasCompletedOnboarding,
             launchAtLogin: launchAtLogin,
             playSounds: settingsManager.settings.playSounds

@@ -20,7 +20,7 @@ struct BlinkReminderView: View {
     private let screenWidth = NSScreen.main?.frame.width ?? 1200
 
     private var baseSize: CGFloat {
-        screenWidth * (sizePercentage / 100.0)
+        screenWidth * (sizePercentage / 100.0) * 2.5
     }
 
     var body: some View {
@@ -45,7 +45,7 @@ struct BlinkReminderView: View {
         }
         .opacity(opacity)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, screenHeight * 0.1)
+        .padding(.top, screenHeight * 0.05)
         .onAppear {
             startAnimation()
         }
@@ -56,7 +56,7 @@ struct BlinkReminderView: View {
             opacity = 1.0
             scale = 1.0
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             shouldShowAnimation = true
         }

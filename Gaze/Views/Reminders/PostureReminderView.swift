@@ -28,7 +28,7 @@ struct PostureReminderView: View {
         .opacity(opacity)
         .offset(y: yOffset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, screenHeight * 0.1)
+        .padding(.top, screenHeight * 0.075)
         .onAppear {
             startAnimation()
         }

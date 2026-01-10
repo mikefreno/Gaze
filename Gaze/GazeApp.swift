@@ -11,7 +11,6 @@ import SwiftUI
 struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager.shared
-    @State private var menuBarRefreshID = 0
     
     var body: some Scene {
         // Onboarding window (only shown when not completed)
@@ -48,13 +47,9 @@ struct GazeApp: App {
                     onOpenSettings: { appDelegate.openSettings() },
                     onOpenSettingsTab: { tab in appDelegate.openSettings(tab: tab) }
                 )
-                .id(menuBarRefreshID)
             }
         }
         .menuBarExtraStyle(.window)
-        .onChange(of: settingsManager.settings) { _ in
-            menuBarRefreshID += 1
-        }
     }
     
     private func closeAllWindows() {

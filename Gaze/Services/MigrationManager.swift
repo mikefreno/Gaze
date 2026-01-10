@@ -83,6 +83,7 @@ class MigrationManager {
     
     private func setupMigrations() {
         migrations.append(Version101Migration())
+        migrations.append(Version102Migration())
     }
     
     private func getTargetVersion() -> String {
@@ -164,6 +165,35 @@ class Version101Migration: Migration {
         // Example migration logic:
         // Add any new fields with default values if they don't exist
         // Transform data structures as needed
+        
+        return migratedData
+    }
+}
+
+class Version102Migration: Migration {
+    var targetVersion: String = "1.0.2"
+    
+    func migrate(_ data: [String: Any]) throws -> [String: Any] {
+        var migratedData = data
+        
+        // Migrate subtleReminderSizePercentage (Double) to subtleReminderSize (ReminderSize enum)
+        if let oldPercentage = migratedData["subtleReminderSizePercentage"] as? Double {
+            // Map old percentage values to new enum cases
+            let reminderSize: String
+            if oldPercentage <= 2.0 {
+                reminderSize = "small"
+            } else if oldPercentage <= 3.5 {
+                reminderSize = "medium"
+            } else {
+                reminderSize = "large"
+            }
+            
+            migratedData["subtleReminderSize"] = reminderSize
+            migratedData.removeValue(forKey: "subtleReminderSizePercentage")
+        } else if migratedData["subtleReminderSize"] == nil {
+            // If neither old nor new key exists, set default
+            migratedData["subtleReminderSize"] = "large"
+        }
         
         return migratedData
     }

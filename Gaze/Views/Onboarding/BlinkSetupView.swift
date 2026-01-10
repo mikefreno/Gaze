@@ -101,13 +101,15 @@ struct BlinkSetupView: View {
                 Button(action: {
                     showPreviewWindow()
                 }) {
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: "eye")
-                            .foregroundColor(.accentColor)
+                            .foregroundColor(.white)
                         Text("Preview Reminder")
                             .font(.headline)
+                            .foregroundColor(.white)
                     }
-                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .center)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
                 .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }

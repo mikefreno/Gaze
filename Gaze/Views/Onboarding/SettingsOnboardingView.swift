@@ -132,36 +132,37 @@ struct SettingsOnboardingView: View {
                         .buttonStyle(.plain)
                         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
 
-                        // Buy Me a Coffee
-                        Button(action: {
-                            if let url = URL(string: "https://buymeacoffee.com/placeholder") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "cup.and.saucer.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.orange)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Buy Me a Coffee")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Text("Support development of Gaze")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                        if !AppStoreDetector.isAppStoreVersion {
+                            Button(action: {
+                                if let url = URL(string: "https://buymeacoffee.com/placeholder") {
+                                    NSWorkspace.shared.open(url)
                                 }
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption)
+                            }) {
+                                HStack {
+                                    Image(systemName: "cup.and.saucer.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.orange)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Buy Me a Coffee")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                        Text("Support development of Gaze")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(Color.orange.opacity(0.1))
+                                .cornerRadius(10)
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.orange.opacity(0.1))
-                            .cornerRadius(10)
+                            .buttonStyle(.plain)
+                            .glassEffect(
+                                .regular.tint(.orange).interactive(), in: .rect(cornerRadius: 10))
                         }
-                        .buttonStyle(.plain)
-                        .glassEffect(
-                            .regular.tint(.orange).interactive(), in: .rect(cornerRadius: 10))
                     }
                     .padding()
                 }

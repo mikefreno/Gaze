@@ -138,7 +138,7 @@ struct OnboardingContainerView: View {
                 }
             }
         }
-        .frame(minWidth: 1000, minHeight: 750)
+        .frame(minWidth: 1000, minHeight: 800)
         .opacity(isAnimatingOut ? 0 : 1)
         .scaleEffect(isAnimatingOut ? 0.3 : 1.0)
     }

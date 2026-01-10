@@ -25,7 +25,6 @@ struct SettingsOnboardingView: View {
             .padding(.top, 20)
             .padding(.bottom, 30)
 
-            // Vertically centered content
             Spacer()
             VStack(spacing: 30) {
                 Text("Configure app preferences and support the project")
@@ -34,7 +33,6 @@ struct SettingsOnboardingView: View {
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 20) {
-                    // Launch at Login Toggle
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Launch at Login")
@@ -62,13 +60,41 @@ struct SettingsOnboardingView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        Picker("Size", selection: $subtleReminderSize) {
+                        HStack(spacing: 12) {
                             ForEach(ReminderSize.allCases, id: \.self) { size in
-                                Text(size.displayName).tag(size)
+                                Button(action: {
+                                    subtleReminderSize = size
+                                }) {
+                                    VStack(spacing: 8) {
+                                        Circle()
+                                            .fill(
+                                                subtleReminderSize == size
+                                                    ? Color.accentColor
+                                                    : Color.secondary.opacity(0.3)
+                                            )
+                                            .frame(
+                                                width: iconSize(for: size),
+                                                height: iconSize(for: size))
+
+                                        Text(size.displayName)
+                                            .font(.caption)
+                                            .fontWeight(
+                                                subtleReminderSize == size ? .semibold : .regular
+                                            )
+                                            .foregroundColor(
+                                                subtleReminderSize == size ? .primary : .secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 60)
+                                    .padding(.vertical, 12)
+                                }
+                                .glassEffect(
+                                    subtleReminderSize == size
+                                        ? .regular.tint(.accentColor.opacity(0.3))
+                                        : .regular,
+                                    in: .rect(cornerRadius: 10)
+                                )
                             }
                         }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
                     }
                     .padding()
                     .glassEffect(.regular, in: .rect(cornerRadius: 12))
@@ -156,6 +182,14 @@ struct SettingsOnboardingView: View {
             }
         } catch {
             print("Failed to set launch at login: \(error)")
+        }
+    }
+
+    private func iconSize(for size: ReminderSize) -> CGFloat {
+        switch size {
+        case .small: return 20
+        case .medium: return 32
+        case .large: return 48
         }
     }
 }

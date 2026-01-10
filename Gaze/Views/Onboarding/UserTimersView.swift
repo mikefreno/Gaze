@@ -74,7 +74,8 @@ struct UserTimersView: View {
                     } else {
                         ScrollView {
                             VStack(spacing: 8) {
-                                ForEach(Array(userTimers.enumerated()), id: \.element.id) { index, timer in
+                                ForEach(Array(userTimers.enumerated()), id: \.element.id) {
+                                    index, timer in
                                     UserTimerRow(
                                         timer: $userTimers[index],
                                         onEdit: {
@@ -144,7 +145,7 @@ struct UserTimerRow: View {
             Circle()
                 .fill(timer.color)
                 .frame(width: 12, height: 12)
-            
+
             Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
                 .foregroundColor(timer.color)
                 .frame(width: 24)
@@ -166,7 +167,7 @@ struct UserTimerRow: View {
                     .labelsHidden()
                     .toggleStyle(.switch)
                     .controlSize(.small)
-                
+
                 Button(action: onEdit) {
                     Image(systemName: "pencil.circle.fill")
                         .font(.title3)
@@ -216,11 +217,14 @@ struct UserTimerEditSheet: View {
         self.onSave = onSave
         self.onCancel = onCancel
 
-        _title = State(initialValue: timer?.title ?? UserTimer.generateTitle(for: existingTimersCount))
+        _title = State(
+            initialValue: timer?.title ?? UserTimer.generateTitle(for: existingTimersCount))
         _message = State(initialValue: timer?.message ?? "")
         _type = State(initialValue: timer?.type ?? .subtle)
         _timeOnScreen = State(initialValue: timer?.timeOnScreenSeconds ?? 30)
-        _selectedColorHex = State(initialValue: timer?.colorHex ?? UserTimer.defaultColors[existingTimersCount % UserTimer.defaultColors.count])
+        _selectedColorHex = State(
+            initialValue: timer?.colorHex
+                ?? UserTimer.defaultColors[existingTimersCount % UserTimer.defaultColors.count])
     }
 
     var body: some View {
@@ -239,12 +243,15 @@ struct UserTimerEditSheet: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Color")
                         .font(.headline)
-                    
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 8), spacing: 12) {
+
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 8),
+                        spacing: 12
+                    ) {
                         ForEach(UserTimer.defaultColors, id: \.self) { colorHex in
                             Button(action: {
                                 selectedColorHex = colorHex
@@ -254,9 +261,13 @@ struct UserTimerEditSheet: View {
                                     .frame(width: 32, height: 32)
                                     .overlay(
                                         Circle()
-                                            .strokeBorder(Color.white, lineWidth: selectedColorHex == colorHex ? 3 : 0)
+                                            .strokeBorder(
+                                                Color.white,
+                                                lineWidth: selectedColorHex == colorHex ? 3 : 0)
                                     )
-                                    .shadow(color: selectedColorHex == colorHex ? .accentColor : .clear, radius: 4)
+                                    .shadow(
+                                        color: selectedColorHex == colorHex ? .accentColor : .clear,
+                                        radius: 4)
                             }
                             .buttonStyle(.plain)
                         }
@@ -264,9 +275,6 @@ struct UserTimerEditSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Display Type")
-                        .font(.headline)
-
                     Picker("Display Type", selection: $type) {
                         ForEach(UserTimerType.allCases) { timerType in
                             Text(timerType.displayName).tag(timerType)
@@ -276,28 +284,30 @@ struct UserTimerEditSheet: View {
 
                     Text(
                         type == .subtle
-                            ? "Small reminder in corner of screen"
+                            ? "Small reminder at top of screen"
                             : "Full screen reminder with animation"
                     )
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Duration on Screen")
-                        .font(.headline)
-                    HStack {
-                        Slider(
-                            value: Binding(
-                                get: { Double(timeOnScreen) },
-                                set: { timeOnScreen = Int($0) }
-                            ),
-                            in: 5...120,
-                            step: 5
-                        )
-                        Text("\(timeOnScreen)s")
-                            .frame(width: 50, alignment: .trailing)
-                            .monospacedDigit()
+                if type == .overlay {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Duration on Screen")
+                            .font(.headline)
+                        HStack {
+                            Slider(
+                                value: Binding(
+                                    get: { Double(timeOnScreen) },
+                                    set: { timeOnScreen = Int($0) }
+                                ),
+                                in: 5...30,
+                                step: 1
+                            )
+                            Text("\(timeOnScreen)s")
+                                .frame(width: 50, alignment: .trailing)
+                                .monospacedDigit()
+                        }
                     }
                 }
 
@@ -347,7 +357,8 @@ struct UserTimerEditSheet: View {
     UserTimersView(
         userTimers: .constant([
             UserTimer(
-                id: "1", title: "User Reminder 1", type: .subtle, timeOnScreenSeconds: 30, message: "Take a break", colorHex: "9B59B6"),
+                id: "1", title: "User Reminder 1", type: .subtle, timeOnScreenSeconds: 30,
+                message: "Take a break", colorHex: "9B59B6"),
             UserTimer(
                 id: "2", title: "User Reminder 2", type: .overlay, timeOnScreenSeconds: 60,
                 message: "Stretch your legs", colorHex: "3498DB"),

@@ -34,7 +34,7 @@ struct LookAwaySetupView: View {
 
             // Vertically centered content
             Spacer()
-            
+
             VStack(spacing: 30) {
                 // InfoBox with link functionality
                 HStack(spacing: 12) {
@@ -74,7 +74,7 @@ struct LookAwaySetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 5...60, step: 5)
+                                    ), in: 5...90, step: 5)
 
                                 Text("\(intervalMinutes) min")
                                     .frame(width: 60, alignment: .trailing)
@@ -117,7 +117,7 @@ struct LookAwaySetupView: View {
                     .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

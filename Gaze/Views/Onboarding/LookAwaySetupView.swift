@@ -40,8 +40,9 @@ struct LookAwaySetupView: View {
                 HStack(spacing: 12) {
                     Button(action: {
                         if let url = URL(
-                            string: "https://www.healthline.com/health/eye-health/20-20-20-rule")
-                        {
+                            string:
+                                "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
+                        ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
                             #elseif os(macOS)

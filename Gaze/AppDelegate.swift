@@ -201,6 +201,34 @@ private func showReminderWindow(_ content: AnyView) {
         }
     }
     
+    // Public method to reopen onboarding window
+    func openOnboarding() {
+        // Post notification to close menu bar popover
+        NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
+        
+        // Small delay to allow menu bar to close before opening onboarding
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self, let settingsManager = self.settingsManager else { return }
+            
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+                styleMask: [.titled, .closable, .miniaturizable],
+                backing: .buffered,
+                defer: false
+            )
+            
+            window.title = "Gaze Onboarding"
+            window.center()
+            window.isReleasedWhenClosed = true
+            window.contentView = NSHostingView(
+                rootView: OnboardingContainerView(settingsManager: settingsManager)
+            )
+            
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+    
     private func openSettingsWindow(tab: Int) {
         // If window already exists, switch to the tab and bring it to front
         if let existingWindow = settingsWindowController?.window {

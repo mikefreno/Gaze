@@ -27,18 +27,14 @@ struct BlinkSetupView: View {
 
             // Vertically centered content
             Spacer()
-            
-            VStack(spacing: 30) {
-                Text("Keep your eyes hydrated")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
 
-                // InfoBox with link functionality
+            VStack(spacing: 30) {
                 HStack(spacing: 12) {
                     Button(action: {
                         if let url = URL(
-                            string: "https://www.healthline.com/health/eye-health/eye-strain#symptoms")
-                        {
+                            string:
+                                "https://www.aao.org/eye-health/tips-prevention/computer-usage#:~:text=Humans normally blink about 15 times in one minute. However, studies show that we only blink about 5 to 7 times in a minute while using computers and other digital screen devices."
+                        ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
                             #elseif os(macOS)
@@ -50,7 +46,7 @@ struct BlinkSetupView: View {
                             .foregroundColor(.white)
                     }.buttonStyle(.plain)
                     Text(
-                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes"
+                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes."
                     )
                     .font(.headline)
                     .foregroundColor(.white)
@@ -99,7 +95,7 @@ struct BlinkSetupView: View {
                     .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

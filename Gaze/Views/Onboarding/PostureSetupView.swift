@@ -10,6 +10,8 @@ import SwiftUI
 struct PostureSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
+    
+    @State private var isPreviewShowing = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,16 +31,12 @@ struct PostureSetupView: View {
             Spacer()
 
             VStack(spacing: 30) {
-                Text("Maintain proper ergonomics")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-
-                // InfoBox with link functionality
                 HStack(spacing: 12) {
                     Button(action: {
                         if let url = URL(
-                            string: "https://www.healthline.com/health/ergonomic-workspace")
-                        {
+                            string:
+                                "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For studies exploring sitting posture, seven found a relationship with LBP. Regarding studies on sitting behavior, only one showed no relationship between LBP prevalence, while twelve indicated a relationship."
+                        ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
                             #elseif os(macOS)
@@ -97,6 +95,29 @@ struct PostureSetupView: View {
                     )
                     .font(.caption)
                     .foregroundColor(.secondary)
+                }
+                
+                // Preview button
+                Button(action: {
+                    isPreviewShowing = true
+                }) {
+                    HStack {
+                        Image(systemName: "eye")
+                            .foregroundColor(.white)
+                        Text("Preview Reminder")
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(.blue)
+                    .cornerRadius(8)
+                }
+                .fullScreenCover(isPresented: $isPreviewShowing) {
+                    PostureReminderView(sizePercentage: 10.0, onDismiss: {
+                        isPreviewShowing = false
+                    })
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(.black.opacity(0.85))
                 }
             }
 

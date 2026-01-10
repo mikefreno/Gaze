@@ -14,6 +14,7 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
     var title: String
     var type: UserTimerType
     var timeOnScreenSeconds: Int
+    var intervalMinutes: Int
     var message: String?
     var colorHex: String
     var enabled: Bool
@@ -23,6 +24,7 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
         title: String? = nil,
         type: UserTimerType = .subtle,
         timeOnScreenSeconds: Int = 30,
+        intervalMinutes: Int = 15,
         message: String? = nil,
         colorHex: String? = nil,
         enabled: Bool = true
@@ -31,6 +33,7 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
         self.title = title ?? "User Reminder"
         self.type = type
         self.timeOnScreenSeconds = timeOnScreenSeconds
+        self.intervalMinutes = intervalMinutes
         self.message = message
         self.colorHex = colorHex ?? UserTimer.defaultColors[0]
         self.enabled = enabled
@@ -38,8 +41,8 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
 
     static func == (lhs: UserTimer, rhs: UserTimer) -> Bool {
         lhs.id == rhs.id && lhs.title == rhs.title && lhs.type == rhs.type
-            && lhs.timeOnScreenSeconds == rhs.timeOnScreenSeconds && lhs.message == rhs.message
-            && lhs.colorHex == rhs.colorHex && lhs.enabled == rhs.enabled
+            && lhs.timeOnScreenSeconds == rhs.timeOnScreenSeconds && lhs.intervalMinutes == rhs.intervalMinutes
+            && lhs.message == rhs.message && lhs.colorHex == rhs.colorHex && lhs.enabled == rhs.enabled
     }
     
     // Default color palette for user timers

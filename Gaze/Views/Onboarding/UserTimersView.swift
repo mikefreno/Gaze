@@ -139,6 +139,7 @@ struct UserTimerRow: View {
     var onEdit: () -> Void
     var onDelete: () -> Void
     @State private var isHovered = false
+    @State private var showingDeleteConfirmation = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -155,7 +156,7 @@ struct UserTimerRow: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                Text("\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen")
+                Text("\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -175,12 +176,20 @@ struct UserTimerRow: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: onDelete) {
+                Button(action: { showingDeleteConfirmation = true }) {
                     Image(systemName: "trash.circle.fill")
                         .font(.title3)
                         .foregroundColor(.red)
                 }
                 .buttonStyle(.plain)
+                .confirmationDialog("Delete Timer", isPresented: $showingDeleteConfirmation) {
+                    Button("Delete", role: .destructive) {
+                        onDelete()
+                    }
+                    Button("Cancel", role: .cancel) {}
+                } message: {
+                    Text("Are you sure you want to delete this timer? This action cannot be undone.")
+                }
             }
         }
         .padding()
@@ -200,10 +209,11 @@ struct UserTimerEditSheet: View {
     var onSave: (UserTimer) -> Void
     var onCancel: () -> Void
 
-    @State private var title: String
+@State private var title: String
     @State private var message: String
     @State private var type: UserTimerType
     @State private var timeOnScreen: Int
+    @State private var intervalMinutes: Int
     @State private var selectedColorHex: String
 
     init(
@@ -222,6 +232,7 @@ struct UserTimerEditSheet: View {
         _message = State(initialValue: timer?.message ?? "")
         _type = State(initialValue: timer?.type ?? .subtle)
         _timeOnScreen = State(initialValue: timer?.timeOnScreenSeconds ?? 30)
+        _intervalMinutes = State(initialValue: timer?.intervalMinutes ?? 15)
         _selectedColorHex = State(
             initialValue: timer?.colorHex
                 ?? UserTimer.defaultColors[existingTimersCount % UserTimer.defaultColors.count])
@@ -312,6 +323,27 @@ struct UserTimerEditSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
+                    Text("Interval")
+                        .font(.headline)
+                    HStack {
+                        Slider(
+                            value: Binding(
+                                get: { Double(intervalMinutes) },
+                                set: { intervalMinutes = Int($0) }
+                            ),
+                            in: 1...120,
+                            step: 1
+                        )
+                        Text("\(intervalMinutes) min")
+                            .frame(width: 60, alignment: .trailing)
+                            .monospacedDigit()
+                    }
+                    Text("How often this reminder will appear (in minutes)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Message (Optional)")
                         .font(.headline)
                     TextField("Enter custom reminder message", text: $message)
@@ -334,6 +366,7 @@ struct UserTimerEditSheet: View {
                         title: title,
                         type: type,
                         timeOnScreenSeconds: timeOnScreen,
+                        intervalMinutes: intervalMinutes,
                         message: message.isEmpty ? nil : message,
                         colorHex: selectedColorHex,
                         enabled: timer?.enabled ?? true
@@ -358,10 +391,10 @@ struct UserTimerEditSheet: View {
         userTimers: .constant([
             UserTimer(
                 id: "1", title: "User Reminder 1", type: .subtle, timeOnScreenSeconds: 30,
-                message: "Take a break", colorHex: "9B59B6"),
+                intervalMinutes: 15, message: "Take a break", colorHex: "9B59B6"),
             UserTimer(
                 id: "2", title: "User Reminder 2", type: .overlay, timeOnScreenSeconds: 60,
-                message: "Stretch your legs", colorHex: "3498DB"),
+                intervalMinutes: 30, message: "Stretch your legs", colorHex: "3498DB"),
         ])
     )
 }

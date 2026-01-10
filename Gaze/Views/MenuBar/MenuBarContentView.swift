@@ -50,6 +50,7 @@ struct MenuBarContentView: View {
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
     var onOpenSettingsTab: (Int) -> Void
+    var onOpenOnboarding: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -116,6 +117,23 @@ struct MenuBarContentView: View {
 
             // Controls
             VStack(spacing: 4) {
+                // Show "Complete Onboarding" button if not completed
+                if !settingsManager.settings.hasCompletedOnboarding {
+                    Button(action: {
+                        onOpenOnboarding()
+                    }) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.accentColor)
+                            Text("Complete Onboarding")
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(MenuBarHoverButtonStyle())
+                }
+                
                 Button(action: {
                     if timerEngine.timerStates.values.first?.isPaused == true {
                         timerEngine.resume()
@@ -420,6 +438,7 @@ struct UserTimerStatusRow: View {
         settingsManager: settingsManager,
         onQuit: {},
         onOpenSettings: {},
-        onOpenSettingsTab: { _ in }
+        onOpenSettingsTab: { _ in },
+        onOpenOnboarding: {}
     )
 }

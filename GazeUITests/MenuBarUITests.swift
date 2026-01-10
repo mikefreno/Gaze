@@ -99,4 +99,38 @@ final class MenuBarUITests: XCTestCase {
             }
         }
     }
+    
+    func testCompleteOnboardingButtonVisibleWhenOnboardingIncomplete() throws {
+        // Relaunch app without skip-onboarding flag
+        app.terminate()
+        let newApp = XCUIApplication()
+        newApp.launchArguments.append("--reset-onboarding")
+        newApp.launch()
+        
+        let menuBar = newApp.menuBarItems.firstMatch
+        if menuBar.waitForExistence(timeout: 5) {
+            menuBar.click()
+            
+            let completeOnboardingButton = newApp.buttons["Complete Onboarding"]
+            XCTAssertTrue(
+                completeOnboardingButton.waitForExistence(timeout: 2),
+                "Complete Onboarding button should be visible when onboarding is incomplete"
+            )
+        }
+        
+        newApp.terminate()
+    }
+    
+    func testCompleteOnboardingButtonNotVisibleWhenOnboardingComplete() throws {
+        let menuBar = app.menuBarItems.firstMatch
+        if menuBar.waitForExistence(timeout: 5) {
+            menuBar.click()
+            
+            let completeOnboardingButton = app.buttons["Complete Onboarding"]
+            XCTAssertFalse(
+                completeOnboardingButton.exists,
+                "Complete Onboarding button should not be visible when onboarding is complete"
+            )
+        }
+    }
 }

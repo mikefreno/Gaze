@@ -27,7 +27,7 @@ struct PostureSetupView: View {
 
             // Vertically centered content
             Spacer()
-            
+
             VStack(spacing: 30) {
                 Text("Maintain proper ergonomics")
                     .font(.title3)
@@ -99,7 +99,7 @@ struct PostureSetupView: View {
                     .foregroundColor(.secondary)
                 }
             }
-            
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

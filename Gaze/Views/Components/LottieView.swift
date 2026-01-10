@@ -5,62 +5,48 @@
 //  Created by Mike Freno on 1/8/26.
 //
 
-import SwiftUI
 import Lottie
+import SwiftUI
 
-struct LottieView: NSViewRepresentable {
+struct GazeLottieView: View {
     let animationName: String
     let loopMode: LottieLoopMode
     let animationSpeed: CGFloat
-    
+    let onAnimationFinish: ((Bool) -> Void)?
+
     init(
         animationName: String,
         loopMode: LottieLoopMode = .playOnce,
-        animationSpeed: CGFloat = 1.0
+        animationSpeed: CGFloat = 1.0,
+        onAnimationFinish: ((Bool) -> Void)? = nil
     ) {
         self.animationName = animationName
         self.loopMode = loopMode
         self.animationSpeed = animationSpeed
+        self.onAnimationFinish = onAnimationFinish
     }
-    
-    func makeNSView(context: Context) -> LottieAnimationView {
-        let animationView = LottieAnimationView()
-        animationView.translatesAutoresizingMaskIntoConstraints = false
-        
+
+    var body: some View {
         if let animation = LottieAnimation.named(animationName) {
-            animationView.animation = animation
-            animationView.loopMode = loopMode
-            animationView.animationSpeed = animationSpeed
-            animationView.backgroundBehavior = .pauseAndRestore
-            animationView.play()
-        }
-        
-        return animationView
-    }
-    
-    func updateNSView(_ nsView: LottieAnimationView, context: Context) {
-        guard nsView.animation == nil || nsView.isAnimationPlaying == false else {
-            return
-        }
-        
-        if let animation = LottieAnimation.named(animationName) {
-            nsView.animation = animation
-            nsView.loopMode = loopMode
-            nsView.animationSpeed = animationSpeed
-            nsView.play()
+            LottieView(animation: animation)
+                .playing(.fromProgress(nil, toProgress: 1, loopMode: loopMode))
+                .animationSpeed(animationSpeed)
+                .animationDidFinish { completed in
+                    onAnimationFinish?(completed)
+                }
         }
     }
 }
 
 #Preview("Lottie Preview") {
     VStack(spacing: 20) {
-        LottieView(animationName: "blink")
+        GazeLottieView(animationName: "blink")
             .frame(width: 200, height: 200)
-        
-        LottieView(animationName: "look-away", loopMode: .loop)
+
+        GazeLottieView(animationName: "look-away", loopMode: .loop)
             .frame(width: 200, height: 200)
-        
-        LottieView(animationName: "posture")
+
+        GazeLottieView(animationName: "posture")
             .frame(width: 200, height: 200)
     }
     .frame(width: 600, height: 800)

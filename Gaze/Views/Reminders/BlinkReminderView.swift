@@ -5,29 +5,43 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
-import SwiftUI
 import Lottie
+import SwiftUI
 
 struct BlinkReminderView: View {
+    let sizePercentage: Double
     var onDismiss: () -> Void
-    
+
     @State private var opacity: Double = 0
     @State private var scale: CGFloat = 0
-    
+    @State private var shouldShowAnimation = false
+
     private let screenHeight = NSScreen.main?.frame.height ?? 800
     private let screenWidth = NSScreen.main?.frame.width ?? 1200
-    
-    // For now, we'll use hardcoded size but leave framework for configuration
-    // In a real implementation, this would be passed in from SettingsManager
+
+    private var baseSize: CGFloat {
+        screenWidth * (sizePercentage / 100.0)
+    }
+
     var body: some View {
         VStack {
-            LottieView(
-                animationName: AnimationAsset.blink.fileName,
-                loopMode: .playOnce,
-                animationSpeed: 1.0
-            )
-            .frame(width: scale, height: scale)
-            .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
+            if shouldShowAnimation {
+                GazeLottieView(
+                    animationName: AnimationAsset.blink.fileName,
+                    loopMode: .playOnce,
+                    animationSpeed: 1.0,
+                    onAnimationFinish: { completed in
+                        if completed {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                fadeOut()
+                            }
+                        }
+                    }
+                )
+                .frame(width: baseSize, height: baseSize)
+                .scaleEffect(scale)
+                .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
+            }
         }
         .opacity(opacity)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -36,26 +50,24 @@ struct BlinkReminderView: View {
             startAnimation()
         }
     }
-    
+
     private func startAnimation() {
-        // Fade in and grow
         withAnimation(.easeOut(duration: 0.3)) {
             opacity = 1.0
-            scale = screenWidth * 0.15
+            scale = 1.0
         }
         
-        // Animation duration (2 seconds for double blink) + hold time
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.3) {
-            fadeOut()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            shouldShowAnimation = true
         }
     }
-    
+
     private func fadeOut() {
         withAnimation(.easeOut(duration: 0.3)) {
             opacity = 0
-            scale = screenWidth * 0.1
+            scale = 0.7
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             onDismiss()
         }
@@ -63,11 +75,11 @@ struct BlinkReminderView: View {
 }
 
 #Preview("Blink Reminder") {
-    BlinkReminderView(onDismiss: {})
+    BlinkReminderView(sizePercentage: 15.0, onDismiss: {})
         .frame(width: 800, height: 600)
 }
 
 #Preview("Blink Reminder") {
-    BlinkReminderView(onDismiss: {})
+    BlinkReminderView(sizePercentage: 15.0, onDismiss: {})
         .frame(width: 800, height: 600)
 }

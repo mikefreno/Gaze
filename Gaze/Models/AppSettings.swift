@@ -16,23 +16,26 @@ struct AppSettings: Codable, Equatable, Hashable {
     var lookAwayCountdownSeconds: Int
     var blinkTimer: TimerConfiguration
     var postureTimer: TimerConfiguration
-    
+
     // User-defined timers (up to 3)
     var userTimers: [UserTimer]
-    
+
     // UI and display settings
-    var subtleReminderSizePercentage: Double  // 2-35% of screen width
-    
+    var subtleReminderSizePercentage: Double  // 0.5-25% of screen width
+
     // App state and behavior
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
     var playSounds: Bool
-    
+
     init(
-        lookAwayTimer: TimerConfiguration = TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),
+        lookAwayTimer: TimerConfiguration = TimerConfiguration(
+            enabled: true, intervalSeconds: 20 * 60),
         lookAwayCountdownSeconds: Int = 20,
-        blinkTimer: TimerConfiguration = TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
-        postureTimer: TimerConfiguration = TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
+        blinkTimer: TimerConfiguration = TimerConfiguration(
+            enabled: false, intervalSeconds: 7 * 60),
+        postureTimer: TimerConfiguration = TimerConfiguration(
+            enabled: true, intervalSeconds: 30 * 60),
         userTimers: [UserTimer] = [],
         subtleReminderSizePercentage: Double = 5.0,
         hasCompletedOnboarding: Bool = false,
@@ -50,7 +53,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         self.launchAtLogin = launchAtLogin
         self.playSounds = playSounds
     }
-    
+
     static var defaults: AppSettings {
         AppSettings(
             lookAwayTimer: TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),
@@ -64,16 +67,14 @@ struct AppSettings: Codable, Equatable, Hashable {
             playSounds: true
         )
     }
-    
+
     static func == (lhs: AppSettings, rhs: AppSettings) -> Bool {
-        lhs.lookAwayTimer == rhs.lookAwayTimer &&
-        lhs.lookAwayCountdownSeconds == rhs.lookAwayCountdownSeconds &&
-        lhs.blinkTimer == rhs.blinkTimer &&
-        lhs.postureTimer == rhs.postureTimer &&
-        lhs.userTimers == rhs.userTimers &&
-        lhs.subtleReminderSizePercentage == rhs.subtleReminderSizePercentage &&
-        lhs.hasCompletedOnboarding == rhs.hasCompletedOnboarding &&
-        lhs.launchAtLogin == rhs.launchAtLogin &&
-        lhs.playSounds == rhs.playSounds
+        lhs.lookAwayTimer == rhs.lookAwayTimer
+            && lhs.lookAwayCountdownSeconds == rhs.lookAwayCountdownSeconds
+            && lhs.blinkTimer == rhs.blinkTimer && lhs.postureTimer == rhs.postureTimer
+            && lhs.userTimers == rhs.userTimers
+            && lhs.subtleReminderSizePercentage == rhs.subtleReminderSizePercentage
+            && lhs.hasCompletedOnboarding == rhs.hasCompletedOnboarding
+            && lhs.launchAtLogin == rhs.launchAtLogin && lhs.playSounds == rhs.playSounds
     }
 }

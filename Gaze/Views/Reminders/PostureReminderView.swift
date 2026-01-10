@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct PostureReminderView: View {
+    let sizePercentage: Double
     var onDismiss: () -> Void
 
     @State private var scale: CGFloat = 0
@@ -34,17 +35,17 @@ struct PostureReminderView: View {
     }
 
     private func startAnimation() {
-        // Phase 1: Fade in + Grow to 10% screen width
+        // Phase 1: Fade in + Grow to configured size
         withAnimation(.easeOut(duration: 0.4)) {
             opacity = 1.0
-            scale = screenWidth * 0.1
+            scale = screenWidth * (sizePercentage / 100.0)
         }
 
         // Phase 2: Hold
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4 + 0.5) {
-            // Phase 3: Shrink to 5%
+            // Phase 3: Shrink to half the configured size
             withAnimation(.easeInOut(duration: 0.3)) {
-                scale = screenWidth * 0.05
+                scale = screenWidth * (sizePercentage / 100.0) * 0.5
             }
 
             // Phase 4: Shoot upward
@@ -64,6 +65,6 @@ struct PostureReminderView: View {
 }
 
 #Preview("Posture Reminder") {
-    PostureReminderView(onDismiss: {})
+    PostureReminderView(sizePercentage: 10.0, onDismiss: {})
         .frame(width: 800, height: 600)
 }

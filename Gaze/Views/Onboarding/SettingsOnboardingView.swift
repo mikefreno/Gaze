@@ -57,18 +57,18 @@ struct SettingsOnboardingView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Subtle Reminder Size")
                             .font(.headline)
-                        
+
                         Text("Adjust the size of blink and posture reminders")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        
+
                         HStack {
                             Slider(
                                 value: $subtleReminderSizePercentage,
-                                in: 2...35,
-                                step: 1
+                                in: 0.5...25,
+                                step: 0.5
                             )
-                            Text("\(Int(subtleReminderSizePercentage))%")
+                            Text("\(String(format: "%.1f", subtleReminderSizePercentage))%")
                                 .frame(width: 50, alignment: .trailing)
                                 .monospacedDigit()
                         }
@@ -137,7 +137,8 @@ struct SettingsOnboardingView: View {
                             .cornerRadius(10)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.tint(.orange).interactive(), in: .rect(cornerRadius: 10))
+                        .glassEffect(
+                            .regular.tint(.orange).interactive(), in: .rect(cornerRadius: 10))
                     }
                     .padding()
                 }

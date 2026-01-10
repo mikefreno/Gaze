@@ -142,7 +142,7 @@ struct SettingsWindowView: View {
             launchAtLogin: launchAtLogin,
             playSounds: settingsManager.settings.playSounds
         )
-        
+
         // Assign the entire settings object to trigger didSet and observers
         settingsManager.settings = updatedSettings
 

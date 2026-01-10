@@ -30,7 +30,7 @@ struct OnboardingContainerView: View {
     @State private var postureEnabled = true
     @State private var postureIntervalMinutes = 30
     @State private var launchAtLogin = false
-    @State private var subtleReminderSize: ReminderSize = .large
+    @State private var subtleReminderSize: ReminderSize = .medium
     @State private var isAnimatingOut = false
     @Environment(\.dismiss) private var dismiss
 

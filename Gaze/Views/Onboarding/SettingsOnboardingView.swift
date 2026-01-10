@@ -51,7 +51,6 @@ struct SettingsOnboardingView: View {
                     .padding()
                     .glassEffect(.regular, in: .rect(cornerRadius: 12))
 
-                    // Subtle Reminder Size Configuration
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Subtle Reminder Size")
                             .font(.headline)
@@ -134,7 +133,7 @@ struct SettingsOnboardingView: View {
 
                         if !AppStoreDetector.isAppStoreVersion {
                             Button(action: {
-                                if let url = URL(string: "https://buymeacoffee.com/placeholder") {
+                                if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
                                     NSWorkspace.shared.open(url)
                                 }
                             }) {
@@ -198,7 +197,7 @@ struct SettingsOnboardingView: View {
 #Preview("Settings Onboarding - Launch Disabled") {
     SettingsOnboardingView(
         launchAtLogin: .constant(false),
-        subtleReminderSize: .constant(.large),
+        subtleReminderSize: .constant(.medium),
         isOnboarding: true
     )
 }

@@ -161,7 +161,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 private func showReminderWindow(_ content: AnyView) {
         guard let screen = NSScreen.main else { return }
         
-        let window = NSWindow(
+        let window = KeyableWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
@@ -181,6 +181,7 @@ private func showReminderWindow(_ content: AnyView) {
         windowController.showWindow(nil)
         // Make sure the window is brought to front and made key for key events
         window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
         
         reminderWindowController = windowController
     }
@@ -271,5 +272,16 @@ private func showReminderWindow(_ content: AnyView) {
         ) { [weak self] _ in
             self?.settingsWindowController = nil
         }
+    }
+}
+
+// Custom window class that can become key to receive keyboard events
+class KeyableWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return true
+    }
+    
+    override var canBecomeMain: Bool {
+        return true
     }
 }

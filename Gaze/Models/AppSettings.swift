@@ -59,7 +59,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         postureTimer: TimerConfiguration = TimerConfiguration(
             enabled: true, intervalSeconds: 30 * 60),
         userTimers: [UserTimer] = [],
-        subtleReminderSize: ReminderSize = .large,
+        subtleReminderSize: ReminderSize = .medium,
         hasCompletedOnboarding: Bool = false,
         launchAtLogin: Bool = false,
         playSounds: Bool = true
@@ -82,7 +82,7 @@ struct AppSettings: Codable, Equatable, Hashable {
             blinkTimer: TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
             postureTimer: TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
             userTimers: [],
-            subtleReminderSize: .large,
+            subtleReminderSize: .medium,
             hasCompletedOnboarding: false,
             launchAtLogin: false,
             playSounds: true

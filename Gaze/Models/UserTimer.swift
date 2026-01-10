@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// Represents a user-defined timer with customizable properties
-struct UserTimer: Codable, Equatable, Identifiable {
+struct UserTimer: Codable, Equatable, Identifiable, Hashable {
     let id: String
     var title: String
     var type: UserTimerType

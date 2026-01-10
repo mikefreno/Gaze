@@ -11,6 +11,7 @@ import SwiftUI
 struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager.shared
+    @State private var menuBarRefreshID = 0
     
     var body: some Scene {
         // Onboarding window (only shown when not completed)
@@ -40,6 +41,7 @@ struct GazeApp: App {
         // Menu bar extra (always present once onboarding is complete)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
             if let timerEngine = appDelegate.timerEngine {
+                let _ = print("🔵 [GazeApp] MenuBarExtra body evaluated, refreshID: \(menuBarRefreshID)")
                 MenuBarContentView(
                     timerEngine: timerEngine,
                     settingsManager: settingsManager,
@@ -47,9 +49,14 @@ struct GazeApp: App {
                     onOpenSettings: { appDelegate.openSettings() },
                     onOpenSettingsTab: { tab in appDelegate.openSettings(tab: tab) }
                 )
+                .id(menuBarRefreshID)
             }
         }
         .menuBarExtraStyle(.window)
+        .onChange(of: settingsManager.settings) { _ in
+            menuBarRefreshID += 1
+            print("🔵 [GazeApp] Settings changed, refreshID now: \(menuBarRefreshID)")
+        }
     }
     
     private func closeAllWindows() {

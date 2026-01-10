@@ -50,6 +50,9 @@ struct MenuBarContentView: View {
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
     var onOpenSettingsTab: (Int) -> Void
+    
+    // Force view refresh when timer states change
+    @State private var refreshID = UUID()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -167,8 +170,12 @@ struct MenuBarContentView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 300)
+        .id(refreshID)
         .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))) { _ in
             dismiss()
+        }
+        .onReceive(timerEngine.$timerStates) { _ in
+            refreshID = UUID()
         }
     }
 

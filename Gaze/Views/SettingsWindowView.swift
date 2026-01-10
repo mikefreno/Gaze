@@ -120,28 +120,38 @@ struct SettingsWindowView: View {
     }
 
     private func applySettings() {
-        settingsManager.settings.lookAwayTimer = TimerConfiguration(
-            enabled: lookAwayEnabled,
-            intervalSeconds: lookAwayIntervalMinutes * 60
+        print("🔧 [SettingsWindow] Applying settings...")
+        
+        // Create a new AppSettings object with updated values
+        // This triggers the didSet observer in SettingsManager
+        let updatedSettings = AppSettings(
+            lookAwayTimer: TimerConfiguration(
+                enabled: lookAwayEnabled,
+                intervalSeconds: lookAwayIntervalMinutes * 60
+            ),
+            lookAwayCountdownSeconds: lookAwayCountdownSeconds,
+            blinkTimer: TimerConfiguration(
+                enabled: blinkEnabled,
+                intervalSeconds: blinkIntervalMinutes * 60
+            ),
+            postureTimer: TimerConfiguration(
+                enabled: postureEnabled,
+                intervalSeconds: postureIntervalMinutes * 60
+            ),
+            userTimers: userTimers,
+            subtleReminderSizePercentage: subtleReminderSizePercentage,
+            hasCompletedOnboarding: settingsManager.settings.hasCompletedOnboarding,
+            launchAtLogin: launchAtLogin,
+            playSounds: settingsManager.settings.playSounds
         )
-        settingsManager.settings.lookAwayCountdownSeconds = lookAwayCountdownSeconds
-
-        settingsManager.settings.blinkTimer = TimerConfiguration(
-            enabled: blinkEnabled,
-            intervalSeconds: blinkIntervalMinutes * 60
-        )
-
-        settingsManager.settings.postureTimer = TimerConfiguration(
-            enabled: postureEnabled,
-            intervalSeconds: postureIntervalMinutes * 60
-        )
-
-        settingsManager.settings.launchAtLogin = launchAtLogin
-        settingsManager.settings.subtleReminderSizePercentage = subtleReminderSizePercentage
-        settingsManager.settings.userTimers = userTimers
-
-        // Save settings to persist changes
-        settingsManager.save()
+        
+        print("🔧 [SettingsWindow] Old settings - Blink: \(settingsManager.settings.blinkTimer.enabled), interval: \(settingsManager.settings.blinkTimer.intervalSeconds)")
+        print("🔧 [SettingsWindow] New settings - Blink: \(updatedSettings.blinkTimer.enabled), interval: \(updatedSettings.blinkTimer.intervalSeconds)")
+        
+        // Assign the entire settings object to trigger didSet and observers
+        settingsManager.settings = updatedSettings
+        
+        print("🔧 [SettingsWindow] Settings assigned to manager")
 
         do {
             if launchAtLogin {

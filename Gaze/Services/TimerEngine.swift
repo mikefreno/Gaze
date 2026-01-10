@@ -24,16 +24,11 @@ class TimerEngine: ObservableObject {
     }
 
     func start() {
-        print("🎯 [TimerEngine] start() called, subscription exists: \(timerSubscription != nil)")
-        
         // If timers are already running, just update configurations without resetting
         if timerSubscription != nil {
-            print("🎯 [TimerEngine] Updating existing configurations")
             updateConfigurations()
             return
         }
-        
-        print("🎯 [TimerEngine] Initial start - creating all timer states")
         
         // Initial start - create all timer states
         stop()
@@ -49,13 +44,11 @@ class TimerEngine: ObservableObject {
                     isPaused: false,
                     isActive: true
                 )
-                print("🎯 [TimerEngine] Created state for \(timerType.displayName): \(config.intervalSeconds)s")
             }
         }
         
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
-        print("🎯 [TimerEngine] Assigned \(newStates.count) timer states")
 
         // Start user timers
         for userTimer in settingsManager.settings.userTimers {
@@ -72,21 +65,16 @@ class TimerEngine: ObservableObject {
     }
     
     private func updateConfigurations() {
-        print("🔄 [TimerEngine] updateConfigurations() called")
-        print("🔄 [TimerEngine] Current timerStates keys: \(timerStates.keys.map { $0.displayName })")
         var newStates: [TimerType: TimerState] = [:]
         
         for timerType in TimerType.allCases {
             let config = settingsManager.timerConfiguration(for: timerType)
-            print("🔄 [TimerEngine] Processing \(timerType.displayName): enabled=\(config.enabled), intervalSeconds=\(config.intervalSeconds)")
             
             if config.enabled {
                 if let existingState = timerStates[timerType] {
                     // Timer exists - check if interval changed
-                    print("🔄 [TimerEngine] \(timerType.displayName) exists in current states")
                     if existingState.originalIntervalSeconds != config.intervalSeconds {
                         // Interval changed - reset with new interval
-                        print("🔄 [TimerEngine] \(timerType.displayName) interval changed: \(existingState.originalIntervalSeconds)s -> \(config.intervalSeconds)s, resetting")
                         newStates[timerType] = TimerState(
                             type: timerType,
                             intervalSeconds: config.intervalSeconds,
@@ -95,12 +83,10 @@ class TimerEngine: ObservableObject {
                         )
                     } else {
                         // Interval unchanged - keep existing state
-                        print("🔄 [TimerEngine] \(timerType.displayName) unchanged, keeping state (remaining: \(existingState.remainingSeconds)s)")
                         newStates[timerType] = existingState
                     }
                 } else {
                     // Timer was just enabled - create new state
-                    print("🔄 [TimerEngine] \(timerType.displayName) NOT in current states, newly enabled, creating state")
                     newStates[timerType] = TimerState(
                         type: timerType,
                         intervalSeconds: config.intervalSeconds,
@@ -108,18 +94,10 @@ class TimerEngine: ObservableObject {
                         isActive: true
                     )
                 }
-            } else {
-                if timerStates[timerType] != nil {
-                    print("🔄 [TimerEngine] \(timerType.displayName) disabled, removing state")
-                } else {
-                    print("🔄 [TimerEngine] \(timerType.displayName) disabled and not in current states")
-                }
             }
             // If config.enabled is false and timer exists, it will be removed
         }
         
-        print("🔄 [TimerEngine] New states keys: \(newStates.keys.map { $0.displayName })")
-        print("🔄 [TimerEngine] Assigning \(newStates.count) timer states (was \(timerStates.count))")
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
         

@@ -41,7 +41,6 @@ struct GazeApp: App {
         // Menu bar extra (always present once onboarding is complete)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
             if let timerEngine = appDelegate.timerEngine {
-                let _ = print("🔵 [GazeApp] MenuBarExtra body evaluated, refreshID: \(menuBarRefreshID)")
                 MenuBarContentView(
                     timerEngine: timerEngine,
                     settingsManager: settingsManager,
@@ -55,7 +54,6 @@ struct GazeApp: App {
         .menuBarExtraStyle(.window)
         .onChange(of: settingsManager.settings) { _ in
             menuBarRefreshID += 1
-            print("🔵 [GazeApp] Settings changed, refreshID now: \(menuBarRefreshID)")
         }
     }
     

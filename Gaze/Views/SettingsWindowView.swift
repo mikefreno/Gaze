@@ -120,8 +120,6 @@ struct SettingsWindowView: View {
     }
 
     private func applySettings() {
-        print("🔧 [SettingsWindow] Applying settings...")
-        
         // Create a new AppSettings object with updated values
         // This triggers the didSet observer in SettingsManager
         let updatedSettings = AppSettings(
@@ -145,13 +143,8 @@ struct SettingsWindowView: View {
             playSounds: settingsManager.settings.playSounds
         )
         
-        print("🔧 [SettingsWindow] Old settings - Blink: \(settingsManager.settings.blinkTimer.enabled), interval: \(settingsManager.settings.blinkTimer.intervalSeconds)")
-        print("🔧 [SettingsWindow] New settings - Blink: \(updatedSettings.blinkTimer.enabled), interval: \(updatedSettings.blinkTimer.intervalSeconds)")
-        
         // Assign the entire settings object to trigger didSet and observers
         settingsManager.settings = updatedSettings
-        
-        print("🔧 [SettingsWindow] Settings assigned to manager")
 
         do {
             if launchAtLogin {

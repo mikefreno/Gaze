@@ -49,12 +49,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func observeSettingsChanges() {
         settingsManager?.$settings
             .sink { [weak self] settings in
-                print("📢 [AppDelegate] Settings changed!")
                 if settings.hasCompletedOnboarding && self?.hasStartedTimers == false {
-                    print("📢 [AppDelegate] Starting timers for first time")
                     self?.startTimers()
                 } else if self?.hasStartedTimers == true {
-                    print("📢 [AppDelegate] Restarting timers with new config")
                     // Defer timer restart to next runloop to ensure settings are fully propagated
                     DispatchQueue.main.async {
                         self?.timerEngine?.start()

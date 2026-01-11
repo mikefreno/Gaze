@@ -1,3 +1,5 @@
 tasks
 AGENTS.md
 *.log
+*.app
+*.dmg

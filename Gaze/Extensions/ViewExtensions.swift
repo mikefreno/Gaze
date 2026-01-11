@@ -8,7 +8,6 @@
 import SwiftUI
 
 extension View {
-    /// Applies a glass effect on macOS 26.0+, with a fallback visual treatment for earlier versions
     @ViewBuilder
     func glassEffectIfAvailable<S: InsettableShape>(
         _ style: GlassStyle,
@@ -19,17 +18,24 @@ extension View {
         } else {
             self.background {
                 shape
-                    .fill(.ultraThinMaterial)
+                    .fill(
+                        style.tintColor ?? .white
+                    )
+                    .overlay(
+                        shape
+                            .stroke(
+                                (style.tintColor ?? .white).opacity(0.2),
+                                lineWidth: 1
+                            )
+                    )
                     .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             }
         }
     }
 }
 
-// MARK: - GlassStyle Wrapper
-/// Cross-version wrapper for glass effect styling
 struct GlassStyle {
-    private let tintColor: Color?
+    let tintColor: Color?
     private let isInteractive: Bool
 
     static let regular = GlassStyle(tintColor: nil, isInteractive: false)

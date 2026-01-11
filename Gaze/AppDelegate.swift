@@ -13,6 +13,7 @@ import Combine
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var timerEngine: TimerEngine?
     private var settingsManager: SettingsManager?
+    private var updateManager: UpdateManager?
     private var reminderWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
@@ -25,6 +26,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         settingsManager = SettingsManager.shared
         timerEngine = TimerEngine(settingsManager: settingsManager!)
+        
+        // Initialize update manager after onboarding is complete
+        if settingsManager!.settings.hasCompletedOnboarding {
+            updateManager = UpdateManager.shared
+        }
         
         // Detect App Store version asynchronously at launch
         Task {
@@ -42,6 +48,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     func onboardingCompleted() {
         startTimers()
+        
+        // Start update checks after onboarding
+        if updateManager == nil {
+            updateManager = UpdateManager.shared
+        }
     }
     
     private func startTimers() {

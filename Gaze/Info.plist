@@ -16,5 +16,15 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Mike Freno. All rights reserved.</string>
+	<key>SUPublicEDKey</key>
+	<string>Z2RmohI1y2bgeGQQUDqO9F0HNF2AzFotOt8CwGB6VJM=</string>
+	<key>SUFeedURL</key>
+	<string>https://freno.me/api/Gaze/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 </dict>
 </plist>

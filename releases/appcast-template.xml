@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>Gaze Updates</title>
+        <description>Most recent updates to Gaze</description>
+        <language>en</language>
+        <item>
+            <title>Version 0.1.1</title>
+            <description><![CDATA[
+                <h2>What's New in Gaze 0.1.1</h2>
+                <ul>
+                    <li>Initial release with auto-update support</li>
+                    <li>Blink reminders to reduce eye strain</li>
+                    <li>20-20-20 rule break reminders</li>
+                    <li>Customizable reminder intervals</li>
+                    <li>Posture check reminders</li>
+                </ul>
+            ]]></description>
+            <pubDate>Sat, 11 Jan 2026 12:00:00 +0000</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure 
+                url="https://freno.me/downloads/Gaze-0.1.1.dmg" 
+                sparkle:edSignature="SIGNATURE_GENERATED_BY_GENERATE_APPCAST"
+                length="FILE_SIZE_IN_BYTES" 
+                type="application/octet-stream" />
+        </item>
+    </channel>
+</rss>

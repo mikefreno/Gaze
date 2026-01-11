@@ -11,6 +11,7 @@ struct GeneralSetupView: View {
     @Binding var launchAtLogin: Bool
     @Binding var subtleReminderSize: ReminderSize
     @Binding var isAppStoreVersion: Bool
+    @ObservedObject var updateManager = UpdateManager.shared
     var isOnboarding: Bool = true
 
     var body: some View {
@@ -51,6 +52,34 @@ struct GeneralSetupView: View {
                     }
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+
+                    // Software Updates Section
+                    if !isAppStoreVersion {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Software Updates")
+                                .font(.headline)
+
+                            Toggle("Automatically check for updates", isOn: $updateManager.automaticallyChecksForUpdates)
+                                .help("Check for new versions of Gaze in the background")
+
+                            if let lastCheck = updateManager.lastUpdateCheckDate {
+                                Text("Last checked: \(lastCheck, style: .relative)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text("Never checked for updates")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Button("Check for Updates Now") {
+                                updateManager.checkForUpdates()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                        .padding()
+                        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                    }
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Subtle Reminder Size")

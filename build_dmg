@@ -6,8 +6,28 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-# Create the DMG
-rm -f Gaze.dmg
+# Configuration
+VERSION="0.1.1"  # Should match MARKETING_VERSION in project
+BUILD_NUMBER="1"  # Should match CURRENT_PROJECT_VERSION in project
+RELEASES_DIR="./releases"
+APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
+FEED_URL="https://freno.me/api/Gaze/appcast.xml"
+DMG_NAME="Gaze-${VERSION}.dmg"
+
+# Find Sparkle generate_appcast tool
+SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData/Gaze-* -path "*/artifacts/sparkle/Sparkle/bin" -type d 2>/dev/null | head -1)
+if [ -z "$SPARKLE_BIN" ]; then
+    echo "⚠️  Warning: Sparkle bin directory not found"
+    echo "Appcast generation will be skipped"
+    SPARKLE_BIN=""
+fi
+
+# Create releases directory
+mkdir -p "$RELEASES_DIR"
+
+# Remove old DMG if exists
+rm -f "$DMG_NAME"
+
 echo "Creating DMG..."
 create-dmg \
   --volname "Gaze Installer" \
@@ -18,22 +38,82 @@ create-dmg \
   --background "./dmg_background.png" \
   --icon "Gaze.app" 160 200 \
   --app-drop-link 440 200 \
-  "Gaze.dmg" \
+  "$DMG_NAME" \
   "./Gaze.app"
+
+# Copy DMG to releases directory
+echo "Copying DMG to releases directory..."
+cp "$DMG_NAME" "$RELEASES_DIR/"
+
+# Generate appcast if Sparkle tools are available
+if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
+    echo ""
+    echo "Generating appcast..."
+    
+    # Generate appcast with download URL prefix
+    "$SPARKLE_BIN/generate_appcast" \
+        --download-url-prefix "https://freno.me/downloads/" \
+        "$RELEASES_DIR"
+    
+    # Verify appcast was generated
+    if [ -f "$APPCAST_OUTPUT" ]; then
+        echo "✅ Appcast generated successfully"
+        echo "📋 Appcast location: $APPCAST_OUTPUT"
+        
+        # Show signature verification
+        if grep -q "edSignature" "$APPCAST_OUTPUT"; then
+            echo "✅ EdDSA signature verified in appcast"
+        else
+            echo "⚠️  Warning: No EdDSA signature found in appcast"
+        fi
+    else
+        echo "❌ Failed to generate appcast"
+    fi
+else
+    echo ""
+    echo "⚠️  Skipping appcast generation (Sparkle tools not found)"
+    echo "To generate appcast manually, run:"
+    echo "  ./generate_appcast --download-url-prefix 'https://freno.me/downloads/' '$RELEASES_DIR'"
+fi
 
 # Upload to AWS S3 if environment variables are set
 if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$AWS_BUCKET_NAME" ] && [ -n "$AWS_REGION" ]; then
-  echo "Uploading Gaze.dmg to S3 bucket: $AWS_BUCKET_NAME..."
+  echo ""
+  echo "Uploading to S3 bucket: $AWS_BUCKET_NAME..."
   
   # Export AWS credentials for aws-cli
   export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
   export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
   export AWS_DEFAULT_REGION="$AWS_REGION"
   
-  # Upload to S3
-  aws s3 cp Gaze.dmg "s3://$AWS_BUCKET_NAME/Gaze.dmg" --region "$AWS_REGION"
+  # Upload DMG to S3
+  aws s3 cp "$RELEASES_DIR/$DMG_NAME" "s3://$AWS_BUCKET_NAME/downloads/$DMG_NAME" --region "$AWS_REGION"
   
-  echo "Upload complete! DMG available at: s3://$AWS_BUCKET_NAME/Gaze.dmg"
+  # Upload appcast if it exists
+  if [ -f "$APPCAST_OUTPUT" ]; then
+      aws s3 cp "$APPCAST_OUTPUT" "s3://$AWS_BUCKET_NAME/api/Gaze/appcast.xml" --region "$AWS_REGION"
+      echo "✅ Appcast uploaded to S3"
+  fi
+  
+  echo "✅ Upload complete!"
+  echo "  DMG: s3://$AWS_BUCKET_NAME/downloads/$DMG_NAME"
+  echo "  Appcast: s3://$AWS_BUCKET_NAME/api/Gaze/appcast.xml"
 else
-  echo "Skipping S3 upload - AWS credentials not found in .env"
+  echo ""
+  echo "⚠️  Skipping S3 upload - AWS credentials not found in .env"
 fi
+
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "Release artifacts created:"
+echo "  📦 DMG: $RELEASES_DIR/$DMG_NAME"
+if [ -f "$APPCAST_OUTPUT" ]; then
+    echo "  📋 Appcast: $APPCAST_OUTPUT"
+fi
+echo ""
+echo "Next steps:"
+echo "  1. Upload DMG to: https://freno.me/downloads/$DMG_NAME"
+echo "  2. Upload appcast to: $FEED_URL"
+echo "  3. Verify appcast is accessible and valid"
+echo "  4. Test update from previous version"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

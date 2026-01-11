@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		275915892F132A9200D0E60D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B12F10B1FC00E00DBC /* Lottie */; };
+		275915902F132B0000D0E60D /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B22F10B20000E00DBC /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +58,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				275915892F132A9200D0E60D /* Lottie in Frameworks */,
+				275915902F132B0000D0E60D /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,6 +120,7 @@
 			name = Gaze;
 			packageProductDependencies = (
 				27AE10B12F10B1FC00E00DBC /* Lottie */,
+				27AE10B22F10B20000E00DBC /* Sparkle */,
 			);
 			productName = Gaze;
 			productReference = 27A21B3C2F0F69DC0018C4F3 /* Gaze.app */;
@@ -203,6 +206,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */,
+				27AE10B32F10B21000E00DBC /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27A21B3D2F0F69DC0018C4F3 /* Products */;
@@ -404,6 +408,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = Gaze;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Gaze/Gaze.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -411,8 +416,8 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gaze/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -439,6 +444,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = Gaze;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_ENTITLEMENTS = Gaze/Gaze.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -446,8 +452,8 @@
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
-				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Gaze/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -598,6 +604,14 @@
 				minimumVersion = 4.6.0;
 			};
 		};
+		27AE10B32F10B21000E00DBC /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -605,6 +619,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
+		};
+		27AE10B22F10B20000E00DBC /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27AE10B32F10B21000E00DBC /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

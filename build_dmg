@@ -1,3 +1,14 @@
+#!/bin/bash
+set -e
+
+# Load environment variables from .env file
+if [ -f .env ]; then
+  export $(grep -v '^#' .env | xargs)
+fi
+
+# Create the DMG
+rm -f Gaze.dmg
+echo "Creating DMG..."
 create-dmg \
   --volname "Gaze Installer" \
   --window-pos 200 120 \
@@ -8,3 +19,20 @@ create-dmg \
   --app-drop-link 440 200 \
   "Gaze.dmg" \
   "./Gaze.app"
+
+# Upload to AWS S3 if environment variables are set
+if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$AWS_BUCKET_NAME" ] && [ -n "$AWS_REGION" ]; then
+  echo "Uploading Gaze.dmg to S3 bucket: $AWS_BUCKET_NAME..."
+  
+  # Export AWS credentials for aws-cli
+  export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY_ID"
+  export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
+  export AWS_DEFAULT_REGION="$AWS_REGION"
+  
+  # Upload to S3
+  aws s3 cp Gaze.dmg "s3://$AWS_BUCKET_NAME/Gaze.dmg" --region "$AWS_REGION"
+  
+  echo "Upload complete! DMG available at: s3://$AWS_BUCKET_NAME/Gaze.dmg"
+else
+  echo "Skipping S3 upload - AWS credentials not found in .env"
+fi

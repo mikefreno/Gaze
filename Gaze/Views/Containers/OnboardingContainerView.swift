@@ -31,7 +31,6 @@ struct OnboardingContainerView: View {
     @State private var postureIntervalMinutes = 30
     @State private var launchAtLogin = false
     @State private var subtleReminderSize: ReminderSize = .medium
-    @State private var isAnimatingOut = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -151,8 +150,6 @@ struct OnboardingContainerView: View {
             }
         }
         .frame(minWidth: 1000, minHeight: 800)
-        .opacity(isAnimatingOut ? 0 : 1)
-        .scaleEffect(isAnimatingOut ? 0.3 : 1.0)
     }
 
     private func completeOnboarding() {
@@ -188,49 +185,19 @@ struct OnboardingContainerView: View {
             print("Failed to set launch at login: \(error)")
         }
 
-        // Perform vacuum animation
-        performVacuumAnimation()
-    }
+        // Close window with standard macOS animation
+        dismiss()
 
-    private func performVacuumAnimation() {
-        // Get the NSWindow reference
-        guard
-            let window = NSApplication.shared.windows.first(where: {
-                $0.isVisible && $0.contentView != nil
-            })
-        else {
-            // Fallback: just dismiss without animation
-            dismiss()
-            return
+        // After a brief delay, trigger the menu bar extra to open
+        DispatchQueue.main.asyncAfter(deadline: .now()) {
+            if let menuBarWindow = NSApp.windows.first(where: {
+                $0.className.contains("MenuBarExtra") || $0.className.contains("StatusBar")
+            }),
+                let statusItem = menuBarWindow.value(forKey: "statusItem") as? NSStatusItem
+            {
+                statusItem.button?.performClick(nil)
+            }
         }
-
-        // Calculate target position (top-center of screen where menu bar is)
-        let screen = NSScreen.main?.frame ?? .zero
-        let targetRect = NSRect(
-            x: screen.midX,
-            y: screen.maxY,
-            width: 0,
-            height: 0
-        )
-
-        // Start SwiftUI animation for visual effects
-        withAnimation(.easeInOut(duration: 0.7)) {
-            isAnimatingOut = true
-        }
-
-        // Animate window frame using AppKit
-        NSAnimationContext.runAnimationGroup(
-            { context in
-                context.duration = 0.7
-                context.timingFunction = CAMediaTimingFunction(name: .easeIn)
-                window.animator().setFrame(targetRect, display: true)
-                window.animator().alphaValue = 0
-            },
-            completionHandler: {
-                // Close window after animation completes
-                self.dismiss()
-                window.close()
-            })
     }
 }
 #Preview("Onboarding Container") {

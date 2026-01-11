@@ -216,22 +216,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self, let settingsManager = self.settingsManager else { return }
             
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
-                styleMask: [.titled, .closable, .miniaturizable],
-                backing: .buffered,
-                defer: false
-            )
+            // Check if onboarding window already exists from the WindowGroup
+            let existingWindow = NSApplication.shared.windows.first { window in
+                // Check if window contains OnboardingContainerView by examining its content view
+                if let hostingView = window.contentView as? NSHostingView<OnboardingContainerView> {
+                    return true
+                }
+                // Also check for windows with our expected size (onboarding window dimensions)
+                return window.frame.size.width == 700 && window.frame.size.height == 700 
+                    && window.styleMask.contains(.titled)
+                    && window.title.isEmpty  // WindowGroup windows have empty title by default
+            }
             
-            window.title = "Gaze Onboarding"
-            window.center()
-            window.isReleasedWhenClosed = true
-            window.contentView = NSHostingView(
-                rootView: OnboardingContainerView(settingsManager: settingsManager)
-            )
-            
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            if let window = existingWindow {
+                // Reuse existing window - just bring it to front
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            } else {
+                // Create new window matching WindowGroup style
+                let window = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+                    styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                    backing: .buffered,
+                    defer: false
+                )
+                
+                // Match the WindowGroup style: hiddenTitleBar
+                window.titleVisibility = .hidden
+                window.titlebarAppearsTransparent = true
+                window.center()
+                window.isReleasedWhenClosed = true
+                window.contentView = NSHostingView(
+                    rootView: OnboardingContainerView(settingsManager: settingsManager)
+                )
+                
+                window.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
     

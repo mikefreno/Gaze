@@ -40,7 +40,6 @@ struct BlinkReminderView: View {
                 )
                 .frame(width: baseSize, height: baseSize)
                 .scaleEffect(scale)
-                .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
             }
             Spacer()
         }

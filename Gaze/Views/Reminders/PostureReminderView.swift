@@ -23,7 +23,6 @@ struct PostureReminderView: View {
             Image(systemName: "arrow.up.circle.fill")
                 .font(.system(size: scale))
                 .foregroundColor(.accentColor)
-                .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
         }
         .opacity(opacity)
         .offset(y: yOffset)

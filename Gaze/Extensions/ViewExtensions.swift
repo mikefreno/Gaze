@@ -17,25 +17,36 @@ extension View {
             self.glassEffect(style.toGlass(), in: shape)
         } else {
             self.background {
-                shape
-                    .fill(
-                        style.tintColor ?? .white
-                    )
-                    .overlay(
+                ZStack {
+                    if let tintColor = style.getTintColor() {
                         shape
-                            .stroke(
-                                (style.tintColor ?? .white).opacity(0.2),
-                                lineWidth: 1
+                            .fill(tintColor.opacity(0.8))
+                    } else {
+                        shape
+                            .fill(.ultraThinMaterial)
+                    }
+
+                    // Border with tint color mixed with white
+                    if let tintColor = style.getTintColor() {
+                        shape
+                            .strokeBorder(
+                                Color(
+                                    red: (tintColor.cgColor?.components?[0] ?? 1.0) * 0.7 + 0.3,
+                                    green: (tintColor.cgColor?.components?[1] ?? 1.0) * 0.7 + 0.3,
+                                    blue: (tintColor.cgColor?.components?[2] ?? 1.0) * 0.7 + 0.3
+                                ).opacity(0.6),
+                                lineWidth: 1.5
                             )
-                    )
-                    .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                    }
+                }
+                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             }
         }
     }
 }
 
 struct GlassStyle {
-    let tintColor: Color?
+    private let tintColor: Color?
     private let isInteractive: Bool
 
     static let regular = GlassStyle(tintColor: nil, isInteractive: false)
@@ -51,6 +62,10 @@ struct GlassStyle {
 
     func interactive() -> GlassStyle {
         GlassStyle(tintColor: tintColor, isInteractive: true)
+    }
+
+    func getTintColor() -> Color? {
+        return tintColor
     }
 
     @available(macOS 26.0, *)

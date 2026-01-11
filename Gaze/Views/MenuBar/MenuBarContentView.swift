@@ -7,6 +7,27 @@
 
 import SwiftUI
 
+// Wrapper to properly observe AppDelegate changes in MenuBarExtra
+struct MenuBarContentWrapper: View {
+    @ObservedObject var appDelegate: AppDelegate
+    @ObservedObject var settingsManager: SettingsManager
+    var onQuit: () -> Void
+    var onOpenSettings: () -> Void
+    var onOpenSettingsTab: (Int) -> Void
+    var onOpenOnboarding: () -> Void
+
+    var body: some View {
+        MenuBarContentView(
+            timerEngine: appDelegate.timerEngine,
+            settingsManager: settingsManager,
+            onQuit: onQuit,
+            onOpenSettings: onOpenSettings,
+            onOpenSettingsTab: onOpenSettingsTab,
+            onOpenOnboarding: onOpenOnboarding
+        )
+    }
+}
+
 // Hover button style for menubar items
 struct MenuBarButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -29,8 +50,11 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .foregroundColor(isHovered ? .white : .primary)
             .glassEffectIfAvailable(
-                isHovered ? GlassStyle.regular.tint(.accentColor.opacity(0.5)).interactive() : GlassStyle.regular,
+                isHovered
+                    ? GlassStyle.regular.tint(.accentColor).interactive()
+                    : GlassStyle.regular,
                 in: .rect(cornerRadius: 6)
             )
             .contentShape(Rectangle())
@@ -164,10 +188,10 @@ struct MenuBarContentView: View {
                     .padding(.top, 8)
 
                 ForEach(TimerType.allCases) { timerType in
-                    if let state = timerEngine.timerStates[timerType] {
+                    if timerEngine.timerStates[timerType] != nil {
                         TimerStatusRow(
                             type: timerType,
-                            state: state,
+                            timerEngine: timerEngine,
                             onSkip: {
                                 timerEngine.skipNext(type: timerType)
                             },
@@ -275,7 +299,7 @@ struct MenuBarContentView: View {
 
 struct TimerStatusRow: View {
     let type: TimerType
-    let state: TimerState
+    @ObservedObject var timerEngine: TimerEngine
     var onSkip: () -> Void
     var onDevTrigger: (() -> Void)? = nil
     var onTap: (() -> Void)? = nil
@@ -283,21 +307,28 @@ struct TimerStatusRow: View {
     @State private var isHoveredDevTrigger = false
     @State private var isHoveredBody = false
 
+    private var state: TimerState? {
+        timerEngine.timerStates[type]
+    }
+
     var body: some View {
         HStack {
             HStack {
                 Image(systemName: type.iconName)
-                    .foregroundColor(iconColor)
+                    .foregroundColor(isHoveredBody ? .white : iconColor)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(type.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    Text(timeRemaining)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .monospacedDigit()
+                        .foregroundColor(isHoveredBody ? .white : .primary)
+                    if let state = state {
+                        Text(timeRemaining(state))
+                            .font(.caption)
+                            .foregroundColor(isHoveredBody ? .white.opacity(0.8) : .secondary)
+                            .monospacedDigit()
+                    }
                 }
 
                 Spacer()
@@ -312,13 +343,14 @@ struct TimerStatusRow: View {
                     Button(action: onDevTrigger) {
                         Image(systemName: "bolt.fill")
                             .font(.caption)
-                            .foregroundColor(.yellow)
+                            .foregroundColor(isHoveredDevTrigger ? .white : .yellow)
                             .padding(6)
                             .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .glassEffectIfAvailable(
-                        isHoveredDevTrigger ? GlassStyle.regular.tint(.yellow.opacity(0.5)) : GlassStyle.regular,
+                        isHoveredDevTrigger
+                            ? GlassStyle.regular.tint(.yellow) : GlassStyle.regular,
                         in: .circle
                     )
                     .help("Trigger \(type.displayName) reminder now (dev)")
@@ -331,13 +363,14 @@ struct TimerStatusRow: View {
             Button(action: onSkip) {
                 Image(systemName: "forward.fill")
                     .font(.caption)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(isHoveredSkip ? .white : .accentColor)
                     .padding(6)
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .glassEffectIfAvailable(
-                isHoveredSkip ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
+                isHoveredSkip
+                    ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
                 in: .circle
             )
             .help("Skip to next \(type.displayName) reminder")
@@ -348,7 +381,7 @@ struct TimerStatusRow: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .glassEffectIfAvailable(
-            isHoveredBody ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
+            isHoveredBody ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
@@ -370,7 +403,7 @@ struct TimerStatusRow: View {
         }
     }
 
-    private var timeRemaining: String {
+    private func timeRemaining(_ state: TimerState) -> String {
         let seconds = state.remainingSeconds
         let minutes = seconds / 60
         let remainingSeconds = seconds % 60
@@ -396,21 +429,21 @@ struct InactiveTimerRow: View {
         Button(action: onTap) {
             HStack {
                 Image(systemName: type.iconName)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isHovered ? .white : .secondary)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(type.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isHovered ? .white : .secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "plus.circle")
                     .font(.title3)
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(isHovered ? .white : .accentColor)
                     .padding(6)
             }
             .padding(.horizontal, 8)
@@ -419,7 +452,7 @@ struct InactiveTimerRow: View {
         }
         .buttonStyle(.plain)
         .glassEffectIfAvailable(
-            isHovered ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
+            isHovered ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
@@ -440,28 +473,29 @@ struct UserTimerStatusRow: View {
         Button(action: onTap) {
             HStack {
                 Circle()
-                    .fill(timer.color)
+                    .fill(isHovered ? .white : timer.color)
                     .frame(width: 8, height: 8)
 
                 Image(systemName: "clock.fill")
-                    .foregroundColor(timer.color)
+                    .foregroundColor(isHovered ? .white : timer.color)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(timer.title)
                         .font(.subheadline)
                         .fontWeight(.medium)
+                        .foregroundColor(isHovered ? .white : .primary)
                         .lineLimit(1)
 
                     if let state = state {
                         Text(timeRemaining(state))
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isHovered ? .white.opacity(0.8) : .secondary)
                             .monospacedDigit()
                     } else {
                         Text(timer.enabled ? "Not active" : "Disabled")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(isHovered ? .white.opacity(0.8) : .secondary)
                     }
                 }
 
@@ -469,7 +503,7 @@ struct UserTimerStatusRow: View {
 
                 Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(isHovered ? .white : .secondary)
                     .padding(6)
             }
             .padding(.horizontal, 8)
@@ -478,7 +512,7 @@ struct UserTimerStatusRow: View {
         }
         .buttonStyle(.plain)
         .glassEffectIfAvailable(
-            isHovered ? GlassStyle.regular.tint(timer.color.opacity(0.3)) : GlassStyle.regular,
+            isHovered ? GlassStyle.regular.tint(timer.color) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)

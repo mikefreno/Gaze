@@ -39,8 +39,8 @@ struct GazeApp: App {
         
         // Menu bar extra (always present)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
-            MenuBarContentView(
-                timerEngine: appDelegate.timerEngine,
+            MenuBarContentWrapper(
+                appDelegate: appDelegate,
                 settingsManager: settingsManager,
                 onQuit: { NSApplication.shared.terminate(nil) },
                 onOpenSettings: { appDelegate.openSettings() },

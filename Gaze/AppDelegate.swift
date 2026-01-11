@@ -10,8 +10,8 @@ import AppKit
 import Combine
 
 @MainActor
-class AppDelegate: NSObject, NSApplicationDelegate {
-    var timerEngine: TimerEngine?
+class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
+    @Published var timerEngine: TimerEngine?
     private var settingsManager: SettingsManager?
     private var reminderWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?

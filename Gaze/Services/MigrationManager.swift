@@ -160,7 +160,7 @@ class Version101Migration: Migration {
     var targetVersion: String = "1.0.1"
     
     func migrate(_ data: [String: Any]) throws -> [String: Any] {
-        var migratedData = data
+        let migratedData = data
         
         // Example migration logic:
         // Add any new fields with default values if they don't exist

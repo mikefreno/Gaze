@@ -26,6 +26,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsManager = SettingsManager.shared
         timerEngine = TimerEngine(settingsManager: settingsManager!)
         
+        // Detect App Store version asynchronously at launch
+        Task {
+            await settingsManager?.detectAppStoreVersion()
+        }
+        
         setupLifecycleObservers()
         observeSettingsChanges()
         

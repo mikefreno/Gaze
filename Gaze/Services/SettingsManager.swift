@@ -75,4 +75,13 @@ class SettingsManager: ObservableObject {
             settings.postureTimer = configuration
         }
     }
+    
+    /// Detects and caches the App Store version status.
+    /// This should be called once at app launch to avoid async checks throughout the app.
+    func detectAppStoreVersion() async {
+        let isAppStore = await AppStoreDetector.isAppStoreVersion()
+        await MainActor.run {
+            settings.isAppStoreVersion = isAppStore
+        }
+    }
 }

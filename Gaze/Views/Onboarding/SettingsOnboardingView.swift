@@ -10,6 +10,7 @@ import SwiftUI
 struct SettingsOnboardingView: View {
     @Binding var launchAtLogin: Bool
     @Binding var subtleReminderSize: ReminderSize
+    @Binding var isAppStoreVersion: Bool
     var isOnboarding: Bool = true
 
     var body: some View {
@@ -131,7 +132,7 @@ struct SettingsOnboardingView: View {
                         .buttonStyle(.plain)
                         .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
 
-                        if !AppStoreDetector.isAppStoreVersion {
+                        if !isAppStoreVersion {
                             Button(action: {
                                 if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
                                     NSWorkspace.shared.open(url)
@@ -198,6 +199,7 @@ struct SettingsOnboardingView: View {
     SettingsOnboardingView(
         launchAtLogin: .constant(false),
         subtleReminderSize: .constant(.medium),
+        isAppStoreVersion: .constant(false),
         isOnboarding: true
     )
 }
@@ -206,6 +208,7 @@ struct SettingsOnboardingView: View {
     SettingsOnboardingView(
         launchAtLogin: .constant(true),
         subtleReminderSize: .constant(.medium),
+        isAppStoreVersion: .constant(false),
         isOnboarding: true
     )
 }

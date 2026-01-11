@@ -82,6 +82,10 @@ struct SettingsWindowView: View {
                 SettingsOnboardingView(
                     launchAtLogin: $launchAtLogin,
                     subtleReminderSize: $subtleReminderSize,
+                    isAppStoreVersion: Binding(
+                        get: { settingsManager.settings.isAppStoreVersion },
+                        set: { _ in }
+                    ),
                     isOnboarding: false
                 )
                 .tag(4)
@@ -140,7 +144,8 @@ struct SettingsWindowView: View {
             subtleReminderSize: subtleReminderSize,
             hasCompletedOnboarding: settingsManager.settings.hasCompletedOnboarding,
             launchAtLogin: launchAtLogin,
-            playSounds: settingsManager.settings.playSounds
+            playSounds: settingsManager.settings.playSounds,
+            isAppStoreVersion: settingsManager.settings.isAppStoreVersion
         )
 
         // Assign the entire settings object to trigger didSet and observers

@@ -77,6 +77,10 @@ struct OnboardingContainerView: View {
                     SettingsOnboardingView(
                         launchAtLogin: $launchAtLogin,
                         subtleReminderSize: $subtleReminderSize,
+                        isAppStoreVersion: Binding(
+                            get: { settingsManager.settings.isAppStoreVersion },
+                            set: { _ in }
+                        ),
                         isOnboarding: true
                     )
                     .tag(4)

@@ -10,20 +10,20 @@ import Testing
 
 struct AppStoreDetectorTests {
 
-    @Test func isAppStoreVersionReturnsFalseInDebug() {
+    @Test func isAppStoreVersionReturnsFalseInDebug() async {
         // In test/debug builds, should always return false
-        #expect(AppStoreDetector.isAppStoreVersion == false)
+        #expect(await AppStoreDetector.isAppStoreVersion() == false)
     }
 
-    @Test func isTestFlightReturnsFalseInDebug() {
+    @Test func isTestFlightReturnsFalseInDebug() async {
         // In test/debug builds, should always return false
-        #expect(AppStoreDetector.isTestFlight == false)
+        #expect(await AppStoreDetector.isTestFlight() == false)
     }
 
-    @Test func receiptValidationHandlesMissingReceipt() {
+    @Test func receiptValidationHandlesMissingReceipt() async {
         // When there's no receipt (development build), should return false
         // This is implicitly tested by isAppStoreVersionReturnsFalseInDebug
         // but we're documenting the expected behavior
-        #expect(AppStoreDetector.isAppStoreVersion == false)
+        #expect(await AppStoreDetector.isAppStoreVersion() == false)
     }
 }

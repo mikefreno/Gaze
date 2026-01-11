@@ -166,6 +166,23 @@
       "hidden" : false,
       "layers" : [
         {
+          "blend-mode" : "darken",
+          "fill" : {
+            "linear-gradient" : [
+              "extended-srgb:0.00000,0.53333,1.00000,1.00000",
+              "display-p3:0.38403,0.64839,1.04685,1.00000"
+            ],
+            "orientation" : {
+              "start" : {
+                "x" : 0.5,
+                "y" : 0
+              },
+              "stop" : {
+                "x" : 0.5,
+                "y" : 0.7
+              }
+            }
+          },
           "glass" : false,
           "image-name" : "Line 7.svg",
           "name" : "Line 7",
@@ -186,7 +203,7 @@
           "image-name" : "Line 8.svg",
           "name" : "Line 8",
           "position" : {
-            "scale" : 1.21,
+            "scale" : 1.26,
             "translation-in-points" : [
               -0.1999973177900074,
               -82.12440000000004
@@ -231,7 +248,7 @@
           "image-name" : "Ellipse 11.svg",
           "name" : "Ellipse 11",
           "position" : {
-            "scale" : 0.99,
+            "scale" : 0.83,
             "translation-in-points" : [
               0,
               0

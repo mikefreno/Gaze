@@ -314,6 +314,7 @@ struct TimerStatusRow: View {
                             .font(.caption)
                             .foregroundColor(.yellow)
                             .padding(6)
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
                     .glassEffectIfAvailable(
@@ -332,6 +333,7 @@ struct TimerStatusRow: View {
                     .font(.caption)
                     .foregroundColor(.accentColor)
                     .padding(6)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .glassEffectIfAvailable(
@@ -413,6 +415,7 @@ struct InactiveTimerRow: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
+            .contentShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
         .glassEffectIfAvailable(
@@ -471,6 +474,7 @@ struct UserTimerStatusRow: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
+            .contentShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
         .glassEffectIfAvailable(

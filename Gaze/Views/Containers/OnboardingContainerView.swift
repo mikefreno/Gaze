@@ -110,6 +110,7 @@ struct OnboardingContainerView: View {
                                     maxHeight: 44, alignment: .center
                                 )
                                 .foregroundColor(.primary)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
                             }
                             .buttonStyle(.plain)
                             .glassEffectIfAvailable(
@@ -134,6 +135,7 @@ struct OnboardingContainerView: View {
                                 alignment: .center
                             )
                             .foregroundColor(.white)
+                            .contentShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.plain)
                         .glassEffectIfAvailable(

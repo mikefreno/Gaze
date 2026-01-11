@@ -128,6 +128,7 @@ struct GeneralSetupView: View {
                             }
                             .padding()
                             .frame(maxWidth: .infinity)
+                            .contentShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.plain)
                         .glassEffectIfAvailable(
@@ -159,6 +160,7 @@ struct GeneralSetupView: View {
                                 .frame(maxWidth: .infinity)
                                 .background(Color.orange.opacity(0.1))
                                 .cornerRadius(10)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
                             }
                             .buttonStyle(.plain)
                             .glassEffectIfAvailable(

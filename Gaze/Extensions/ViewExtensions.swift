@@ -19,6 +19,9 @@ extension View {
             self.background {
                 ZStack {
                     if let tintColor = style.getTintColor() {
+                        // Layer material with tint color for proper contrast
+                        shape
+                            .fill(.thinMaterial)
                         shape
                             .fill(tintColor.opacity(0.8))
                     } else {
@@ -26,17 +29,14 @@ extension View {
                             .fill(.ultraThinMaterial)
                     }
 
-                    // Border with tint color mixed with white
+                    // Border with tint color lightened with white
                     if let tintColor = style.getTintColor() {
                         shape
                             .strokeBorder(
-                                Color(
-                                    red: (tintColor.cgColor?.components?[0] ?? 1.0) * 0.7 + 0.3,
-                                    green: (tintColor.cgColor?.components?[1] ?? 1.0) * 0.7 + 0.3,
-                                    blue: (tintColor.cgColor?.components?[2] ?? 1.0) * 0.7 + 0.3
-                                ).opacity(0.6),
+                                tintColor.opacity(0.5),
                                 lineWidth: 1.5
                             )
+                            .blendMode(.plusLighter)
                     }
                 }
                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)

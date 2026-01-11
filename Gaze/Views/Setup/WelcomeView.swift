@@ -38,7 +38,7 @@ struct WelcomeView: View {
                     description: "Create your own timers for specific needs")
             }
             .padding()
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
             Spacer()
         }

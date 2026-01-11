@@ -1,5 +1,5 @@
 //
-//  SettingsOnboardingView.swift
+//  GeneralSetupView.swift
 //  Gaze
 //
 //  Created by Mike Freno on 1/8/26.
@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SettingsOnboardingView: View {
+struct GeneralSetupView: View {
     @Binding var launchAtLogin: Bool
     @Binding var subtleReminderSize: ReminderSize
     @Binding var isAppStoreVersion: Bool
@@ -50,7 +50,7 @@ struct SettingsOnboardingView: View {
                             }
                     }
                     .padding()
-                    .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Subtle Reminder Size")
@@ -87,17 +87,17 @@ struct SettingsOnboardingView: View {
                                     .frame(maxWidth: .infinity, minHeight: 60)
                                     .padding(.vertical, 12)
                                 }
-                                .glassEffect(
+                                .glassEffectIfAvailable(
                                     subtleReminderSize == size
-                                        ? .regular.tint(.accentColor.opacity(0.3))
-                                        : .regular,
+                                        ? GlassStyle.regular.tint(.accentColor.opacity(0.3))
+                                        : GlassStyle.regular,
                                     in: .rect(cornerRadius: 10)
                                 )
                             }
                         }
                     }
                     .padding()
-                    .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     // Links Section
                     VStack(spacing: 12) {
@@ -130,7 +130,8 @@ struct SettingsOnboardingView: View {
                             .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.plain)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
+                        .glassEffectIfAvailable(
+                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
 
                         if !isAppStoreVersion {
                             Button(action: {
@@ -160,8 +161,9 @@ struct SettingsOnboardingView: View {
                                 .cornerRadius(10)
                             }
                             .buttonStyle(.plain)
-                            .glassEffect(
-                                .regular.tint(.orange).interactive(), in: .rect(cornerRadius: 10))
+                            .glassEffectIfAvailable(
+                                GlassStyle.regular.tint(.orange).interactive(),
+                                in: .rect(cornerRadius: 10))
                         }
                     }
                     .padding()
@@ -195,18 +197,9 @@ struct SettingsOnboardingView: View {
     }
 }
 
-#Preview("Settings Onboarding - Launch Disabled") {
-    SettingsOnboardingView(
+#Preview("Settings Onboarding") {
+    GeneralSetupView(
         launchAtLogin: .constant(false),
-        subtleReminderSize: .constant(.medium),
-        isAppStoreVersion: .constant(false),
-        isOnboarding: true
-    )
-}
-
-#Preview("Settings Onboarding - Launch Enabled") {
-    SettingsOnboardingView(
-        launchAtLogin: .constant(true),
         subtleReminderSize: .constant(.medium),
         isAppStoreVersion: .constant(false),
         isOnboarding: true

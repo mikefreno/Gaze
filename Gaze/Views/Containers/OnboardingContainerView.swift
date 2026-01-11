@@ -74,7 +74,7 @@ struct OnboardingContainerView: View {
                         Image(systemName: "figure.stand")
                     }
 
-                    SettingsOnboardingView(
+                    GeneralSetupView(
                         launchAtLogin: $launchAtLogin,
                         subtleReminderSize: $subtleReminderSize,
                         isAppStoreVersion: Binding(
@@ -111,7 +111,8 @@ struct OnboardingContainerView: View {
                                 )
                                 .foregroundColor(.primary)
                             }
-                            .glassEffect(.regular.interactive(), in: .rect(cornerRadius: 10))
+                            .glassEffectIfAvailable(
+                                GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
                         }
 
                         Button(action: {
@@ -133,8 +134,9 @@ struct OnboardingContainerView: View {
                             )
                             .foregroundColor(.white)
                         }
-                        .glassEffect(
-                            .regular.tint(currentPage == 5 ? .green : .accentColor).interactive(),
+                        .glassEffectIfAvailable(
+                            GlassStyle.regular.tint(currentPage == 5 ? .green : .accentColor)
+                                .interactive(),
                             in: .rect(cornerRadius: 10))
                     }
                     .padding(.horizontal, 40)

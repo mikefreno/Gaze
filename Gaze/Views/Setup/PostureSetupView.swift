@@ -1,32 +1,27 @@
 //
-//  LookAwaySetupView.swift
+//  PostureSetupView.swift
 //  Gaze
 //
 //  Created by Mike Freno on 1/7/26.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
-struct LookAwaySetupView: View {
+struct PostureSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
-    @Binding var countdownSeconds: Int
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
             // Fixed header section
             VStack(spacing: 16) {
-                Image(systemName: "eye.fill")
+                Image(systemName: "figure.stand")
                     .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(.orange)
 
-                Text("Look Away Reminder")
+                Text("Posture Reminder")
                     .font(.system(size: 28, weight: .bold))
             }
             .padding(.top, 20)
@@ -36,12 +31,13 @@ struct LookAwaySetupView: View {
             Spacer()
 
             VStack(spacing: 30) {
-                // InfoBox with link functionality
                 HStack(spacing: 12) {
                     Button(action: {
+                        // Using properly URL-encoded text fragment
+                        // Points to key findings about sitting posture and behavior relationship with LBP
                         if let url = URL(
                             string:
-                                "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
+                                "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence"
                         ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
@@ -53,15 +49,17 @@ struct LookAwaySetupView: View {
                         Image(systemName: "info.circle")
                             .foregroundColor(.white)
                     }.buttonStyle(.plain)
-                    Text("Suggested: 20-20-20 rule")
-                        .font(.headline)
-                        .foregroundColor(.white)
+                    Text(
+                        "Regular posture checks help prevent back and neck pain from prolonged sitting"
+                    )
+                    .font(.headline)
+                    .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Look Away Reminders", isOn: $enabled)
+                    Toggle("Enable Posture Reminders", isOn: $enabled)
                         .font(.headline)
 
                     if enabled {
@@ -75,25 +73,9 @@ struct LookAwaySetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 5...90, step: 5)
+                                    ), in: 15...60, step: 5)
 
                                 Text("\(intervalMinutes) min")
-                                    .frame(width: 60, alignment: .trailing)
-                                    .monospacedDigit()
-                            }
-
-                            Text("Look away for:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(countdownSeconds) },
-                                        set: { countdownSeconds = Int($0) }
-                                    ), in: 10...30, step: 5)
-
-                                Text("\(countdownSeconds) sec")
                                     .frame(width: 60, alignment: .trailing)
                                     .monospacedDigit()
                             }
@@ -101,23 +83,22 @@ struct LookAwaySetupView: View {
                     }
                 }
                 .padding()
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                 if enabled {
                     Text(
-                        "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds"
+                        "You will be subtly reminded every \(intervalMinutes) minutes to check your posture"
                     )
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
                 } else {
                     Text(
-                        "Look away reminders are currently disabled."
+                        "Posture reminders are currently disabled."
                     )
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                
+
                 // Preview button
                 Button(action: {
                     showPreviewWindow()
@@ -132,7 +113,7 @@ struct LookAwaySetupView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -141,42 +122,48 @@ struct LookAwaySetupView: View {
         .padding()
         .background(.clear)
     }
-    
+
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        
+
         let window = NSWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        
+
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
-        
-        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak window] in
+
+        let contentView = PostureReminderView(sizePercentage: 10.0) { [weak window] in
             window?.close()
         }
-        
+
         window.contentView = NSHostingView(rootView: contentView)
         window.makeFirstResponder(window.contentView)
-        
+
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
-        
+
         previewWindowController = windowController
     }
 }
 
-#Preview("Look Away Setup View") {
-    LookAwaySetupView(
+#Preview("Posture Setup - Enabled") {
+    PostureSetupView(
         enabled: .constant(true),
-        intervalMinutes: .constant(20),
-        countdownSeconds: .constant(20)
+        intervalMinutes: .constant(30)
+    )
+}
+
+#Preview("Posture Setup - Disabled") {
+    PostureSetupView(
+        enabled: .constant(false),
+        intervalMinutes: .constant(30)
     )
 }

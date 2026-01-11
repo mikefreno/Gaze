@@ -1,14 +1,14 @@
 //
-//  PostureSetupView.swift
+//  BlinkSetupView.swift
 //  Gaze
 //
 //  Created by Mike Freno on 1/7/26.
 //
 
-import AppKit
 import SwiftUI
+import AppKit
 
-struct PostureSetupView: View {
+struct BlinkSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
     @State private var previewWindowController: NSWindowController?
@@ -17,11 +17,11 @@ struct PostureSetupView: View {
         VStack(spacing: 0) {
             // Fixed header section
             VStack(spacing: 16) {
-                Image(systemName: "figure.stand")
+                Image(systemName: "eye.circle")
                     .font(.system(size: 60))
-                    .foregroundColor(.orange)
+                    .foregroundColor(.green)
 
-                Text("Posture Reminder")
+                Text("Blink Reminder")
                     .font(.system(size: 28, weight: .bold))
             }
             .padding(.top, 20)
@@ -33,11 +33,9 @@ struct PostureSetupView: View {
             VStack(spacing: 30) {
                 HStack(spacing: 12) {
                     Button(action: {
-                        // Using properly URL-encoded text fragment
-                        // Points to key findings about sitting posture and behavior relationship with LBP
                         if let url = URL(
                             string:
-                                "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence"
+                                "https://www.aao.org/eye-health/tips-prevention/computer-usage#:~:text=Humans normally blink about 15 times in one minute. However, studies show that we only blink about 5 to 7 times in a minute while using computers and other digital screen devices."
                         ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
@@ -50,16 +48,16 @@ struct PostureSetupView: View {
                             .foregroundColor(.white)
                     }.buttonStyle(.plain)
                     Text(
-                        "Regular posture checks help prevent back and neck pain from prolonged sitting"
+                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes."
                     )
                     .font(.headline)
                     .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Posture Reminders", isOn: $enabled)
+                    Toggle("Enable Blink Reminders", isOn: $enabled)
                         .font(.headline)
 
                     if enabled {
@@ -73,7 +71,7 @@ struct PostureSetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 15...60, step: 5)
+                                    ), in: 1...15, step: 1)
 
                                 Text("\(intervalMinutes) min")
                                     .frame(width: 60, alignment: .trailing)
@@ -83,22 +81,22 @@ struct PostureSetupView: View {
                     }
                 }
                 .padding()
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                 if enabled {
                     Text(
-                        "You will be subtly reminded every \(intervalMinutes) minutes to check your posture"
+                        "You will be subtly reminded every \(intervalMinutes) minutes to blink"
                     )
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 } else {
                     Text(
-                        "Posture reminders are currently disabled."
+                        "Blink reminders are currently disabled."
                     )
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-
+                
                 // Preview button
                 Button(action: {
                     showPreviewWindow()
@@ -113,7 +111,7 @@ struct PostureSetupView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -122,48 +120,48 @@ struct PostureSetupView: View {
         .padding()
         .background(.clear)
     }
-
+    
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-
+        
         let window = NSWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-
+        
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
-
-        let contentView = PostureReminderView(sizePercentage: 10.0) { [weak window] in
+        
+        let contentView = BlinkReminderView(sizePercentage: 15.0) { [weak window] in
             window?.close()
         }
-
+        
         window.contentView = NSHostingView(rootView: contentView)
         window.makeFirstResponder(window.contentView)
-
+        
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
-
+        
         previewWindowController = windowController
     }
 }
 
-#Preview("Posture Setup - Enabled") {
-    PostureSetupView(
+#Preview("Blink Setup - Enabled") {
+    BlinkSetupView(
         enabled: .constant(true),
-        intervalMinutes: .constant(30)
+        intervalMinutes: .constant(5)
     )
 }
 
-#Preview("Posture Setup - Disabled") {
-    PostureSetupView(
+#Preview("Blink Setup - Disabled") {
+    BlinkSetupView(
         enabled: .constant(false),
-        intervalMinutes: .constant(30)
+        intervalMinutes: .constant(5)
     )
 }

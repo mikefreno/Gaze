@@ -29,8 +29,8 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .glassEffect(
-                isHovered ? .regular.tint(.accentColor.opacity(0.5)).interactive() : .regular,
+            .glassEffectIfAvailable(
+                isHovered ? GlassStyle.regular.tint(.accentColor.opacity(0.5)).interactive() : GlassStyle.regular,
                 in: .rect(cornerRadius: 6)
             )
             .contentShape(Rectangle())
@@ -316,8 +316,8 @@ struct TimerStatusRow: View {
                             .padding(6)
                     }
                     .buttonStyle(.plain)
-                    .glassEffect(
-                        isHoveredDevTrigger ? .regular.tint(.yellow.opacity(0.5)) : .regular,
+                    .glassEffectIfAvailable(
+                        isHoveredDevTrigger ? GlassStyle.regular.tint(.yellow.opacity(0.5)) : GlassStyle.regular,
                         in: .circle
                     )
                     .help("Trigger \(type.displayName) reminder now (dev)")
@@ -334,8 +334,8 @@ struct TimerStatusRow: View {
                     .padding(6)
             }
             .buttonStyle(.plain)
-            .glassEffect(
-                isHoveredSkip ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+            .glassEffectIfAvailable(
+                isHoveredSkip ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
                 in: .circle
             )
             .help("Skip to next \(type.displayName) reminder")
@@ -345,8 +345,8 @@ struct TimerStatusRow: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
-        .glassEffect(
-            isHoveredBody ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+        .glassEffectIfAvailable(
+            isHoveredBody ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
@@ -415,8 +415,8 @@ struct InactiveTimerRow: View {
             .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
-        .glassEffect(
-            isHovered ? .regular.tint(.accentColor.opacity(0.5)) : .regular,
+        .glassEffectIfAvailable(
+            isHovered ? GlassStyle.regular.tint(.accentColor.opacity(0.5)) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
@@ -473,8 +473,8 @@ struct UserTimerStatusRow: View {
             .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
-        .glassEffect(
-            isHovered ? .regular.tint(timer.color.opacity(0.3)) : .regular,
+        .glassEffectIfAvailable(
+            isHovered ? GlassStyle.regular.tint(timer.color.opacity(0.3)) : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)

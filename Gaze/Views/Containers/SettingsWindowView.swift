@@ -79,7 +79,7 @@ struct SettingsWindowView: View {
                         Label("User Timers", systemImage: "plus.circle")
                     }
 
-                SettingsOnboardingView(
+                GeneralSetupView(
                     launchAtLogin: $launchAtLogin,
                     subtleReminderSize: $subtleReminderSize,
                     isAppStoreVersion: Binding(

@@ -1,5 +1,5 @@
 //
-//  BlinkSetupView.swift
+//  LookAwaySetupView.swift
 //  Gaze
 //
 //  Created by Mike Freno on 1/7/26.
@@ -8,20 +8,25 @@
 import SwiftUI
 import AppKit
 
-struct BlinkSetupView: View {
+#if os(iOS)
+    import UIKit
+#endif
+
+struct LookAwaySetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
+    @Binding var countdownSeconds: Int
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
             // Fixed header section
             VStack(spacing: 16) {
-                Image(systemName: "eye.circle")
+                Image(systemName: "eye.fill")
                     .font(.system(size: 60))
-                    .foregroundColor(.green)
+                    .foregroundColor(.accentColor)
 
-                Text("Blink Reminder")
+                Text("Look Away Reminder")
                     .font(.system(size: 28, weight: .bold))
             }
             .padding(.top, 20)
@@ -31,11 +36,12 @@ struct BlinkSetupView: View {
             Spacer()
 
             VStack(spacing: 30) {
+                // InfoBox with link functionality
                 HStack(spacing: 12) {
                     Button(action: {
                         if let url = URL(
                             string:
-                                "https://www.aao.org/eye-health/tips-prevention/computer-usage#:~:text=Humans normally blink about 15 times in one minute. However, studies show that we only blink about 5 to 7 times in a minute while using computers and other digital screen devices."
+                                "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
                         ) {
                             #if os(iOS)
                                 UIApplication.shared.open(url)
@@ -47,17 +53,15 @@ struct BlinkSetupView: View {
                         Image(systemName: "info.circle")
                             .foregroundColor(.white)
                     }.buttonStyle(.plain)
-                    Text(
-                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes."
-                    )
-                    .font(.headline)
-                    .foregroundColor(.white)
+                    Text("Suggested: 20-20-20 rule")
+                        .font(.headline)
+                        .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Blink Reminders", isOn: $enabled)
+                    Toggle("Enable Look Away Reminders", isOn: $enabled)
                         .font(.headline)
 
                     if enabled {
@@ -71,9 +75,25 @@ struct BlinkSetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 1...15, step: 1)
+                                    ), in: 5...90, step: 5)
 
                                 Text("\(intervalMinutes) min")
+                                    .frame(width: 60, alignment: .trailing)
+                                    .monospacedDigit()
+                            }
+
+                            Text("Look away for:")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            HStack {
+                                Slider(
+                                    value: Binding(
+                                        get: { Double(countdownSeconds) },
+                                        set: { countdownSeconds = Int($0) }
+                                    ), in: 10...30, step: 5)
+
+                                Text("\(countdownSeconds) sec")
                                     .frame(width: 60, alignment: .trailing)
                                     .monospacedDigit()
                             }
@@ -81,17 +101,18 @@ struct BlinkSetupView: View {
                     }
                 }
                 .padding()
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                 if enabled {
                     Text(
-                        "You will be subtly reminded every \(intervalMinutes) minutes to blink"
+                        "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds"
                     )
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
                 } else {
                     Text(
-                        "Blink reminders are currently disabled."
+                        "Look away reminders are currently disabled."
                     )
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -111,7 +132,7 @@ struct BlinkSetupView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
-                .glassEffect(.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -137,7 +158,7 @@ struct BlinkSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
         
-        let contentView = BlinkReminderView(sizePercentage: 15.0) { [weak window] in
+        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak window] in
             window?.close()
         }
         
@@ -152,16 +173,10 @@ struct BlinkSetupView: View {
     }
 }
 
-#Preview("Blink Setup - Enabled") {
-    BlinkSetupView(
+#Preview("Look Away Setup View") {
+    LookAwaySetupView(
         enabled: .constant(true),
-        intervalMinutes: .constant(5)
-    )
-}
-
-#Preview("Blink Setup - Disabled") {
-    BlinkSetupView(
-        enabled: .constant(false),
-        intervalMinutes: .constant(5)
+        intervalMinutes: .constant(20),
+        countdownSeconds: .constant(20)
     )
 }

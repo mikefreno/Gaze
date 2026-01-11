@@ -33,7 +33,7 @@ struct InfoBox: View {
                 .foregroundColor(.white)
         }
         .padding()
-        .glassEffect(.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+        .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
     }
 }
 

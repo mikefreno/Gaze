@@ -40,7 +40,7 @@ struct UserTimersView: View {
                         .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffect(.regular.tint(.purple), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.purple), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {
@@ -96,7 +96,7 @@ struct UserTimersView: View {
                     }
                 }
                 .padding()
-                .glassEffect(.regular, in: .rect(cornerRadius: 12))
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
             }
             Spacer()
         }
@@ -354,7 +354,7 @@ struct UserTimerEditSheet: View {
                 }
             }
             .padding()
-            .glassEffect(.regular, in: .rect(cornerRadius: 12))
+            .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
             HStack(spacing: 12) {
                 Button("Cancel", action: onCancel)

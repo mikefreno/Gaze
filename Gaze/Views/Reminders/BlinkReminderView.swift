@@ -42,9 +42,10 @@ struct BlinkReminderView: View {
                 .scaleEffect(scale)
                 .shadow(color: .black.opacity(0.2), radius: 5, x: 0, y: 2)
             }
+            Spacer()
         }
         .opacity(opacity)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, screenHeight * 0.05)
         .onAppear {
             startAnimation()
@@ -72,11 +73,6 @@ struct BlinkReminderView: View {
             onDismiss()
         }
     }
-}
-
-#Preview("Blink Reminder") {
-    BlinkReminderView(sizePercentage: 15.0, onDismiss: {})
-        .frame(width: 800, height: 600)
 }
 
 #Preview("Blink Reminder") {

@@ -11,6 +11,7 @@ import AppKit
 struct BlinkSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
+    var subtleReminderSize: ReminderSize = .medium
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -139,7 +140,7 @@ struct BlinkSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
         
-        let contentView = BlinkReminderView(sizePercentage: 15.0) { [weak window] in
+        let contentView = BlinkReminderView(sizePercentage: subtleReminderSize.percentage) { [weak window] in
             window?.close()
         }
         

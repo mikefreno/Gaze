@@ -58,7 +58,8 @@ struct OnboardingContainerView: View {
 
                     BlinkSetupView(
                         enabled: $blinkEnabled,
-                        intervalMinutes: $blinkIntervalMinutes
+                        intervalMinutes: $blinkIntervalMinutes,
+                        subtleReminderSize: subtleReminderSize
                     )
                     .tag(2)
                     .tabItem {
@@ -67,7 +68,8 @@ struct OnboardingContainerView: View {
 
                     PostureSetupView(
                         enabled: $postureEnabled,
-                        intervalMinutes: $postureIntervalMinutes
+                        intervalMinutes: $postureIntervalMinutes,
+                        subtleReminderSize: subtleReminderSize
                     )
                     .tag(3)
                     .tabItem {

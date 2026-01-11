@@ -11,6 +11,7 @@ import SwiftUI
 struct PostureSetupView: View {
     @Binding var enabled: Bool
     @Binding var intervalMinutes: Int
+    var subtleReminderSize: ReminderSize = .medium
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -141,7 +142,7 @@ struct PostureSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = PostureReminderView(sizePercentage: 10.0) { [weak window] in
+        let contentView = PostureReminderView(sizePercentage: subtleReminderSize.percentage) { [weak window] in
             window?.close()
         }
 

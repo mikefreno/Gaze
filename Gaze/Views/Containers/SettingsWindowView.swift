@@ -57,7 +57,8 @@ struct SettingsWindowView: View {
 
                 BlinkSetupView(
                     enabled: $blinkEnabled,
-                    intervalMinutes: $blinkIntervalMinutes
+                    intervalMinutes: $blinkIntervalMinutes,
+                    subtleReminderSize: subtleReminderSize
                 )
                 .tag(1)
                 .tabItem {
@@ -66,7 +67,8 @@ struct SettingsWindowView: View {
 
                 PostureSetupView(
                     enabled: $postureEnabled,
-                    intervalMinutes: $postureIntervalMinutes
+                    intervalMinutes: $postureIntervalMinutes,
+                    subtleReminderSize: subtleReminderSize
                 )
                 .tag(2)
                 .tabItem {

@@ -64,7 +64,7 @@ struct MenuBarContentView: View {
             EmptyView()
         }
     }
-    
+
     private var onboardingIncompleteView: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -79,15 +79,15 @@ struct MenuBarContentView: View {
             .padding()
 
             Divider()
-            
+
             // Message
             VStack(alignment: .leading, spacing: 12) {
                 Text("Welcome to Gaze!")
                     .font(.headline)
                     .padding(.horizontal)
                     .padding(.top, 16)
-                
-                Text("Please complete the onboarding to start using Gaze.")
+
+                Text("Complete the onboarding to start using Gaze!")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -133,11 +133,13 @@ struct MenuBarContentView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 300)
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))
+        ) { _ in
             dismiss()
         }
     }
-    
+
     private func fullMenuBarView(timerEngine: TimerEngine) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
@@ -185,14 +187,15 @@ struct MenuBarContentView: View {
                         )
                     }
                 }
-                
+
                 // Show user timers if any exist and are enabled
-                ForEach(settingsManager.settings.userTimers.filter { $0.enabled }, id: \.id) { userTimer in
+                ForEach(settingsManager.settings.userTimers.filter { $0.enabled }, id: \.id) {
+                    userTimer in
                     UserTimerStatusRow(
                         timer: userTimer,
-                        state: nil, // We'll implement proper state tracking later
+                        state: nil,  // We'll implement proper state tracking later
                         onTap: {
-                            onOpenSettingsTab(3) // Switch to User Timers tab
+                            onOpenSettingsTab(3)  // Switch to User Timers tab
                         }
                     )
                 }
@@ -211,8 +214,12 @@ struct MenuBarContentView: View {
                     }
                 }) {
                     HStack {
-                        Image(systemName: isPaused(timerEngine: timerEngine) ? "play.circle" : "pause.circle")
-                        Text(isPaused(timerEngine: timerEngine) ? "Resume All Timers" : "Pause All Timers")
+                        Image(
+                            systemName: isPaused(timerEngine: timerEngine)
+                                ? "play.circle" : "pause.circle")
+                        Text(
+                            isPaused(timerEngine: timerEngine)
+                                ? "Resume All Timers" : "Pause All Timers")
                         Spacer()
                     }
                     .padding(.horizontal, 8)
@@ -254,7 +261,9 @@ struct MenuBarContentView: View {
             .padding(.vertical, 8)
         }
         .frame(width: 300)
-        .onReceive(NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))) { _ in
+        .onReceive(
+            NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))
+        ) { _ in
             dismiss()
         }
     }
@@ -430,7 +439,7 @@ struct UserTimerStatusRow: View {
                 Circle()
                     .fill(timer.color)
                     .frame(width: 8, height: 8)
-                
+
                 Image(systemName: "clock.fill")
                     .foregroundColor(timer.color)
                     .frame(width: 20)
@@ -440,7 +449,7 @@ struct UserTimerStatusRow: View {
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .lineLimit(1)
-                    
+
                     if let state = state {
                         Text(timeRemaining(state))
                             .font(.caption)

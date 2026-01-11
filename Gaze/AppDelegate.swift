@@ -158,7 +158,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showReminderWindow(contentView)
     }
     
-private func showReminderWindow(_ content: AnyView) {
+    private func showReminderWindow(_ content: AnyView) {
         guard let screen = NSScreen.main else { return }
         
         let window = KeyableWindow(
@@ -266,12 +266,15 @@ private func showReminderWindow(_ content: AnyView) {
         
         // Observe when window is closed to clean up reference
         NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            self?.settingsWindowController = nil
-        }
+            self,
+            selector: #selector(settingsWindowWillCloseNotification(_:)),
+            name: NSWindow.willCloseNotification,
+            object: window
+        )
+    }
+    
+    @objc private func settingsWindowWillCloseNotification(_ notification: Notification) {
+        settingsWindowController = nil
     }
 }
 

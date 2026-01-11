@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		275915892F132A9200D0E60D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B12F10B1FC00E00DBC /* Lottie */; };
+		2759160C2F132C7A00D0E60D /* Gaze.icon in Resources */ = {isa = PBXBuildFile; fileRef = 2759160B2F132C7A00D0E60D /* Gaze.icon */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		27A21B4A2F0F69DD0018C4F3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2759160B2F132C7A00D0E60D /* Gaze.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = Gaze.icon; sourceTree = "<group>"; };
 		27A21B3C2F0F69DC0018C4F3 /* Gaze.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Gaze.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		27A21B492F0F69DD0018C4F3 /* GazeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GazeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		27A21B532F0F69DD0018C4F3 /* GazeUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GazeUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				275915892F132A9200D0E60D /* Lottie in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +82,7 @@
 		27A21B332F0F69DC0018C4F3 = {
 			isa = PBXGroup;
 			children = (
+				2759160B2F132C7A00D0E60D /* Gaze.icon */,
 				27A21B3E2F0F69DC0018C4F3 /* Gaze */,
 				27A21B4C2F0F69DD0018C4F3 /* GazeTests */,
 				27A21B562F0F69DD0018C4F3 /* GazeUITests */,
@@ -216,6 +224,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2759160C2F132C7A00D0E60D /* Gaze.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -396,7 +405,6 @@
 		27A21B5E2F0F69DD0018C4F3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -428,7 +436,6 @@
 		27A21B5F2F0F69DD0018C4F3 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -588,6 +595,7 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		27AE10B12F10B1FC00E00DBC /* Lottie */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -595,7 +603,6 @@
 			productName = Lottie;
 		};
 /* End XCSwiftPackageProductDependency section */
-
 	};
 	rootObject = 27A21B342F0F69DC0018C4F3 /* Project object */;
 }

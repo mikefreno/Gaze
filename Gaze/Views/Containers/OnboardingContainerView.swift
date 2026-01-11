@@ -111,6 +111,7 @@ struct OnboardingContainerView: View {
                                 )
                                 .foregroundColor(.primary)
                             }
+                            .buttonStyle(.plain)
                             .glassEffectIfAvailable(
                                 GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
                         }
@@ -134,6 +135,7 @@ struct OnboardingContainerView: View {
                             )
                             .foregroundColor(.white)
                         }
+                        .buttonStyle(.plain)
                         .glassEffectIfAvailable(
                             GlassStyle.regular.tint(currentPage == 5 ? .green : .accentColor)
                                 .interactive(),

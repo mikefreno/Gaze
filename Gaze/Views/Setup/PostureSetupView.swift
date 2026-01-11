@@ -113,6 +113,7 @@ struct PostureSetupView: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
                 }
+                .buttonStyle(.plain)
                 .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 

@@ -6,9 +6,24 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-# Configuration
-VERSION="0.1.1"  # Should match MARKETING_VERSION in project
-BUILD_NUMBER="1"  # Should match CURRENT_PROJECT_VERSION in project
+# Extract version from Xcode project (Release configuration)
+PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
+VERSION=$(grep -A 1 "MARKETING_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
+BUILD_NUMBER=$(grep -A 1 "CURRENT_PROJECT_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+' | head -1)
+
+# Fallback to manual values if extraction fails
+if [ -z "$VERSION" ]; then
+    echo "⚠️  Could not extract MARKETING_VERSION from project, using fallback"
+    VERSION="0.1.1"
+fi
+
+if [ -z "$BUILD_NUMBER" ]; then
+    echo "⚠️  Could not extract CURRENT_PROJECT_VERSION from project, using fallback"
+    BUILD_NUMBER="1"
+fi
+
+echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER})"
+
 RELEASES_DIR="./releases"
 APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
 FEED_URL="https://freno.me/api/Gaze/appcast.xml"
@@ -50,9 +65,22 @@ if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
     echo ""
     echo "Generating appcast..."
     
-    # Generate appcast with download URL prefix
+    # Check for private key (Keychain or file)
+    PRIVATE_KEY_FILE="$HOME/sparkle_private_key_backup.pem"
+    KEY_OPTION=""
+    
+    if [ -f "$PRIVATE_KEY_FILE" ]; then
+        echo "Using private key from: $PRIVATE_KEY_FILE"
+        KEY_OPTION="--ed-key-file $PRIVATE_KEY_FILE"
+    else
+        echo "Using private key from Keychain (account: ed25519)"
+        KEY_OPTION="--account ed25519"
+    fi
+    
+    # Generate appcast with download URL prefix and key
     "$SPARKLE_BIN/generate_appcast" \
         --download-url-prefix "https://freno.me/downloads/" \
+        $KEY_OPTION \
         "$RELEASES_DIR"
     
     # Verify appcast was generated
@@ -60,20 +88,48 @@ if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
         echo "✅ Appcast generated successfully"
         echo "📋 Appcast location: $APPCAST_OUTPUT"
         
-        # Show signature verification
+        # Check for signature - if missing, add it manually
         if grep -q "edSignature" "$APPCAST_OUTPUT"; then
             echo "✅ EdDSA signature verified in appcast"
         else
-            echo "⚠️  Warning: No EdDSA signature found in appcast"
+            echo "⚠️  No signature found, generating manually with sign_update..."
+            
+            # Get signature for the DMG
+            SIGNATURE_OUTPUT=$("$SPARKLE_BIN/sign_update" "$RELEASES_DIR/$DMG_NAME" 2>&1)
+            
+            if echo "$SIGNATURE_OUTPUT" | grep -q "edSignature"; then
+                # Extract the signature
+                ED_SIGNATURE=$(echo "$SIGNATURE_OUTPUT" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="\([^"]*\)"/\1/')
+                FILE_LENGTH=$(echo "$SIGNATURE_OUTPUT" | grep -o 'length="[^"]*"' | sed 's/length="\([^"]*\)"/\1/')
+                
+                echo "✅ Generated signature: ${ED_SIGNATURE:0:20}..."
+                
+                # Add signature to appcast XML
+                # Find the enclosure line and add sparkle:edSignature attribute
+                sed -i '' "s|<enclosure url=\"https://freno.me/downloads/$DMG_NAME\" length=\"[0-9]*\"|<enclosure url=\"https://freno.me/downloads/$DMG_NAME\" sparkle:edSignature=\"$ED_SIGNATURE\" length=\"$FILE_LENGTH\"|g" "$APPCAST_OUTPUT"
+                
+                # Verify signature was added
+                if grep -q "edSignature" "$APPCAST_OUTPUT"; then
+                    echo "✅ EdDSA signature added to appcast"
+                else
+                    echo "❌ ERROR: Failed to add signature to appcast!"
+                    exit 1
+                fi
+            else
+                echo "❌ ERROR: Failed to generate signature with sign_update"
+                echo "Output: $SIGNATURE_OUTPUT"
+                exit 1
+            fi
         fi
     else
         echo "❌ Failed to generate appcast"
+        exit 1
     fi
 else
     echo ""
     echo "⚠️  Skipping appcast generation (Sparkle tools not found)"
     echo "To generate appcast manually, run:"
-    echo "  ./generate_appcast --download-url-prefix 'https://freno.me/downloads/' '$RELEASES_DIR'"
+    echo "  ./generate_appcast --ed-key-file ~/sparkle_private_key_backup.pem --download-url-prefix 'https://freno.me/downloads/' '$RELEASES_DIR'"
 fi
 
 # Upload to AWS S3 if environment variables are set

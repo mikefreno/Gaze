@@ -5,3 +5,4 @@ AGENTS.md
 *.env
 *.dmg
 *.delta
+*.pem

@@ -10,7 +10,7 @@ import SwiftUI
 
 struct PostureSetupView: View {
     @Binding var enabled: Bool
-    @Binding var intervalMinutes: Int
+    @Binding var intervalSettings: RangeChoice
     var subtleReminderSize: ReminderSize = .medium
     @State private var previewWindowController: NSWindowController?
 
@@ -60,65 +60,11 @@ struct PostureSetupView: View {
                 .glassEffectIfAvailable(
                     GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
-                VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Posture Reminders", isOn: $enabled)
-                        .font(.headline)
-
-                    if enabled {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Remind me every:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(intervalMinutes) },
-                                        set: { intervalMinutes = Int($0) }
-                                    ), in: 15...90, step: 5)
-
-                                Text("\(intervalMinutes) min")
-                                    .frame(width: 60, alignment: .trailing)
-                                    .monospacedDigit()
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-
-                if enabled {
-                    Text(
-                        "You will be subtly reminded every \(intervalMinutes) minutes to check your posture"
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                } else {
-                    Text(
-                        "Posture reminders are currently disabled."
-                    )
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-
-                // Preview button
-                Button(action: {
-                    showPreviewWindow()
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "eye")
-                            .foregroundColor(.white)
-                        Text("Preview Reminder")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .contentShape(RoundedRectangle(cornerRadius: 10))
-                }
-                .buttonStyle(.plain)
-                .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10)
+                SliderSection(
+                    intervalSettings: $intervalSettings,
+                    enabled: $enabled,
+                    type: "Posture",
+                    previewFunc: showPreviewWindow
                 )
             }
 

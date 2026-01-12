@@ -14,8 +14,8 @@ import SwiftUI
 
 struct LookAwaySetupView: View {
     @Binding var enabled: Bool
-    @Binding var intervalMinutes: Int
-    @Binding var countdownSeconds: Int
+    @Binding var intervalSettings: RangeChoice
+    @Binding var countdownSettings: RangeChoice
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -62,17 +62,12 @@ struct LookAwaySetupView: View {
                     GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 SliderSection(
-                    intervalMinutes: $intervalMinutes,
-                    countdownSeconds: $countdownSeconds,
-                    intervalRange: 5...90,
-                    countdownRange: 10...30,
+                    intervalSettings: $intervalSettings,
+                    countdownSettings: $countdownSettings,
                     enabled: $enabled,
                     type: "Look away",
-                    reminderText:
-                        "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds",
                     previewFunc: showPreviewWindow
                 )
-
             }
 
             Spacer()
@@ -98,7 +93,7 @@ struct LookAwaySetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) {
+        let contentView = LookAwayReminderView(countdownSeconds: countdownSettings.val ?? 20) {
             [weak window] in
             window?.close()
         }
@@ -114,10 +109,11 @@ struct LookAwaySetupView: View {
     }
 }
 
-#Preview("Look Away Setup View") {
-    LookAwaySetupView(
-        enabled: .constant(true),
-        intervalMinutes: .constant(20),
-        countdownSeconds: .constant(20)
-    )
-}
+//TODO: add this back
+/*#Preview("Look Away Setup View") {*/
+/*LookAwaySetupView(*/
+/*enabled: .constant(true),*/
+/*intervalMinutes: .constant(20),*/
+/*countdownSeconds: .constant(20)*/
+/*)*/
+/*}*/

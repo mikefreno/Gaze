@@ -11,7 +11,7 @@ import SwiftUI
 struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager.shared
-    
+
     var body: some Scene {
         // Onboarding window (only shown when not completed)
         WindowGroup {
@@ -22,7 +22,8 @@ struct GazeApp: App {
                     }
             } else {
                 OnboardingContainerView(settingsManager: settingsManager)
-                    .onChange(of: settingsManager.settings.hasCompletedOnboarding) { _, completed in
+                    .onChange(of: settingsManager.settings.hasCompletedOnboarding) {
+                        completed in
                         if completed {
                             closeAllWindows()
                             appDelegate.onboardingCompleted()
@@ -34,9 +35,9 @@ struct GazeApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: 700, height: 700)
         .commands {
-            CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .newItem) {}
         }
-        
+
         // Menu bar extra (always present)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
             MenuBarContentWrapper(
@@ -50,7 +51,7 @@ struct GazeApp: App {
         }
         .menuBarExtraStyle(.window)
     }
-    
+
     private func closeAllWindows() {
         for window in NSApplication.shared.windows {
             window.close()

@@ -46,8 +46,8 @@ struct GeneralSetupView: View {
                         Spacer()
                         Toggle("", isOn: $launchAtLogin)
                             .labelsHidden()
-                            .onChange(of: launchAtLogin) { oldValue, newValue in
-                                applyLaunchAtLoginSetting(enabled: newValue)
+                            .onChange(of: launchAtLogin) { isEnabled in
+                                applyLaunchAtLoginSetting(enabled: isEnabled)
                             }
                     }
                     .padding()

@@ -49,7 +49,7 @@ struct AppSettings: Codable, Equatable, Hashable {
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
     var playSounds: Bool
-    
+
     // App Store detection (cached at launch, not persisted)
     var isAppStoreVersion: Bool
 
@@ -66,7 +66,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         hasCompletedOnboarding: Bool = false,
         launchAtLogin: Bool = false,
         playSounds: Bool = true,
-        isAppStoreVersion: Bool = false
+        isAppStoreVersion: Bool = true
     ) {
         self.lookAwayTimer = lookAwayTimer
         self.lookAwayCountdownSeconds = lookAwayCountdownSeconds
@@ -105,9 +105,9 @@ struct AppSettings: Codable, Equatable, Hashable {
             && lhs.launchAtLogin == rhs.launchAtLogin && lhs.playSounds == rhs.playSounds
             && lhs.isAppStoreVersion == rhs.isAppStoreVersion
     }
-    
+
     // MARK: - Custom Codable Implementation
-    
+
     enum CodingKeys: String, CodingKey {
         case lookAwayTimer
         case lookAwayCountdownSeconds
@@ -120,7 +120,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         case playSounds
         // isAppStoreVersion is intentionally excluded from persistence
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         lookAwayTimer = try container.decode(TimerConfiguration.self, forKey: .lookAwayTimer)
@@ -135,7 +135,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         // isAppStoreVersion is not persisted, will be set at launch
         isAppStoreVersion = false
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(lookAwayTimer, forKey: .lookAwayTimer)

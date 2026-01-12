@@ -20,6 +20,7 @@ struct SettingsWindowView: View {
     @State private var launchAtLogin: Bool
     @State private var subtleReminderSize: ReminderSize
     @State private var userTimers: [UserTimer]
+    @State private var isAppStoreVersion: Bool
 
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
         self.settingsManager = settingsManager
@@ -40,6 +41,7 @@ struct SettingsWindowView: View {
         _subtleReminderSize = State(
             initialValue: settingsManager.settings.subtleReminderSize)
         _userTimers = State(initialValue: settingsManager.settings.userTimers)
+        _isAppStoreVersion = State(initialValue: settingsManager.settings.isAppStoreVersion)
     }
 
     var body: some View {
@@ -84,10 +86,7 @@ struct SettingsWindowView: View {
                 GeneralSetupView(
                     launchAtLogin: $launchAtLogin,
                     subtleReminderSize: $subtleReminderSize,
-                    isAppStoreVersion: Binding(
-                        get: { settingsManager.settings.isAppStoreVersion },
-                        set: { _ in }
-                    ),
+                    isAppStoreVersion: .constant(isAppStoreVersion),
                     isOnboarding: false
                 )
                 .tag(4)
@@ -115,7 +114,13 @@ struct SettingsWindowView: View {
             }
             .padding()
         }
-        .frame(minWidth: 750, minHeight: 850)
+        .frame(
+            minWidth: 750,
+            minHeight: isAppStoreVersion ? 700 : 900
+        )
+        .onReceive(settingsManager.$settings) { newSettings in
+            isAppStoreVersion = newSettings.isAppStoreVersion
+        }
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
         ) { notification in
@@ -147,7 +152,7 @@ struct SettingsWindowView: View {
             hasCompletedOnboarding: settingsManager.settings.hasCompletedOnboarding,
             launchAtLogin: launchAtLogin,
             playSounds: settingsManager.settings.playSounds,
-            isAppStoreVersion: settingsManager.settings.isAppStoreVersion
+            isAppStoreVersion: isAppStoreVersion
         )
 
         // Assign the entire settings object to trigger didSet and observers

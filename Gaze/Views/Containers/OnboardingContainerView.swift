@@ -31,7 +31,13 @@ struct OnboardingContainerView: View {
     @State private var postureIntervalMinutes = 30
     @State private var launchAtLogin = false
     @State private var subtleReminderSize: ReminderSize = .medium
+    @State private var isAppStoreVersion: Bool
     @Environment(\.dismiss) private var dismiss
+
+    init(settingsManager: SettingsManager) {
+        self.settingsManager = settingsManager
+        _isAppStoreVersion = State(initialValue: settingsManager.settings.isAppStoreVersion)
+    }
 
     var body: some View {
         ZStack {
@@ -78,10 +84,7 @@ struct OnboardingContainerView: View {
                     GeneralSetupView(
                         launchAtLogin: $launchAtLogin,
                         subtleReminderSize: $subtleReminderSize,
-                        isAppStoreVersion: Binding(
-                            get: { settingsManager.settings.isAppStoreVersion },
-                            set: { _ in }
-                        ),
+                        isAppStoreVersion: .constant(isAppStoreVersion),
                         isOnboarding: true
                     )
                     .tag(4)
@@ -149,7 +152,14 @@ struct OnboardingContainerView: View {
                 }
             }
         }
-        .frame(minWidth: 1000, minHeight: 800)
+
+        .frame(
+            minWidth: 1000,
+            minHeight: isAppStoreVersion ? 700 : 900
+        )
+        .onReceive(settingsManager.$settings) { newSettings in
+            isAppStoreVersion = newSettings.isAppStoreVersion
+        }
     }
 
     private func completeOnboarding() {

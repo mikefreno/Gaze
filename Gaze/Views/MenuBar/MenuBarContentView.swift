@@ -187,10 +187,11 @@ struct MenuBarContentView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
 
-                ForEach(TimerType.allCases) { timerType in
-                    if timerEngine.timerStates[timerType] != nil {
-                        TimerStatusRow(
-                            type: timerType,
+                // Show regular timers with individual pause/resume controls
+                ForEach(Array(timerEngine.timerStates.keys), id: \.self) { timerType in
+                    if let state = timerEngine.timerStates[timerType] {
+                        TimerStatusRowWithIndividualControls(
+                            variant: .builtIn(timerType),
                             timerEngine: timerEngine,
                             onSkip: {
                                 timerEngine.skipNext(type: timerType)
@@ -198,13 +199,13 @@ struct MenuBarContentView: View {
                             onDevTrigger: {
                                 timerEngine.triggerReminder(for: timerType)
                             },
-                            onTap: {
-                                onOpenSettingsTab(timerType.tabIndex)
-                            }
-                        )
-                    } else {
-                        InactiveTimerRow(
-                            type: timerType,
+                            onTogglePause: { isPaused in
+                                if isPaused {
+                                    timerEngine.pauseTimer(type: timerType)
+                                } else {
+                                    timerEngine.resumeTimer(type: timerType)
+                                }
+                            },
                             onTap: {
                                 onOpenSettingsTab(timerType.tabIndex)
                             }
@@ -212,12 +213,22 @@ struct MenuBarContentView: View {
                     }
                 }
 
-                // Show user timers if any exist and are enabled
+                // Show user timers with individual pause/resume controls
                 ForEach(settingsManager.settings.userTimers.filter { $0.enabled }, id: \.id) {
                     userTimer in
-                    UserTimerStatusRow(
-                        timer: userTimer,
-                        state: nil,  // We'll implement proper state tracking later
+                    TimerStatusRowWithIndividualControls(
+                        variant: .user(userTimer),
+                        timerEngine: timerEngine,
+                        onSkip: {
+                            //TODO
+                        },
+                        onTogglePause: { isPaused in
+                            if isPaused {
+                                timerEngine.pauseUserTimer(userTimer.id)
+                            } else {
+                                timerEngine.resumeUserTimer(userTimer.id)
+                            }
+                        },
                         onTap: {
                             onOpenSettingsTab(3)  // Switch to User Timers tab
                         }
@@ -231,7 +242,7 @@ struct MenuBarContentView: View {
             // Controls
             VStack(spacing: 4) {
                 Button(action: {
-                    if isPaused(timerEngine: timerEngine) {
+                    if isAllPaused(timerEngine: timerEngine) {
                         timerEngine.resume()
                     } else {
                         timerEngine.pause()
@@ -239,10 +250,10 @@ struct MenuBarContentView: View {
                 }) {
                     HStack {
                         Image(
-                            systemName: isPaused(timerEngine: timerEngine)
+                            systemName: isAllPaused(timerEngine: timerEngine)
                                 ? "play.circle" : "pause.circle")
                         Text(
-                            isPaused(timerEngine: timerEngine)
+                            isAllPaused(timerEngine: timerEngine)
                                 ? "Resume All Timers" : "Pause All Timers")
                         Spacer()
                     }
@@ -292,37 +303,103 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func isPaused(timerEngine: TimerEngine) -> Bool {
-        timerEngine.timerStates.values.first?.isPaused ?? false
+    private func isAllPaused(timerEngine: TimerEngine) -> Bool {
+        // Check if all timers are paused
+        let activeStates = timerEngine.timerStates.values.filter { $0.isActive }
+        return !activeStates.isEmpty && activeStates.allSatisfy { $0.isPaused }
     }
 }
 
-struct TimerStatusRow: View {
-    let type: TimerType
+struct TimerStatusRowWithIndividualControls: View {
+    enum TimerVariant {
+        case builtIn(TimerType)
+        case user(UserTimer)
+
+        var displayName: String {
+            switch self {
+            case .builtIn(let type): return type.displayName
+            case .user(let timer): return timer.title
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .builtIn(let type): return type.iconName
+            case .user: return "clock.fill"
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .builtIn(_):
+                return .accentColor
+
+            case .user(let timer): return timer.color
+            }
+        }
+
+        var tooltipText: String {
+            switch self {
+            case .builtIn(let type): return type.tooltipText
+            case .user(let timer):
+                let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
+                let durationText = "\(timer.timeOnScreenSeconds)s on screen"
+                let statusText = timer.enabled ? "" : " (Disabled)"
+                return "\(typeText) timer - \(durationText)\(statusText)"
+            }
+        }
+    }
+
+    let variant: TimerVariant
     @ObservedObject var timerEngine: TimerEngine
     var onSkip: () -> Void
     var onDevTrigger: (() -> Void)? = nil
+    var onTogglePause: (Bool) -> Void
     var onTap: (() -> Void)? = nil
     @State private var isHoveredSkip = false
     @State private var isHoveredDevTrigger = false
     @State private var isHoveredBody = false
+    @State private var isHoveredPauseButton = false
 
     private var state: TimerState? {
-        timerEngine.timerStates[type]
+        switch variant {
+        case .builtIn(let type):
+            return timerEngine.timerStates[type]
+        case .user(let timer):
+            return timerEngine.userTimerStatesReadOnly[timer.id]
+        }
+    }
+
+    private var isPaused: Bool {
+        switch variant {
+        case .builtIn:
+            return state?.isPaused ?? false
+        case .user(let timer):
+            return !timer.enabled
+        }
     }
 
     var body: some View {
         HStack {
             HStack {
-                Image(systemName: type.iconName)
-                    .foregroundColor(isHoveredBody ? .white : iconColor)
+                // Show color indicator circle for user timers
+                if case .user(let timer) = variant {
+                    Circle()
+                        .fill(isHoveredBody ? .white : timer.color)
+                        .frame(width: 8, height: 8)
+                }
+
+                Image(systemName: variant.iconName)
+                    .foregroundColor(isHoveredBody ? .white : variant.color)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(type.displayName)
+                    Text(variant.displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(isHoveredBody ? .white : .primary)
+                        .lineLimit(1)
+
                     if let state = state {
                         Text(timeRemaining(state))
                             .font(.caption)
@@ -353,12 +430,38 @@ struct TimerStatusRow: View {
                             ? GlassStyle.regular.tint(.yellow) : GlassStyle.regular,
                         in: .circle
                     )
-                    .help("Trigger \(type.displayName) reminder now (dev)")
+                    .help("Trigger \(variant.displayName) reminder now (dev)")
                     .onHover { hovering in
                         isHoveredDevTrigger = hovering
                     }
                 }
             #endif
+
+            // Individual pause/resume button
+            Button(action: {
+                onTogglePause(!isPaused)
+            }) {
+                Image(
+                    systemName: isPaused ? "play.circle" : "pause.circle"
+                )
+                .font(.caption)
+                .foregroundColor(isHoveredPauseButton ? .white : .accentColor)
+                .padding(6)
+                .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .glassEffectIfAvailable(
+                isHoveredPauseButton
+                    ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
+                in: .circle
+            )
+            .help(
+                isPaused
+                    ? "Resume \(variant.displayName)" : "Pause \(variant.displayName)"
+            )
+            .onHover { hovering in
+                isHoveredPauseButton = hovering
+            }
 
             Button(action: onSkip) {
                 Image(systemName: "forward.fill")
@@ -373,7 +476,7 @@ struct TimerStatusRow: View {
                     ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
                 in: .circle
             )
-            .help("Skip to next \(type.displayName) reminder")
+            .help("Skip to next \(variant.displayName) reminder")
             .onHover { hovering in
                 isHoveredSkip = hovering
             }
@@ -381,152 +484,16 @@ struct TimerStatusRow: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .glassEffectIfAvailable(
-            isHoveredBody ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
+            isHoveredBody
+                ? GlassStyle.regular.tint(variant.color)
+                : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
         .padding(.horizontal, 8)
         .onHover { hovering in
             isHoveredBody = hovering
         }
-        .help(tooltipText)
-    }
-
-    private var tooltipText: String {
-        type.tooltipText
-    }
-
-    private var iconColor: Color {
-        switch type {
-        case .lookAway: return .accentColor
-        case .blink: return .green
-        case .posture: return .orange
-        }
-    }
-
-    private func timeRemaining(_ state: TimerState) -> String {
-        let seconds = state.remainingSeconds
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-
-        if minutes >= 60 {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            return String(format: "%dh %dm", hours, remainingMinutes)
-        } else if minutes > 0 {
-            return String(format: "%dm %ds", minutes, remainingSeconds)
-        } else {
-            return String(format: "%ds", remainingSeconds)
-        }
-    }
-}
-
-struct InactiveTimerRow: View {
-    let type: TimerType
-    var onTap: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack {
-                Image(systemName: type.iconName)
-                    .foregroundColor(isHovered ? .white : .secondary)
-                    .frame(width: 20)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(type.displayName)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(isHovered ? .white : .secondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "plus.circle")
-                    .font(.title3)
-                    .foregroundColor(isHovered ? .white : .accentColor)
-                    .padding(6)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .contentShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-        .glassEffectIfAvailable(
-            isHovered ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
-            in: .rect(cornerRadius: 6)
-        )
-        .padding(.horizontal, 8)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .help("Enable \(type.displayName) reminders")
-    }
-}
-
-struct UserTimerStatusRow: View {
-    let timer: UserTimer
-    let state: TimerState?
-    var onTap: () -> Void
-    @State private var isHovered = false
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack {
-                Circle()
-                    .fill(isHovered ? .white : timer.color)
-                    .frame(width: 8, height: 8)
-
-                Image(systemName: "clock.fill")
-                    .foregroundColor(isHovered ? .white : timer.color)
-                    .frame(width: 20)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(timer.title)
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundColor(isHovered ? .white : .primary)
-                        .lineLimit(1)
-
-                    if let state = state {
-                        Text(timeRemaining(state))
-                            .font(.caption)
-                            .foregroundColor(isHovered ? .white.opacity(0.8) : .secondary)
-                            .monospacedDigit()
-                    } else {
-                        Text(timer.enabled ? "Not active" : "Disabled")
-                            .font(.caption)
-                            .foregroundColor(isHovered ? .white.opacity(0.8) : .secondary)
-                    }
-                }
-
-                Spacer()
-
-                Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
-                    .font(.caption)
-                    .foregroundColor(isHovered ? .white : .secondary)
-                    .padding(6)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .contentShape(RoundedRectangle(cornerRadius: 6))
-        }
-        .buttonStyle(.plain)
-        .glassEffectIfAvailable(
-            isHovered ? GlassStyle.regular.tint(timer.color) : GlassStyle.regular,
-            in: .rect(cornerRadius: 6)
-        )
-        .padding(.horizontal, 8)
-        .onHover { hovering in
-            isHovered = hovering
-        }
-        .help(tooltipText)
-    }
-
-    private var tooltipText: String {
-        let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
-        let durationText = "\(timer.timeOnScreenSeconds)s on screen"
-        let statusText = timer.enabled ? "" : " (Disabled)"
-        return "\(typeText) timer - \(durationText)\(statusText)"
+        .help(variant.tooltipText)
     }
 
     private func timeRemaining(_ state: TimerState) -> String {

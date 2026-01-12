@@ -169,6 +169,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     self?.timerEngine?.dismissReminder()
                 }
             )
+        case .userTimerTriggered(let timer):
+            if timer.type == .overlay {
+                contentView = AnyView(
+                    UserTimerOverlayReminderView(timer: timer) { [weak self] in
+                        self?.timerEngine?.dismissReminder()
+                    }
+                )
+            } else {
+                let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
+                contentView = AnyView(
+                    UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) { [weak self] in
+                        self?.timerEngine?.dismissReminder()
+                    }
+                )
+            }
         }
         
         showReminderWindow(contentView)

@@ -57,7 +57,8 @@ struct PostureSetupView: View {
                     .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
                     Toggle("Enable Posture Reminders", isOn: $enabled)
@@ -74,7 +75,7 @@ struct PostureSetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 15...60, step: 5)
+                                    ), in: 15...90, step: 5)
 
                                 Text("\(intervalMinutes) min")
                                     .frame(width: 60, alignment: .trailing)
@@ -116,7 +117,9 @@ struct PostureSetupView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10)
+                )
             }
 
             Spacer()
@@ -142,7 +145,8 @@ struct PostureSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = PostureReminderView(sizePercentage: subtleReminderSize.percentage) { [weak window] in
+        let contentView = PostureReminderView(sizePercentage: subtleReminderSize.percentage) {
+            [weak window] in
             window?.close()
         }
 

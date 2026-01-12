@@ -23,7 +23,7 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
         id: String = UUID().uuidString,
         title: String? = nil,
         type: UserTimerType = .subtle,
-        timeOnScreenSeconds: Int = 30,
+        timeOnScreenSeconds: Int? = nil,
         intervalMinutes: Int = 15,
         message: String? = nil,
         colorHex: String? = nil,
@@ -32,7 +32,8 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
         self.id = id
         self.title = title ?? "User Reminder"
         self.type = type
-        self.timeOnScreenSeconds = timeOnScreenSeconds
+        // Subtle timers always use 3 seconds, overlay timers default to 10
+        self.timeOnScreenSeconds = timeOnScreenSeconds ?? (type == .subtle ? 3 : 10)
         self.intervalMinutes = intervalMinutes
         self.message = message
         self.colorHex = colorHex ?? UserTimer.defaultColors[0]

@@ -5,8 +5,8 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct BlinkSetupView: View {
     @Binding var enabled: Bool
@@ -55,7 +55,8 @@ struct BlinkSetupView: View {
                     .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
                     Toggle("Enable Blink Reminders", isOn: $enabled)
@@ -72,7 +73,7 @@ struct BlinkSetupView: View {
                                     value: Binding(
                                         get: { Double(intervalMinutes) },
                                         set: { intervalMinutes = Int($0) }
-                                    ), in: 1...15, step: 1)
+                                    ), in: 1...20, step: 1)
 
                                 Text("\(intervalMinutes) min")
                                     .frame(width: 60, alignment: .trailing)
@@ -97,7 +98,7 @@ struct BlinkSetupView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 }
-                
+
                 // Preview button
                 Button(action: {
                     showPreviewWindow()
@@ -114,7 +115,9 @@ struct BlinkSetupView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10)
+                )
             }
 
             Spacer()
@@ -123,34 +126,35 @@ struct BlinkSetupView: View {
         .padding()
         .background(.clear)
     }
-    
+
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        
+
         let window = NSWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        
+
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
-        
-        let contentView = BlinkReminderView(sizePercentage: subtleReminderSize.percentage) { [weak window] in
+
+        let contentView = BlinkReminderView(sizePercentage: subtleReminderSize.percentage) {
+            [weak window] in
             window?.close()
         }
-        
+
         window.contentView = NSHostingView(rootView: contentView)
         window.makeFirstResponder(window.contentView)
-        
+
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
-        
+
         previewWindowController = windowController
     }
 }

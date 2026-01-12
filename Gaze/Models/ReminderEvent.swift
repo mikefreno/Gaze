@@ -11,15 +11,32 @@ enum ReminderEvent: Equatable {
     case lookAwayTriggered(countdownSeconds: Int)
     case blinkTriggered
     case postureTriggered
+    case userTimerTriggered(UserTimer)
     
-    var type: TimerType {
+    var iconName: String {
         switch self {
         case .lookAwayTriggered:
-            return .lookAway
+            return "eye.fill"
         case .blinkTriggered:
-            return .blink
+            return "eye.slash.fill"
         case .postureTriggered:
-            return .posture
+            return "figure.stand"
+        case .userTimerTriggered:
+            return "clock.fill"
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .lookAwayTriggered:
+            return "Look Away"
+        case .blinkTriggered:
+            return "Blink"
+        case .postureTriggered:
+            return "Posture"
+        case .userTimerTriggered(let timer):
+            return timer.title
         }
     }
 }
+

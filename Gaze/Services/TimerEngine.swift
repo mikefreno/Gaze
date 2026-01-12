@@ -15,6 +15,11 @@ class TimerEngine: ObservableObject {
     
     // Track user timer states separately
     private var userTimerStates: [String: TimerState] = [:]
+    
+    // Expose user timer states for read-only access
+    var userTimerStatesReadOnly: [String: TimerState] {
+        return userTimerStates
+    }
 
     private var timerSubscription: AnyCancellable?
     private let settingsManager: SettingsManager
@@ -119,11 +124,12 @@ class TimerEngine: ObservableObject {
         for userTimer in settingsManager.settings.userTimers {
             if let existingState = userTimerStates[userTimer.id] {
                 // Check if interval changed
-                if existingState.originalIntervalSeconds != userTimer.timeOnScreenSeconds {
+                let newIntervalSeconds = userTimer.intervalMinutes * 60
+                if existingState.originalIntervalSeconds != newIntervalSeconds {
                     // Interval changed - reset with new interval
                     userTimerStates[userTimer.id] = TimerState(
                         type: .lookAway, // Placeholder
-                        intervalSeconds: userTimer.timeOnScreenSeconds,
+                        intervalSeconds: newIntervalSeconds,
                         isPaused: existingState.isPaused,
                         isActive: userTimer.enabled
                     )
@@ -158,6 +164,14 @@ class TimerEngine: ObservableObject {
             timerStates[type]?.isPaused = false
         }
     }
+    
+    func pauseTimer(type: TimerType) {
+        timerStates[type]?.isPaused = true
+    }
+    
+    func resumeTimer(type: TimerType) {
+        timerStates[type]?.isPaused = false
+    }
 
     func skipNext(type: TimerType) {
         guard let state = timerStates[type] else { return }
@@ -174,10 +188,28 @@ class TimerEngine: ObservableObject {
         guard let reminder = activeReminder else { return }
         activeReminder = nil
 
-        skipNext(type: reminder.type)
-
-        if case .lookAwayTriggered = reminder {
-            resume()
+        // Skip to next interval based on reminder type
+        switch reminder {
+        case .lookAwayTriggered, .blinkTriggered, .postureTriggered:
+            // For built-in timers, we need to extract the TimerType
+            if case .lookAwayTriggered = reminder {
+                skipNext(type: .lookAway)
+                resume()
+            } else if case .blinkTriggered = reminder {
+                skipNext(type: .blink)
+            } else if case .postureTriggered = reminder {
+                skipNext(type: .posture)
+            }
+        case .userTimerTriggered(let timer):
+            // Reset the user timer
+            if let state = userTimerStates[timer.id] {
+                userTimerStates[timer.id] = TimerState(
+                    type: .lookAway, // Placeholder
+                    intervalSeconds: timer.intervalMinutes * 60,
+                    isPaused: state.isPaused,
+                    isActive: state.isActive
+                )
+            }
         }
     }
 
@@ -228,15 +260,8 @@ class TimerEngine: ObservableObject {
     }
     
     private func triggerUserTimerReminder(forId id: String) {
-        // Here we'd implement how to show a subtle reminder for user timers
-        // For now, just reset the timer
         if let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) {
-            userTimerStates[id] = TimerState(
-                type: .lookAway, // Placeholder - user timers won't use this
-                intervalSeconds: userTimer.timeOnScreenSeconds,
-                isPaused: false,
-                isActive: true
-            )
+            activeReminder = .userTimerTriggered(userTimer)
         }
     }
 
@@ -257,7 +282,7 @@ class TimerEngine: ObservableObject {
     func startUserTimer(_ userTimer: UserTimer) {
         userTimerStates[userTimer.id] = TimerState(
             type: .lookAway, // Placeholder - we'll need to make this more flexible
-            intervalSeconds: userTimer.timeOnScreenSeconds,
+            intervalSeconds: userTimer.intervalMinutes * 60,
             isPaused: false,
             isActive: true
         )
@@ -278,6 +303,16 @@ class TimerEngine: ObservableObject {
         if var state = userTimerStates[userTimerId] {
             state.isPaused = false
             userTimerStates[userTimerId] = state
+        }
+    }
+    
+    func toggleUserTimerPause(_ userTimerId: String) {
+        if let state = userTimerStates[userTimerId] {
+            if state.isPaused {
+                resumeUserTimer(userTimerId)
+            } else {
+                pauseUserTimer(userTimerId)
+            }
         }
     }
 
@@ -303,6 +338,10 @@ class TimerEngine: ObservableObject {
         } else {
             return String(format: "%d:%02d", minutes, remainingSeconds)
         }
+    }
+    
+    func isUserTimerPaused(_ userTimerId: String) -> Bool {
+        return userTimerStates[userTimerId]?.isPaused ?? true
     }
     
     func getUserFormattedTimeRemaining(for userId: String) -> String {

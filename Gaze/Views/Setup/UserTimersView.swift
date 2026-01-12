@@ -230,8 +230,12 @@ struct UserTimerEditSheet: View {
         _title = State(
             initialValue: timer?.title ?? UserTimer.generateTitle(for: existingTimersCount))
         _message = State(initialValue: timer?.message ?? "")
-        _type = State(initialValue: timer?.type ?? .subtle)
-        _timeOnScreen = State(initialValue: timer?.timeOnScreenSeconds ?? 30)
+        let timerType = timer?.type ?? .subtle
+        _type = State(initialValue: timerType)
+        // Subtle timers always use 3 seconds (not configurable)
+        // Overlay timers default to 10 seconds (configurable)
+        _timeOnScreen = State(
+            initialValue: timer?.timeOnScreenSeconds ?? (timerType == .subtle ? 3 : 10))
         _intervalMinutes = State(initialValue: timer?.intervalMinutes ?? 15)
         _selectedColorHex = State(
             initialValue: timer?.colorHex
@@ -292,6 +296,15 @@ struct UserTimerEditSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .onChange(of: type) { newType in
+                        // When switching to subtle, set timeOnScreen to 3 (not user-configurable)
+                        if newType == .subtle {
+                            timeOnScreen = 3
+                        } else if timeOnScreen == 3 {
+                            // When switching from subtle to overlay, set to default overlay duration
+                            timeOnScreen = 10
+                        }
+                    }
 
                     Text(
                         type == .subtle

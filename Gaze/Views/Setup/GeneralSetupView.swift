@@ -182,7 +182,7 @@ struct GeneralSetupView: View {
                                 HStack {
                                     Image(systemName: "cup.and.saucer.fill")
                                         .font(.title3)
-                                        .foregroundColor(.orange)
+                                        .foregroundColor(.brown)
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Buy Me a Coffee")
                                             .font(.subheadline)
@@ -197,7 +197,6 @@ struct GeneralSetupView: View {
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity)
-                                .background(Color.orange.opacity(0.1))
                                 .cornerRadius(10)
                                 .contentShape(RoundedRectangle(cornerRadius: 10))
                             }

@@ -3,12 +3,37 @@
     <channel>
         <title>Gaze</title>
         <item>
+            <title>0.2.3</title>
+            <pubDate>Sun, 11 Jan 2026 21:48:03 -0500</pubDate>
+            <sparkle:version>4</sparkle:version>
+            <sparkle:shortVersionString>0.2.3</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://freno.me/api/downloads/Gaze-0.2.3.dmg" length="4833403" type="application/octet-stream" sparkle:edSignature="AnHFpeYxjG2PZb5sS5riXCxYEmUrtf36rx5vUlbY8O1RyVXW+NjFsRwcZpb3Xmj/ZtdU2znzTFChOqMXtioyBA=="/>
+            <sparkle:deltas>
+                <enclosure url="https://freno.me/api/downloads/Gaze4-3.delta" sparkle:deltaFrom="3" length="131402" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="7HyNp+njh3c9WN2Nla8mskAcv9QOvDqgTcy8guvsaobQ6f1JiRTNgNkPkhUkw2X0dw2epK9jcR/lqc5vshUXBg=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze4-2.delta" sparkle:deltaFrom="2" length="131066" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="+5X2MFA/3Dq6IyeHPb8ze6sMUfzfhxzKI0Ph7OtZdLJhwNqMrl9Maoc3+qSwcKNqXveAEzM+pUPbeyqm6EnyAA=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze4-1.delta" sparkle:deltaFrom="1" length="149846" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="hrUN7WhmJAgAO+J7Wr9Y+XUIAVZOmSsyxWfMoXi/GCSLoJVX7Yl5b2uU//n5o0XCH3KIGUv+C3zBG40ecFFACw=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
+            <title>0.2.2</title>
+            <pubDate>Sun, 11 Jan 2026 20:28:48 -0500</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.2.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://freno.me/api/downloads/Gaze-0.2.2.dmg" length="4832775" type="application/octet-stream" sparkle:edSignature="yRtjr01QYU5lwrRZKGccC5rEgjnM3qD4sv1MEtVVOkNW4sVQx9cZAAY9ZyOHxHi/ylE3ehtyZ59PfrOWhxKnCg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://freno.me/api/downloads/Gaze3-2.delta" sparkle:deltaFrom="2" length="13130" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="B8CTj4hEE3beVCc4waxVgXpWAPkM85PH7Bt6Xqh/qOPaddzP3X/q7wWoGi0LhPA0rKXDL9/jyWG+A/s/FQQ9Cw=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze3-1.delta" sparkle:deltaFrom="1" length="94630" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="6WNC5rnEiGVQQgey8QFp07YmdUCuAQCktDIzpkCO7VCyl63iVOlHbmg2jDEWQ18sO5hPuvNHQhh47+exgFTQCQ=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.2.1</title>
             <pubDate>Sun, 11 Jan 2026 19:58:11 -0500</pubDate>
             <sparkle:version>2</sparkle:version>
             <sparkle:shortVersionString>0.2.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
-            <enclosure url="https://freno.me/api/downloads/Gaze-0.2.1.dmg" length="4832775" type="application/octet-stream" sparkle:edSignature="rIMuezCOzKhKKZV+HgJV7LNoXFkjVse82toPgSYNfp2YWO8EITVaCBr4ZP2wqXZlRfdE4J6r9BDewbkKxkf7AQ=="/>
+            <enclosure url="https://freno.me/api/downloads/Gaze-0.2.1.dmg" length="4832782" type="application/octet-stream" sparkle:edSignature="LinJnMeOBhFDMItGzrJVeNRPuHlDHN3Ld3yld3+viggBNF+UtWd6E+lVjh7lpCPj04MNt7iyyRsjupyoZ7gFBg=="/>
             <sparkle:deltas>
                 <enclosure url="https://freno.me/api/downloads/Gaze2-1.delta" sparkle:deltaFrom="1" length="94254" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="qfxSfqD9iVJ7GVL19V8T4OuOTz0ZgqJNceBH6W+dwoKel1R+BTPkU9Ia8xR12v07GoXkyyqc+ba79OOL7jIpBw=="/>
             </sparkle:deltas>

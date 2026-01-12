@@ -5,8 +5,8 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 #if os(iOS)
     import UIKit
@@ -58,83 +58,21 @@ struct LookAwaySetupView: View {
                         .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
-                VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Look Away Reminders", isOn: $enabled)
-                        .font(.headline)
+                SliderSection(
+                    intervalMinutes: $intervalMinutes,
+                    countdownSeconds: $countdownSeconds,
+                    intervalRange: 5...90,
+                    countdownRange: 10...30,
+                    enabled: $enabled,
+                    type: "Look away",
+                    reminderText:
+                        "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds",
+                    previewFunc: showPreviewWindow
+                )
 
-                    if enabled {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Remind me every:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(intervalMinutes) },
-                                        set: { intervalMinutes = Int($0) }
-                                    ), in: 5...90, step: 5)
-
-                                Text("\(intervalMinutes) min")
-                                    .frame(width: 60, alignment: .trailing)
-                                    .monospacedDigit()
-                            }
-
-                            Text("Look away for:")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Slider(
-                                    value: Binding(
-                                        get: { Double(countdownSeconds) },
-                                        set: { countdownSeconds = Int($0) }
-                                    ), in: 10...30, step: 5)
-
-                                Text("\(countdownSeconds) sec")
-                                    .frame(width: 60, alignment: .trailing)
-                                    .monospacedDigit()
-                            }
-                        }
-                    }
-                }
-                .padding()
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-
-                if enabled {
-                    Text(
-                        "You will be reminded every \(intervalMinutes) minutes to look in the distance for \(countdownSeconds) seconds"
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                } else {
-                    Text(
-                        "Look away reminders are currently disabled."
-                    )
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                }
-                
-                // Preview button
-                Button(action: {
-                    showPreviewWindow()
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "eye")
-                            .foregroundColor(.white)
-                        Text("Preview Reminder")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .contentShape(RoundedRectangle(cornerRadius: 10))
-                }
-                .buttonStyle(.plain)
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -143,34 +81,35 @@ struct LookAwaySetupView: View {
         .padding()
         .background(.clear)
     }
-    
+
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        
+
         let window = NSWindow(
             contentRect: screen.frame,
             styleMask: [.borderless, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        
+
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
-        
-        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak window] in
+
+        let contentView = LookAwayReminderView(countdownSeconds: countdownSeconds) {
+            [weak window] in
             window?.close()
         }
-        
+
         window.contentView = NSHostingView(rootView: contentView)
         window.makeFirstResponder(window.contentView)
-        
+
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
         window.makeKeyAndOrderFront(nil)
-        
+
         previewWindowController = windowController
     }
 }

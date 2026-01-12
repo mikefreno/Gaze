@@ -189,7 +189,7 @@ struct MenuBarContentView: View {
 
                 // Show all timers using unified identifier system
                 ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) { identifier in
-                    if let state = timerEngine.timerStates[identifier] {
+                    if timerEngine.timerStates[identifier] != nil {
                         TimerStatusRowWithIndividualControls(
                             identifier: identifier,
                             timerEngine: timerEngine,

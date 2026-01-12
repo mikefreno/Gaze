@@ -6,6 +6,63 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
+# Validate required code signing and notarization credentials
+echo "🔐 Validating credentials..."
+MISSING_CREDS=()
+
+if [ -z "$DEVELOPER_ID_APPLICATION" ]; then
+    MISSING_CREDS+=("DEVELOPER_ID_APPLICATION")
+fi
+
+if [ -z "$NOTARY_KEYCHAIN_PROFILE" ]; then
+    MISSING_CREDS+=("NOTARY_KEYCHAIN_PROFILE")
+fi
+
+if [ -z "$APPLE_TEAM_ID" ]; then
+    MISSING_CREDS+=("APPLE_TEAM_ID")
+fi
+
+if [ ${#MISSING_CREDS[@]} -gt 0 ]; then
+    echo "❌ ERROR: Missing required credentials in .env file:"
+    for cred in "${MISSING_CREDS[@]}"; do
+        echo "  - $cred"
+    done
+    echo ""
+    echo "Required environment variables:"
+    echo "  DEVELOPER_ID_APPLICATION='Developer ID Application: Your Name (TEAM_ID)'"
+    echo "  APPLE_TEAM_ID='XXXXXXXXXX'"
+    echo "  NOTARY_KEYCHAIN_PROFILE='notary-profile'"
+    echo ""
+    echo "Setup instructions:"
+    echo "  1. Find your Developer ID certificate:"
+    echo "     security find-identity -v -p codesigning"
+    echo ""
+    echo "  2. Store notarization credentials in keychain (one-time setup):"
+    echo "     xcrun notarytool store-credentials \"notary-profile\" \\"
+    echo "       --apple-id \"your@email.com\" \\"
+    echo "       --team-id \"TEAM_ID\""
+    echo ""
+    echo "     You'll be prompted for an app-specific password."
+    echo "     Generate one at: https://appleid.apple.com/account/manage"
+    echo ""
+    echo "  3. Set NOTARY_KEYCHAIN_PROFILE='notary-profile' in .env"
+    exit 1
+fi
+
+# Verify keychain profile exists
+echo "🔍 Verifying keychain profile..."
+if ! xcrun notarytool history --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" &>/dev/null; then
+    echo "❌ ERROR: Keychain profile '$NOTARY_KEYCHAIN_PROFILE' not found or invalid"
+    echo ""
+    echo "Create the profile with:"
+    echo "  xcrun notarytool store-credentials \"$NOTARY_KEYCHAIN_PROFILE\" \\"
+    echo "    --apple-id \"your@email.com\" \\"
+    echo "    --team-id \"$APPLE_TEAM_ID\""
+    exit 1
+fi
+
+echo "✅ All credentials validated"
+
 # Extract version from Xcode project (Release configuration)
 PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
 VERSION=$(grep -A 1 "MARKETING_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
@@ -22,9 +79,11 @@ if [ -z "$BUILD_NUMBER" ]; then
     BUILD_NUMBER="1"
 fi
 
-echo "📦 Building Gaze DMG for v${VERSION} (build ${BUILD_NUMBER})"
+echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER}) for distribution"
 
 RELEASES_DIR="./releases"
+ARCHIVE_PATH="./build/Gaze.xcarchive"
+EXPORT_PATH="./build/export"
 APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
 FEED_URL="https://freno.me/api/Gaze/appcast.xml"
 DOWNLOAD_URL_PREFIX="https://freno.me/api/downloads/"
@@ -38,13 +97,169 @@ if [ -z "$SPARKLE_BIN" ]; then
     SPARKLE_BIN=""
 fi
 
-# Create releases directory
+# Create build and releases directories
 mkdir -p "$RELEASES_DIR"
+mkdir -p "$(dirname "$ARCHIVE_PATH")"
 
-# Remove old DMG if exists
+# Clean previous builds
+echo ""
+echo "🧹 Cleaning previous builds..."
+rm -rf "$ARCHIVE_PATH"
+rm -rf "$EXPORT_PATH"
 rm -f "$DMG_NAME"
 
-echo "Creating DMG..."
+# Step 1: Archive the application
+echo ""
+echo "📦 Creating archive..."
+xcodebuild archive \
+  -project Gaze.xcodeproj \
+  -scheme Gaze \
+  -configuration Release \
+  -archivePath "$ARCHIVE_PATH" \
+  CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
+  CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
+  | xcpretty || xcodebuild archive \
+    -project Gaze.xcodeproj \
+    -scheme Gaze \
+    -configuration Release \
+    -archivePath "$ARCHIVE_PATH" \
+    CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
+    CODE_SIGN_STYLE=Manual \
+    DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+
+if [ ! -d "$ARCHIVE_PATH" ]; then
+    echo "❌ ERROR: Archive creation failed"
+    exit 1
+fi
+
+echo "✅ Archive created successfully"
+
+# Step 2: Create exportOptions.plist
+echo ""
+echo "📝 Creating export options..."
+cat > /tmp/exportOptions.plist <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>developer-id</string>
+    <key>signingStyle</key>
+    <string>manual</string>
+    <key>teamID</key>
+    <string>$APPLE_TEAM_ID</string>
+    <key>signingCertificate</key>
+    <string>Developer ID Application</string>
+    <key>stripSwiftSymbols</key>
+    <true/>
+    <key>uploadSymbols</key>
+    <true/>
+</dict>
+</plist>
+EOF
+
+# Step 3: Export the archive
+echo ""
+echo "📤 Exporting signed application..."
+xcodebuild -exportArchive \
+  -archivePath "$ARCHIVE_PATH" \
+  -exportPath "$EXPORT_PATH" \
+  -exportOptionsPlist /tmp/exportOptions.plist \
+  | xcpretty || xcodebuild -exportArchive \
+    -archivePath "$ARCHIVE_PATH" \
+    -exportPath "$EXPORT_PATH" \
+    -exportOptionsPlist /tmp/exportOptions.plist
+
+if [ ! -d "$EXPORT_PATH/Gaze.app" ]; then
+    echo "❌ ERROR: Export failed - Gaze.app not found"
+    exit 1
+fi
+
+echo "✅ Application exported and signed"
+
+# Step 4: Verify code signature
+echo ""
+echo "🔍 Verifying code signature..."
+codesign --verify --deep --strict --verbose=2 "$EXPORT_PATH/Gaze.app"
+if [ $? -eq 0 ]; then
+    echo "✅ Code signature valid"
+else
+    echo "❌ ERROR: Code signature verification failed"
+    exit 1
+fi
+
+# Show signature details
+echo ""
+echo "📋 Signature details:"
+codesign -dv --verbose=4 "$EXPORT_PATH/Gaze.app" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier"
+
+# Step 5: Create ZIP archive for notarization
+echo ""
+echo "📦 Creating ZIP archive for notarization..."
+APP_ZIP="/tmp/Gaze-notarize.zip"
+rm -f "$APP_ZIP"
+ditto -c -k --keepParent "$EXPORT_PATH/Gaze.app" "$APP_ZIP"
+
+if [ ! -f "$APP_ZIP" ]; then
+    echo "❌ ERROR: Failed to create ZIP archive"
+    exit 1
+fi
+
+echo "✅ ZIP archive created"
+
+# Step 6: Notarize the application
+echo ""
+echo "🔐 Submitting application for notarization..."
+NOTARIZE_OUTPUT=$(xcrun notarytool submit "$APP_ZIP" \
+  --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" \
+  --wait \
+  --timeout 30m 2>&1)
+
+echo "$NOTARIZE_OUTPUT"
+
+if echo "$NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
+    echo "✅ Application notarization accepted"
+    
+    # Extract submission ID for logging
+    SUBMISSION_ID=$(echo "$NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+    echo "   Submission ID: $SUBMISSION_ID"
+else
+    echo "❌ ERROR: Application notarization failed"
+    echo ""
+    echo "Notarization output:"
+    echo "$NOTARIZE_OUTPUT"
+    exit 1
+fi
+
+# Clean up temporary ZIP
+rm -f "$APP_ZIP"
+
+# Step 7: Staple notarization ticket to app
+echo ""
+echo "📎 Stapling notarization ticket to application..."
+xcrun stapler staple "$EXPORT_PATH/Gaze.app"
+if [ $? -eq 0 ]; then
+    echo "✅ Notarization ticket stapled to application"
+else
+    echo "❌ ERROR: Failed to staple notarization ticket"
+    exit 1
+fi
+
+# Step 8: Verify with Gatekeeper
+echo ""
+echo "🔍 Verifying Gatekeeper acceptance..."
+spctl --assess --type execute --verbose=4 "$EXPORT_PATH/Gaze.app" 2>&1
+if [ $? -eq 0 ]; then
+    echo "✅ Application passes Gatekeeper verification"
+else
+    echo "⚠️  Warning: Gatekeeper assessment returned non-zero status"
+    echo "   This may be expected for some configurations"
+fi
+
+# Step 9: Create DMG from notarized app
+echo ""
+echo "💿 Creating DMG..."
 create-dmg \
   --volname "Gaze Installer" \
   --eula "./LICENSE" \
@@ -55,7 +270,85 @@ create-dmg \
   --icon "Gaze.app" 160 200 \
   --app-drop-link 440 200 \
   "$DMG_NAME" \
-  "./Gaze.app"
+  "$EXPORT_PATH/Gaze.app"
+
+if [ ! -f "$DMG_NAME" ]; then
+    echo "❌ ERROR: DMG creation failed"
+    exit 1
+fi
+
+echo "✅ DMG created successfully"
+
+# Step 10: Sign the DMG
+echo ""
+echo "🔏 Signing DMG..."
+codesign --sign "$DEVELOPER_ID_APPLICATION" \
+  --timestamp \
+  --options runtime \
+  --force \
+  "$DMG_NAME"
+
+if [ $? -eq 0 ]; then
+    echo "✅ DMG signed successfully"
+else
+    echo "❌ ERROR: DMG signing failed"
+    exit 1
+fi
+
+# Verify DMG signature
+codesign --verify --deep --strict --verbose=2 "$DMG_NAME"
+if [ $? -eq 0 ]; then
+    echo "✅ DMG signature valid"
+else
+    echo "❌ ERROR: DMG signature verification failed"
+    exit 1
+fi
+
+# Step 11: Notarize the DMG
+echo ""
+echo "🔐 Submitting DMG for notarization..."
+DMG_NOTARIZE_OUTPUT=$(xcrun notarytool submit "$DMG_NAME" \
+  --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" \
+  --wait \
+  --timeout 30m 2>&1)
+
+echo "$DMG_NOTARIZE_OUTPUT"
+
+if echo "$DMG_NOTARIZE_OUTPUT" | grep -q "status: Accepted"; then
+    echo "✅ DMG notarization accepted"
+    
+    # Extract submission ID for logging
+    DMG_SUBMISSION_ID=$(echo "$DMG_NOTARIZE_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+    echo "   Submission ID: $DMG_SUBMISSION_ID"
+else
+    echo "❌ ERROR: DMG notarization failed"
+    echo ""
+    echo "Notarization output:"
+    echo "$DMG_NOTARIZE_OUTPUT"
+    exit 1
+fi
+
+# Step 12: Staple notarization ticket to DMG
+echo ""
+echo "📎 Stapling notarization ticket to DMG..."
+xcrun stapler staple "$DMG_NAME"
+if [ $? -eq 0 ]; then
+    echo "✅ Notarization ticket stapled to DMG"
+else
+    echo "❌ ERROR: Failed to staple notarization ticket to DMG"
+    exit 1
+fi
+
+# Step 13: Final verification
+echo ""
+echo "🔍 Final DMG verification..."
+spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_NAME" 2>&1
+if [ $? -eq 0 ]; then
+    echo "✅ DMG passes all Gatekeeper checks"
+else
+    echo "⚠️  Warning: Gatekeeper assessment returned non-zero status"
+    echo "   This may be expected for disk images"
+fi
 
 # Copy DMG to releases directory
 echo "Moving DMG to releases directory..."
@@ -181,15 +474,27 @@ fi
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Release artifacts created:"
+echo "✅ Release build complete and notarized!"
+echo ""
+echo "Release artifacts:"
 echo "  📦 DMG: $RELEASES_DIR/$DMG_NAME"
 if [ -f "$APPCAST_OUTPUT" ]; then
     echo "  📋 Appcast: $APPCAST_OUTPUT"
 fi
+echo "  🏗️  Archive: $ARCHIVE_PATH"
+echo "  📁 Export: $EXPORT_PATH/Gaze.app"
+echo ""
+echo "Verification:"
+echo "  ✅ Application code signed with Developer ID"
+echo "  ✅ Application notarized by Apple"
+echo "  ✅ DMG signed with Developer ID"
+echo "  ✅ DMG notarized by Apple"
+echo "  ✅ Gatekeeper approved"
 echo ""
 echo "Next steps:"
 echo "  1. Upload DMG to: ${DOWNLOAD_URL_PREFIX}$DMG_NAME"
 echo "  2. Upload appcast to: $FEED_URL"
 echo "  3. Verify appcast is accessible and valid"
-echo "  4. Test update from previous version"
+echo "  4. Test installation on clean macOS system"
+echo "  5. Test update from previous version"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

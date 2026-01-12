@@ -12,36 +12,34 @@ import Combine
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var timerEngine: TimerEngine?
-    private var settingsManager: SettingsManager?
+    private let settingsManager: SettingsManager = .shared
     private var updateManager: UpdateManager?
     private var reminderWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
-    private var timerStateBeforeSleep: [TimerType: Date] = [:]
     private var hasStartedTimers = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
         
-        settingsManager = SettingsManager.shared
-        timerEngine = TimerEngine(settingsManager: settingsManager!)
+        timerEngine = TimerEngine(settingsManager: settingsManager)
         
         // Initialize update manager after onboarding is complete
-        if settingsManager!.settings.hasCompletedOnboarding {
+        if settingsManager.settings.hasCompletedOnboarding {
             updateManager = UpdateManager.shared
         }
         
         // Detect App Store version asynchronously at launch
         Task {
-            await settingsManager?.detectAppStoreVersion()
+            await settingsManager.detectAppStoreVersion()
         }
         
         setupLifecycleObservers()
         observeSettingsChanges()
         
         // Start timers if onboarding is complete
-        if settingsManager!.settings.hasCompletedOnboarding {
+        if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
     }
@@ -63,7 +61,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     private func observeSettingsChanges() {
-        settingsManager?.$settings
+        settingsManager.$settings
             .sink { [weak self] settings in
                 if settings.hasCompletedOnboarding && self?.hasStartedTimers == false {
                     self?.startTimers()
@@ -78,7 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        settingsManager?.save()
+        settingsManager.save()
         timerEngine?.stop()
     }
     
@@ -99,38 +97,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     @objc private func systemWillSleep() {
-        // Save timer states
-        if let timerEngine = timerEngine {
-            for (type, state) in timerEngine.timerStates {
-                if state.isActive && !state.isPaused {
-                    timerStateBeforeSleep[type] = Date()
-                }
-            }
-        }
-        timerEngine?.pause()
-        settingsManager?.save()
+        timerEngine?.handleSystemSleep()
+        settingsManager.save()
     }
     
     @objc private func systemDidWake() {
-        guard let timerEngine = timerEngine else { return }
-        
-        let now = Date()
-        for (type, sleepTime) in timerStateBeforeSleep {
-            let elapsed = Int(now.timeIntervalSince(sleepTime))
-            
-            if var state = timerEngine.timerStates[type] {
-                state.remainingSeconds = max(0, state.remainingSeconds - elapsed)
-                timerEngine.timerStates[type] = state
-                
-                // If timer expired during sleep, trigger it now
-                if state.remainingSeconds <= 0 {
-                    timerEngine.timerStates[type]?.remainingSeconds = 1
-                }
-            }
-        }
-        
-        timerStateBeforeSleep.removeAll()
-        timerEngine.resume()
+        timerEngine?.handleSystemWake()
     }
     
     private func observeReminderEvents() {
@@ -156,14 +128,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 }
             )
         case .blinkTriggered:
-            let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
+            let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             contentView = AnyView(
                 BlinkReminderView(sizePercentage: sizePercentage) { [weak self] in
                     self?.timerEngine?.dismissReminder()
                 }
             )
         case .postureTriggered:
-            let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
+            let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             contentView = AnyView(
                 PostureReminderView(sizePercentage: sizePercentage) { [weak self] in
                     self?.timerEngine?.dismissReminder()
@@ -177,7 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     }
                 )
             } else {
-                let sizePercentage = settingsManager?.settings.subtleReminderSize.percentage ?? 5.0
+                let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
                 contentView = AnyView(
                     UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) { [weak self] in
                         self?.timerEngine?.dismissReminder()
@@ -199,18 +171,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             defer: false
         )
         
+        window.identifier = WindowIdentifiers.reminder
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        // Ensure this window can receive key events
         window.acceptsMouseMovedEvents = true
         window.makeFirstResponder(window.contentView)
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
-        // Make sure the window is brought to front and made key for key events
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         
@@ -235,56 +206,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     // Public method to reopen onboarding window
     func openOnboarding() {
-        // Post notification to close menu bar popover
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
         
-        // Small delay to allow menu bar to close before opening onboarding
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self = self, let settingsManager = self.settingsManager else { return }
+            guard let self = self else { return }
             
-// Check if onboarding window already exists from the WindowGroup
-             let existingWindow = NSApplication.shared.windows.first { window in
-                 // Check if window contains OnboardingContainerView by examining its content view
-                 if window.contentView is NSHostingView<OnboardingContainerView> {
-                     return true
-                 }
-                 // Also check for windows with our expected size (onboarding window dimensions)
-                 return window.frame.size.width == 700 && window.frame.size.height == 700 
-                     && window.styleMask.contains(.titled)
-                     && window.title.isEmpty  // WindowGroup windows have empty title by default
-             }
-            
-            if let window = existingWindow {
-                // Reuse existing window - just bring it to front
-                window.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
-            } else {
-                // Create new window matching WindowGroup style
-                let window = NSWindow(
-                    contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
-                    styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
-                    backing: .buffered,
-                    defer: false
-                )
-                
-                // Match the WindowGroup style: hiddenTitleBar
-                window.titleVisibility = .hidden
-                window.titlebarAppearsTransparent = true
-                window.center()
-                window.isReleasedWhenClosed = true
-                window.contentView = NSHostingView(
-                    rootView: OnboardingContainerView(settingsManager: settingsManager)
-                )
-                
-                window.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
+            if self.activateWindow(withIdentifier: WindowIdentifiers.onboarding) {
+                return
             }
+            
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+                styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+            
+            window.identifier = WindowIdentifiers.onboarding
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.center()
+            window.isReleasedWhenClosed = true
+            window.contentView = NSHostingView(
+                rootView: OnboardingContainerView(settingsManager: self.settingsManager)
+            )
+            
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
         }
     }
     
     private func openSettingsWindow(tab: Int) {
-        // If window already exists, switch to the tab and bring it to front
-        if let existingWindow = settingsWindowController?.window {
+        if let existingWindow = findWindow(withIdentifier: WindowIdentifiers.settings) {
             NotificationCenter.default.post(
                 name: Notification.Name("SwitchToSettingsTab"),
                 object: tab
@@ -301,12 +254,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             defer: false
         )
         
+        window.identifier = WindowIdentifiers.settings
         window.title = "Settings"
         window.center()
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
         window.contentView = NSHostingView(
-            rootView: SettingsWindowView(settingsManager: settingsManager!, initialTab: tab)
+            rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: tab)
         )
         
         let windowController = NSWindowController(window: window)
@@ -316,7 +270,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         
         NSApp.activate(ignoringOtherApps: true)
         
-        // Observe when window is closed to clean up reference
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(settingsWindowWillCloseNotification(_:)),
@@ -327,6 +280,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     @objc private func settingsWindowWillCloseNotification(_ notification: Notification) {
         settingsWindowController = nil
+    }
+    
+    /// Finds a window by its identifier
+    private func findWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> NSWindow? {
+        return NSApplication.shared.windows.first { $0.identifier == identifier }
+    }
+    
+    /// Brings window to front if it exists, returns true if found
+    private func activateWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> Bool {
+        guard let window = findWindow(withIdentifier: identifier) else {
+            return false
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return true
     }
 }
 

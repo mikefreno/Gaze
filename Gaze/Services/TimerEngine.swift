@@ -10,19 +10,12 @@ import Foundation
 
 @MainActor
 class TimerEngine: ObservableObject {
-    @Published var timerStates: [TimerType: TimerState] = [:]
+    @Published var timerStates: [TimerIdentifier: TimerState] = [:]
     @Published var activeReminder: ReminderEvent?
-    
-    // Track user timer states separately
-    private var userTimerStates: [String: TimerState] = [:]
-    
-    // Expose user timer states for read-only access
-    var userTimerStatesReadOnly: [String: TimerState] {
-        return userTimerStates
-    }
 
     private var timerSubscription: AnyCancellable?
     private let settingsManager: SettingsManager
+    private var sleepStartTime: Date?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -38,13 +31,15 @@ class TimerEngine: ObservableObject {
         // Initial start - create all timer states
         stop()
 
-        var newStates: [TimerType: TimerState] = [:]
+        var newStates: [TimerIdentifier: TimerState] = [:]
         
+        // Add built-in timers
         for timerType in TimerType.allCases {
             let config = settingsManager.timerConfiguration(for: timerType)
             if config.enabled {
-                newStates[timerType] = TimerState(
-                    type: timerType,
+                let identifier = TimerIdentifier.builtIn(timerType)
+                newStates[identifier] = TimerState(
+                    identifier: identifier,
                     intervalSeconds: config.intervalSeconds,
                     isPaused: false,
                     isActive: true
@@ -52,13 +47,19 @@ class TimerEngine: ObservableObject {
             }
         }
         
+        // Add user timers
+        for userTimer in settingsManager.settings.userTimers where userTimer.enabled {
+            let identifier = TimerIdentifier.user(id: userTimer.id)
+            newStates[identifier] = TimerState(
+                identifier: identifier,
+                intervalSeconds: userTimer.intervalMinutes * 60,
+                isPaused: false,
+                isActive: true
+            )
+        }
+        
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
-
-        // Start user timers
-        for userTimer in settingsManager.settings.userTimers {
-            startUserTimer(userTimer)
-        }
 
         timerSubscription = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
@@ -70,30 +71,32 @@ class TimerEngine: ObservableObject {
     }
     
     private func updateConfigurations() {
-        var newStates: [TimerType: TimerState] = [:]
+        var newStates: [TimerIdentifier: TimerState] = [:]
         
+        // Update built-in timers
         for timerType in TimerType.allCases {
             let config = settingsManager.timerConfiguration(for: timerType)
+            let identifier = TimerIdentifier.builtIn(timerType)
             
             if config.enabled {
-                if let existingState = timerStates[timerType] {
+                if let existingState = timerStates[identifier] {
                     // Timer exists - check if interval changed
                     if existingState.originalIntervalSeconds != config.intervalSeconds {
                         // Interval changed - reset with new interval
-                        newStates[timerType] = TimerState(
-                            type: timerType,
+                        newStates[identifier] = TimerState(
+                            identifier: identifier,
                             intervalSeconds: config.intervalSeconds,
                             isPaused: existingState.isPaused,
                             isActive: true
                         )
                     } else {
                         // Interval unchanged - keep existing state
-                        newStates[timerType] = existingState
+                        newStates[identifier] = existingState
                     }
                 } else {
                     // Timer was just enabled - create new state
-                    newStates[timerType] = TimerState(
-                        type: timerType,
+                    newStates[identifier] = TimerState(
+                        identifier: identifier,
                         intervalSeconds: config.intervalSeconds,
                         isPaused: false,
                         isActive: true
@@ -103,82 +106,85 @@ class TimerEngine: ObservableObject {
             // If config.enabled is false and timer exists, it will be removed
         }
         
+        // Update user timers
+        for userTimer in settingsManager.settings.userTimers {
+            let identifier = TimerIdentifier.user(id: userTimer.id)
+            let newIntervalSeconds = userTimer.intervalMinutes * 60
+            
+            if userTimer.enabled {
+                if let existingState = timerStates[identifier] {
+                    // Check if interval changed
+                    if existingState.originalIntervalSeconds != newIntervalSeconds {
+                        // Interval changed - reset with new interval
+                        newStates[identifier] = TimerState(
+                            identifier: identifier,
+                            intervalSeconds: newIntervalSeconds,
+                            isPaused: existingState.isPaused,
+                            isActive: true
+                        )
+                    } else {
+                        // Interval unchanged - keep existing state
+                        newStates[identifier] = existingState
+                    }
+                } else {
+                    // New timer - create state
+                    newStates[identifier] = TimerState(
+                        identifier: identifier,
+                        intervalSeconds: newIntervalSeconds,
+                        isPaused: false,
+                        isActive: true
+                    )
+                }
+            }
+            // If timer is disabled, it will be removed
+        }
+        
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
-        
-        // Update user timers
-        updateUserTimers()
-    }
-    
-    private func updateUserTimers() {
-        let currentTimerIds = Set(userTimerStates.keys)
-        let newTimerIds = Set(settingsManager.settings.userTimers.map { $0.id })
-        
-        // Remove timers that no longer exist
-        let removedIds = currentTimerIds.subtracting(newTimerIds)
-        for id in removedIds {
-            userTimerStates.removeValue(forKey: id)
-        }
-        
-        // Add or update timers
-        for userTimer in settingsManager.settings.userTimers {
-            if let existingState = userTimerStates[userTimer.id] {
-                // Check if interval changed
-                let newIntervalSeconds = userTimer.intervalMinutes * 60
-                if existingState.originalIntervalSeconds != newIntervalSeconds {
-                    // Interval changed - reset with new interval
-                    userTimerStates[userTimer.id] = TimerState(
-                        type: .lookAway, // Placeholder
-                        intervalSeconds: newIntervalSeconds,
-                        isPaused: existingState.isPaused,
-                        isActive: userTimer.enabled
-                    )
-                } else {
-                    // Just update enabled state if needed
-                    var state = existingState
-                    state.isActive = userTimer.enabled
-                    userTimerStates[userTimer.id] = state
-                }
-            } else {
-                // New timer - create state
-                startUserTimer(userTimer)
-            }
-        }
     }
 
     func stop() {
         timerSubscription?.cancel()
         timerSubscription = nil
         timerStates.removeAll()
-        userTimerStates.removeAll()
     }
 
     func pause() {
-        for (type, _) in timerStates {
-            timerStates[type]?.isPaused = true
+        for (id, _) in timerStates {
+            timerStates[id]?.isPaused = true
         }
     }
 
     func resume() {
-        for (type, _) in timerStates {
-            timerStates[type]?.isPaused = false
+        for (id, _) in timerStates {
+            timerStates[id]?.isPaused = false
         }
     }
     
-    func pauseTimer(type: TimerType) {
-        timerStates[type]?.isPaused = true
+    func pauseTimer(identifier: TimerIdentifier) {
+        timerStates[identifier]?.isPaused = true
     }
     
-    func resumeTimer(type: TimerType) {
-        timerStates[type]?.isPaused = false
+    func resumeTimer(identifier: TimerIdentifier) {
+        timerStates[identifier]?.isPaused = false
     }
 
-    func skipNext(type: TimerType) {
-        guard let state = timerStates[type] else { return }
-        let config = settingsManager.timerConfiguration(for: type)
-        timerStates[type] = TimerState(
-            type: type,
-            intervalSeconds: config.intervalSeconds,
+    func skipNext(identifier: TimerIdentifier) {
+        guard let state = timerStates[identifier] else { return }
+        
+        let intervalSeconds: Int
+        switch identifier {
+        case .builtIn(let type):
+            let config = settingsManager.timerConfiguration(for: type)
+            intervalSeconds = config.intervalSeconds
+        case .user(let id):
+            guard let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) else { return }
+            intervalSeconds = userTimer.intervalMinutes * 60
+        }
+        
+        timerStates[identifier] = TimerState(
+            identifier: identifier,
+            intervalSeconds: intervalSeconds,
             isPaused: state.isPaused,
             isActive: state.isActive
         )
@@ -188,173 +194,114 @@ class TimerEngine: ObservableObject {
         guard let reminder = activeReminder else { return }
         activeReminder = nil
 
-        // Skip to next interval based on reminder type
-        switch reminder {
-        case .lookAwayTriggered, .blinkTriggered, .postureTriggered:
-            // For built-in timers, we need to extract the TimerType
-            if case .lookAwayTriggered = reminder {
-                skipNext(type: .lookAway)
-                resume()
-            } else if case .blinkTriggered = reminder {
-                skipNext(type: .blink)
-            } else if case .postureTriggered = reminder {
-                skipNext(type: .posture)
-            }
-        case .userTimerTriggered(let timer):
-            // Reset the user timer
-            if let state = userTimerStates[timer.id] {
-                userTimerStates[timer.id] = TimerState(
-                    type: .lookAway, // Placeholder
-                    intervalSeconds: timer.intervalMinutes * 60,
-                    isPaused: state.isPaused,
-                    isActive: state.isActive
-                )
-            }
-        }
+        // Skip to next interval and resume the timer that was paused
+        let identifier = reminder.identifier
+        skipNext(identifier: identifier)
+        resumeTimer(identifier: identifier)
     }
 
     private func handleTick() {
-        guard activeReminder == nil else { return }
-
-        // Handle regular timers first
-        for (type, state) in timerStates {
+        // Handle all timers uniformly - only skip the timer that has an active reminder
+        for (identifier, state) in timerStates {
             guard state.isActive && !state.isPaused else { continue }
+            
+            // Skip the timer that triggered the current reminder
+            if let activeReminder = activeReminder, activeReminder.identifier == identifier {
+                continue
+            }
+            
             // prevent overshoot - in case user closes laptop while timer is running, we don't want to
-            // trigger on open,
+            // trigger on open
             if state.targetDate < Date() - 3.0 {  // slight grace
                 // Reset the timer when it has overshot its interval
-                let config = settingsManager.timerConfiguration(for: type)
-                timerStates[type] = TimerState(
-                    type: type,
-                    intervalSeconds: config.intervalSeconds,
-                    isPaused: state.isPaused,
-                    isActive: state.isActive
-                )
+                skipNext(identifier: identifier)
                 continue  // Skip normal countdown logic after reset
             }
 
-            timerStates[type]?.remainingSeconds -= 1
+            timerStates[identifier]?.remainingSeconds -= 1
 
-            if let updatedState = timerStates[type], updatedState.remainingSeconds <= 0 {
-                triggerReminder(for: type)
+            if let updatedState = timerStates[identifier], updatedState.remainingSeconds <= 0 {
+                triggerReminder(for: identifier)
                 break
             }
         }
+    }
+
+    func triggerReminder(for identifier: TimerIdentifier) {
+        // Pause only the timer that triggered
+        pauseTimer(identifier: identifier)
         
-        // Handle user timers
-        handleUserTimerTicks()
-    }
-    
-    private func handleUserTimerTicks() {
-        for (id, state) in userTimerStates {
-            if !state.isActive || state.isPaused { continue }
-            
-            // Update user timer countdown
-            userTimerStates[id]?.remainingSeconds -= 1
-            
-            if let updatedState = userTimerStates[id], updatedState.remainingSeconds <= 0 {
-                // Trigger the user timer reminder
-                triggerUserTimerReminder(forId: id)
+        switch identifier {
+        case .builtIn(let type):
+            switch type {
+            case .lookAway:
+                activeReminder = .lookAwayTriggered(
+                    countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds)
+            case .blink:
+                activeReminder = .blinkTriggered
+            case .posture:
+                activeReminder = .postureTriggered
             }
-        }
-    }
-    
-    private func triggerUserTimerReminder(forId id: String) {
-        if let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) {
-            activeReminder = .userTimerTriggered(userTimer)
-        }
-    }
-
-    func triggerReminder(for type: TimerType) {
-        switch type {
-        case .lookAway:
-            pause()
-            activeReminder = .lookAwayTriggered(
-                countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds)
-        case .blink:
-            activeReminder = .blinkTriggered
-        case .posture:
-            activeReminder = .postureTriggered
-        }
-    }
-    
-    // User timer management methods
-    func startUserTimer(_ userTimer: UserTimer) {
-        userTimerStates[userTimer.id] = TimerState(
-            type: .lookAway, // Placeholder - we'll need to make this more flexible
-            intervalSeconds: userTimer.intervalMinutes * 60,
-            isPaused: false,
-            isActive: true
-        )
-    }
-    
-    func stopUserTimer(_ userTimerId: String) {
-        userTimerStates[userTimerId] = nil
-    }
-    
-    func pauseUserTimer(_ userTimerId: String) {
-        if var state = userTimerStates[userTimerId] {
-            state.isPaused = true
-            userTimerStates[userTimerId] = state
-        }
-    }
-    
-    func resumeUserTimer(_ userTimerId: String) {
-        if var state = userTimerStates[userTimerId] {
-            state.isPaused = false
-            userTimerStates[userTimerId] = state
-        }
-    }
-    
-    func toggleUserTimerPause(_ userTimerId: String) {
-        if let state = userTimerStates[userTimerId] {
-            if state.isPaused {
-                resumeUserTimer(userTimerId)
-            } else {
-                pauseUserTimer(userTimerId)
+        case .user(let id):
+            if let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) {
+                activeReminder = .userTimerTriggered(userTimer)
             }
         }
     }
 
-    func getTimeRemaining(for type: TimerType) -> TimeInterval {
-        guard let state = timerStates[type] else { return 0 }
-        return TimeInterval(state.remainingSeconds)
-    }
-    
-    func getUserTimeRemaining(for userId: String) -> TimeInterval {
-        guard let state = userTimerStates[userId] else { return 0 }
+    func getTimeRemaining(for identifier: TimerIdentifier) -> TimeInterval {
+        guard let state = timerStates[identifier] else { return 0 }
         return TimeInterval(state.remainingSeconds)
     }
 
-    func getFormattedTimeRemaining(for type: TimerType) -> String {
-        let seconds = Int(getTimeRemaining(for: type))
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-
-        if minutes >= 60 {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            return String(format: "%d:%02d:%02d", hours, remainingMinutes, remainingSeconds)
-        } else {
-            return String(format: "%d:%02d", minutes, remainingSeconds)
-        }
+    func getFormattedTimeRemaining(for identifier: TimerIdentifier) -> String {
+        return getTimeRemaining(for: identifier).formatAsTimerDurationFull()
     }
     
-    func isUserTimerPaused(_ userTimerId: String) -> Bool {
-        return userTimerStates[userTimerId]?.isPaused ?? true
+    func isTimerPaused(_ identifier: TimerIdentifier) -> Bool {
+        return timerStates[identifier]?.isPaused ?? true
     }
     
-    func getUserFormattedTimeRemaining(for userId: String) -> String {
-        let seconds = Int(getUserTimeRemaining(for: userId))
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-
-        if minutes >= 60 {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            return String(format: "%d:%02d:%02d", hours, remainingMinutes, remainingSeconds)
-        } else {
-            return String(format: "%d:%02d", minutes, remainingSeconds)
+    /// Handles system sleep event
+    /// - Saves current time for elapsed calculation
+    /// - Pauses all active timers
+    func handleSystemSleep() {
+        sleepStartTime = Date()
+        pause()
+    }
+    
+    /// Handles system wake event
+    /// - Calculates elapsed time during sleep
+    /// - Adjusts remaining time for all active timers
+    /// - Timers that expired during sleep will trigger immediately (1s delay)
+    /// - Resumes all timers
+    func handleSystemWake() {
+        guard let sleepStart = sleepStartTime else {
+            return
         }
+        
+        defer {
+            sleepStartTime = nil
+        }
+        
+        let elapsedSeconds = Int(Date().timeIntervalSince(sleepStart))
+        
+        guard elapsedSeconds >= 1 else {
+            resume()
+            return
+        }
+        
+        for (identifier, state) in timerStates where state.isActive && !state.isPaused {
+            var updatedState = state
+            updatedState.remainingSeconds = max(0, state.remainingSeconds - elapsedSeconds)
+            
+            if updatedState.remainingSeconds <= 0 {
+                updatedState.remainingSeconds = 1
+            }
+            
+            timerStates[identifier] = updatedState
+        }
+        
+        resume()
     }
 }

@@ -95,14 +95,18 @@ struct AppSettings: Codable, Equatable, Hashable {
         )
     }
 
+    /// Manual Equatable implementation required because isAppStoreVersion
+    /// is excluded from Codable persistence but included in equality checks
     static func == (lhs: AppSettings, rhs: AppSettings) -> Bool {
         lhs.lookAwayTimer == rhs.lookAwayTimer
             && lhs.lookAwayCountdownSeconds == rhs.lookAwayCountdownSeconds
-            && lhs.blinkTimer == rhs.blinkTimer && lhs.postureTimer == rhs.postureTimer
+            && lhs.blinkTimer == rhs.blinkTimer
+            && lhs.postureTimer == rhs.postureTimer
             && lhs.userTimers == rhs.userTimers
             && lhs.subtleReminderSize == rhs.subtleReminderSize
             && lhs.hasCompletedOnboarding == rhs.hasCompletedOnboarding
-            && lhs.launchAtLogin == rhs.launchAtLogin && lhs.playSounds == rhs.playSounds
+            && lhs.launchAtLogin == rhs.launchAtLogin
+            && lhs.playSounds == rhs.playSounds
             && lhs.isAppStoreVersion == rhs.isAppStoreVersion
     }
 

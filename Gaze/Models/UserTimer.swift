@@ -39,12 +39,6 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable {
         self.colorHex = colorHex ?? UserTimer.defaultColors[0]
         self.enabled = enabled
     }
-
-    static func == (lhs: UserTimer, rhs: UserTimer) -> Bool {
-        lhs.id == rhs.id && lhs.title == rhs.title && lhs.type == rhs.type
-            && lhs.timeOnScreenSeconds == rhs.timeOnScreenSeconds && lhs.intervalMinutes == rhs.intervalMinutes
-            && lhs.message == rhs.message && lhs.colorHex == rhs.colorHex && lhs.enabled == rhs.enabled
-    }
     
     // Default color palette for user timers
     static let defaultColors = [

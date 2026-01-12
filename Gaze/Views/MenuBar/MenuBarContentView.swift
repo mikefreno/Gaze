@@ -187,52 +187,36 @@ struct MenuBarContentView: View {
                     .padding(.horizontal)
                     .padding(.top, 8)
 
-                // Show regular timers with individual pause/resume controls
-                ForEach(Array(timerEngine.timerStates.keys), id: \.self) { timerType in
-                    if let state = timerEngine.timerStates[timerType] {
+                // Show all timers using unified identifier system
+                ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) { identifier in
+                    if let state = timerEngine.timerStates[identifier] {
                         TimerStatusRowWithIndividualControls(
-                            variant: .builtIn(timerType),
+                            identifier: identifier,
                             timerEngine: timerEngine,
+                            settingsManager: settingsManager,
                             onSkip: {
-                                timerEngine.skipNext(type: timerType)
+                                timerEngine.skipNext(identifier: identifier)
                             },
                             onDevTrigger: {
-                                timerEngine.triggerReminder(for: timerType)
+                                timerEngine.triggerReminder(for: identifier)
                             },
                             onTogglePause: { isPaused in
                                 if isPaused {
-                                    timerEngine.pauseTimer(type: timerType)
+                                    timerEngine.pauseTimer(identifier: identifier)
                                 } else {
-                                    timerEngine.resumeTimer(type: timerType)
+                                    timerEngine.resumeTimer(identifier: identifier)
                                 }
                             },
                             onTap: {
-                                onOpenSettingsTab(timerType.tabIndex)
+                                switch identifier {
+                                case .builtIn(let type):
+                                    onOpenSettingsTab(type.tabIndex)
+                                case .user:
+                                    onOpenSettingsTab(3)  // User Timers tab
+                                }
                             }
                         )
                     }
-                }
-
-                // Show user timers with individual pause/resume controls
-                ForEach(settingsManager.settings.userTimers.filter { $0.enabled }, id: \.id) {
-                    userTimer in
-                    TimerStatusRowWithIndividualControls(
-                        variant: .user(userTimer),
-                        timerEngine: timerEngine,
-                        onSkip: {
-                            //TODO
-                        },
-                        onTogglePause: { isPaused in
-                            if isPaused {
-                                timerEngine.pauseUserTimer(userTimer.id)
-                            } else {
-                                timerEngine.resumeUserTimer(userTimer.id)
-                            }
-                        },
-                        onTap: {
-                            onOpenSettingsTab(3)  // Switch to User Timers tab
-                        }
-                    )
                 }
             }
             .padding(.bottom, 8)
@@ -308,50 +292,28 @@ struct MenuBarContentView: View {
         let activeStates = timerEngine.timerStates.values.filter { $0.isActive }
         return !activeStates.isEmpty && activeStates.allSatisfy { $0.isPaused }
     }
-}
-
-struct TimerStatusRowWithIndividualControls: View {
-    enum TimerVariant {
-        case builtIn(TimerType)
-        case user(UserTimer)
-
-        var displayName: String {
-            switch self {
-            case .builtIn(let type): return type.displayName
-            case .user(let timer): return timer.title
-            }
-        }
-
-        var iconName: String {
-            switch self {
-            case .builtIn(let type): return type.iconName
-            case .user: return "clock.fill"
-            }
-        }
-
-        var color: Color {
-            switch self {
-            case .builtIn(_):
-                return .accentColor
-
-            case .user(let timer): return timer.color
-            }
-        }
-
-        var tooltipText: String {
-            switch self {
-            case .builtIn(let type): return type.tooltipText
-            case .user(let timer):
-                let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
-                let durationText = "\(timer.timeOnScreenSeconds)s on screen"
-                let statusText = timer.enabled ? "" : " (Disabled)"
-                return "\(typeText) timer - \(durationText)\(statusText)"
+    
+    private func getSortedTimerIdentifiers(timerEngine: TimerEngine) -> [TimerIdentifier] {
+        return timerEngine.timerStates.keys.sorted { id1, id2 in
+            // Sort built-in timers before user timers
+            switch (id1, id2) {
+            case (.builtIn(let t1), .builtIn(let t2)):
+                return t1.tabIndex < t2.tabIndex
+            case (.builtIn, .user):
+                return true
+            case (.user, .builtIn):
+                return false
+            case (.user(let id1), .user(let id2)):
+                return id1 < id2
             }
         }
     }
+}
 
-    let variant: TimerVariant
+struct TimerStatusRowWithIndividualControls: View {
+    let identifier: TimerIdentifier
     @ObservedObject var timerEngine: TimerEngine
+    @ObservedObject var settingsManager: SettingsManager
     var onSkip: () -> Void
     var onDevTrigger: (() -> Void)? = nil
     var onTogglePause: (Bool) -> Void
@@ -362,46 +324,89 @@ struct TimerStatusRowWithIndividualControls: View {
     @State private var isHoveredPauseButton = false
 
     private var state: TimerState? {
-        switch variant {
-        case .builtIn(let type):
-            return timerEngine.timerStates[type]
-        case .user(let timer):
-            return timerEngine.userTimerStatesReadOnly[timer.id]
-        }
+        return timerEngine.timerStates[identifier]
     }
 
     private var isPaused: Bool {
-        switch variant {
-        case .builtIn:
-            return state?.isPaused ?? false
-        case .user(let timer):
-            return !timer.enabled
+        return state?.isPaused ?? false
+    }
+    
+    private var displayName: String {
+        switch identifier {
+        case .builtIn(let type):
+            return type.displayName
+        case .user(let id):
+            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.title ?? "User Timer"
         }
+    }
+    
+    private var iconName: String {
+        switch identifier {
+        case .builtIn(let type):
+            return type.iconName
+        case .user:
+            return "clock.fill"
+        }
+    }
+    
+    private var color: Color {
+        switch identifier {
+        case .builtIn(let type):
+            switch type {
+            case .lookAway: return .accentColor
+            case .blink: return .green
+            case .posture: return .orange
+            }
+        case .user(let id):
+            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.color ?? .purple
+        }
+    }
+    
+    private var tooltipText: String {
+        switch identifier {
+        case .builtIn(let type):
+            return type.tooltipText
+        case .user(let id):
+            guard let timer = settingsManager.settings.userTimers.first(where: { $0.id == id }) else {
+                return "User Timer"
+            }
+            let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
+            let durationText = "\(timer.timeOnScreenSeconds)s on screen"
+            let statusText = timer.enabled ? "" : " (Disabled)"
+            return "\(typeText) timer - \(durationText)\(statusText)"
+        }
+    }
+    
+    private var userTimer: UserTimer? {
+        if case .user(let id) = identifier {
+            return settingsManager.settings.userTimers.first(where: { $0.id == id })
+        }
+        return nil
     }
 
     var body: some View {
         HStack {
             HStack {
                 // Show color indicator circle for user timers
-                if case .user(let timer) = variant {
+                if let timer = userTimer {
                     Circle()
                         .fill(isHoveredBody ? .white : timer.color)
                         .frame(width: 8, height: 8)
                 }
 
-                Image(systemName: variant.iconName)
-                    .foregroundColor(isHoveredBody ? .white : variant.color)
+                Image(systemName: iconName)
+                    .foregroundColor(isHoveredBody ? .white : color)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(variant.displayName)
+                    Text(displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundColor(isHoveredBody ? .white : .primary)
                         .lineLimit(1)
 
                     if let state = state {
-                        Text(timeRemaining(state))
+                        Text(state.remainingSeconds.asTimerDuration)
                             .font(.caption)
                             .foregroundColor(isHoveredBody ? .white.opacity(0.8) : .secondary)
                             .monospacedDigit()
@@ -430,7 +435,7 @@ struct TimerStatusRowWithIndividualControls: View {
                             ? GlassStyle.regular.tint(.yellow) : GlassStyle.regular,
                         in: .circle
                     )
-                    .help("Trigger \(variant.displayName) reminder now (dev)")
+                    .help("Trigger \(displayName) reminder now (dev)")
                     .onHover { hovering in
                         isHoveredDevTrigger = hovering
                     }
@@ -457,7 +462,7 @@ struct TimerStatusRowWithIndividualControls: View {
             )
             .help(
                 isPaused
-                    ? "Resume \(variant.displayName)" : "Pause \(variant.displayName)"
+                    ? "Resume \(displayName)" : "Pause \(displayName)"
             )
             .onHover { hovering in
                 isHoveredPauseButton = hovering
@@ -476,7 +481,7 @@ struct TimerStatusRowWithIndividualControls: View {
                     ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
                 in: .circle
             )
-            .help("Skip to next \(variant.displayName) reminder")
+            .help("Skip to next \(displayName) reminder")
             .onHover { hovering in
                 isHoveredSkip = hovering
             }
@@ -485,7 +490,7 @@ struct TimerStatusRowWithIndividualControls: View {
         .padding(.vertical, 6)
         .glassEffectIfAvailable(
             isHoveredBody
-                ? GlassStyle.regular.tint(variant.color)
+                ? GlassStyle.regular.tint(.accentColor)
                 : GlassStyle.regular,
             in: .rect(cornerRadius: 6)
         )
@@ -493,24 +498,9 @@ struct TimerStatusRowWithIndividualControls: View {
         .onHover { hovering in
             isHoveredBody = hovering
         }
-        .help(variant.tooltipText)
+        .help(tooltipText)
     }
 
-    private func timeRemaining(_ state: TimerState) -> String {
-        let seconds = state.remainingSeconds
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-
-        if minutes >= 60 {
-            let hours = minutes / 60
-            let remainingMinutes = minutes % 60
-            return String(format: "%dh %dm", hours, remainingMinutes)
-        } else if minutes > 0 {
-            return String(format: "%dm %ds", minutes, remainingSeconds)
-        } else {
-            return String(format: "%ds", remainingSeconds)
-        }
-    }
 }
 
 #Preview("Menu Bar Content") {

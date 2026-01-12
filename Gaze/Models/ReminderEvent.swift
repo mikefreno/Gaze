@@ -13,6 +13,19 @@ enum ReminderEvent: Equatable {
     case postureTriggered
     case userTimerTriggered(UserTimer)
     
+    var identifier: TimerIdentifier {
+        switch self {
+        case .lookAwayTriggered:
+            return .builtIn(.lookAway)
+        case .blinkTriggered:
+            return .builtIn(.blink)
+        case .postureTriggered:
+            return .builtIn(.posture)
+        case .userTimerTriggered(let timer):
+            return .user(id: timer.id)
+        }
+    }
+    
     var iconName: String {
         switch self {
         case .lookAwayTriggered:

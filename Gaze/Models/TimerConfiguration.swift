@@ -20,8 +20,4 @@ struct TimerConfiguration: Codable, Equatable, Hashable {
         get { intervalSeconds / 60 }
         set { intervalSeconds = newValue * 60 }
     }
-    
-    static func == (lhs: TimerConfiguration, rhs: TimerConfiguration) -> Bool {
-        lhs.enabled == rhs.enabled && lhs.intervalSeconds == rhs.intervalSeconds
-    }
 }

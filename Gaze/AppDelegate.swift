@@ -227,17 +227,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self, let settingsManager = self.settingsManager else { return }
             
-            // Check if onboarding window already exists from the WindowGroup
-            let existingWindow = NSApplication.shared.windows.first { window in
-                // Check if window contains OnboardingContainerView by examining its content view
-                if let hostingView = window.contentView as? NSHostingView<OnboardingContainerView> {
-                    return true
-                }
-                // Also check for windows with our expected size (onboarding window dimensions)
-                return window.frame.size.width == 700 && window.frame.size.height == 700 
-                    && window.styleMask.contains(.titled)
-                    && window.title.isEmpty  // WindowGroup windows have empty title by default
-            }
+// Check if onboarding window already exists from the WindowGroup
+             let existingWindow = NSApplication.shared.windows.first { window in
+                 // Check if window contains OnboardingContainerView by examining its content view
+                 if window.contentView is NSHostingView<OnboardingContainerView> {
+                     return true
+                 }
+                 // Also check for windows with our expected size (onboarding window dimensions)
+                 return window.frame.size.width == 700 && window.frame.size.height == 700 
+                     && window.styleMask.contains(.titled)
+                     && window.title.isEmpty  // WindowGroup windows have empty title by default
+             }
             
             if let window = existingWindow {
                 // Reuse existing window - just bring it to front

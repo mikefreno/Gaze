@@ -115,7 +115,7 @@ struct SettingsWindowView: View {
             }
             .padding()
         }
-        .frame(minWidth: 750, minHeight: 800)
+        .frame(minWidth: 750, minHeight: 850)
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
         ) { notification in

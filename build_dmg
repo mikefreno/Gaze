@@ -14,7 +14,7 @@ BUILD_NUMBER=$(grep -A 1 "CURRENT_PROJECT_VERSION" "$PROJECT_FILE" | grep -o '[0
 # Fallback to manual values if extraction fails
 if [ -z "$VERSION" ]; then
     echo "⚠️  Could not extract MARKETING_VERSION from project, using fallback"
-    VERSION="0.1.1"
+    VERSION="0.2.0"
 fi
 
 if [ -z "$BUILD_NUMBER" ]; then
@@ -22,7 +22,7 @@ if [ -z "$BUILD_NUMBER" ]; then
     BUILD_NUMBER="1"
 fi
 
-echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER})"
+echo "📦 Building Gaze DMG for v${VERSION} (build ${BUILD_NUMBER})"
 
 RELEASES_DIR="./releases"
 APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
@@ -57,8 +57,8 @@ create-dmg \
   "./Gaze.app"
 
 # Copy DMG to releases directory
-echo "Copying DMG to releases directory..."
-cp "$DMG_NAME" "$RELEASES_DIR/"
+echo "Moving DMG to releases directory..."
+mv "$DMG_NAME" "$RELEASES_DIR/"
 
 # Generate appcast if Sparkle tools are available
 if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then

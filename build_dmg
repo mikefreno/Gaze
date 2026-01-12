@@ -27,6 +27,7 @@ echo "📦 Building Gaze DMG for v${VERSION} (build ${BUILD_NUMBER})"
 RELEASES_DIR="./releases"
 APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
 FEED_URL="https://freno.me/api/Gaze/appcast.xml"
+DOWNLOAD_URL_PREFIX="https://freno.me/api/downloads/"
 DMG_NAME="Gaze-${VERSION}.dmg"
 
 # Find Sparkle generate_appcast tool
@@ -79,7 +80,7 @@ if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
     
     # Generate appcast with download URL prefix and key
     "$SPARKLE_BIN/generate_appcast" \
-        --download-url-prefix "https://freno.me/downloads/" \
+        --download-url-prefix "$DOWNLOAD_URL_PREFIX" \
         $KEY_OPTION \
         "$RELEASES_DIR"
     
@@ -106,7 +107,7 @@ if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
                 
                 # Add signature to appcast XML
                 # Find the enclosure line and add sparkle:edSignature attribute
-                sed -i '' "s|<enclosure url=\"https://freno.me/downloads/$DMG_NAME\" length=\"[0-9]*\"|<enclosure url=\"https://freno.me/downloads/$DMG_NAME\" sparkle:edSignature=\"$ED_SIGNATURE\" length=\"$FILE_LENGTH\"|g" "$APPCAST_OUTPUT"
+                sed -i '' "s|<enclosure url=\"${DOWNLOAD_URL_PREFIX}$DMG_NAME\" length=\"[0-9]*\"|<enclosure url=\"${DOWNLOAD_URL_PREFIX}$DMG_NAME\" sparkle:edSignature=\"$ED_SIGNATURE\" length=\"$FILE_LENGTH\"|g" "$APPCAST_OUTPUT"
                 
                 # Verify signature was added
                 if grep -q "edSignature" "$APPCAST_OUTPUT"; then
@@ -126,10 +127,10 @@ if [ -n "$SPARKLE_BIN" ] && [ -d "$SPARKLE_BIN" ]; then
         exit 1
     fi
 else
-    echo ""
-    echo "⚠️  Skipping appcast generation (Sparkle tools not found)"
-    echo "To generate appcast manually, run:"
-    echo "  ./generate_appcast --ed-key-file ~/sparkle_private_key_backup.pem --download-url-prefix 'https://freno.me/downloads/' '$RELEASES_DIR'"
+echo ""
+echo "⚠️  Skipping appcast generation (Sparkle tools not found)"
+echo "To generate appcast manually, run:"
+echo "  ./generate_appcast --ed-key-file ~/sparkle_private_key_backup.pem --download-url-prefix '$DOWNLOAD_URL_PREFIX' '$RELEASES_DIR'"
 fi
 
 # Upload to AWS S3 if environment variables are set
@@ -142,17 +143,36 @@ if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ] && [ -n "$AWS_
   export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_ACCESS_KEY"
   export AWS_DEFAULT_REGION="$AWS_REGION"
   
-  # Upload DMG to S3
-  aws s3 cp "$RELEASES_DIR/$DMG_NAME" "s3://$AWS_BUCKET_NAME/downloads/$DMG_NAME" --region "$AWS_REGION"
+  # Upload all DMG files in releases directory
+  echo "Uploading DMG files..."
+  for dmg_file in "$RELEASES_DIR"/*.dmg; do
+    if [ -f "$dmg_file" ]; then
+      dmg_basename=$(basename "$dmg_file")
+      echo "  Uploading $dmg_basename..."
+      aws s3 cp "$dmg_file" "s3://$AWS_BUCKET_NAME/downloads/$dmg_basename" --region "$AWS_REGION"
+    fi
+  done
+  
+  # Upload all delta files in releases directory
+  echo "Uploading delta files..."
+  for delta_file in "$RELEASES_DIR"/*.delta; do
+    if [ -f "$delta_file" ]; then
+      delta_basename=$(basename "$delta_file")
+      echo "  Uploading $delta_basename..."
+      aws s3 cp "$delta_file" "s3://$AWS_BUCKET_NAME/downloads/$delta_basename" --region "$AWS_REGION"
+    fi
+  done
   
   # Upload appcast if it exists
   if [ -f "$APPCAST_OUTPUT" ]; then
+      echo "Uploading appcast..."
       aws s3 cp "$APPCAST_OUTPUT" "s3://$AWS_BUCKET_NAME/api/Gaze/appcast.xml" --region "$AWS_REGION"
       echo "✅ Appcast uploaded to S3"
   fi
   
   echo "✅ Upload complete!"
-  echo "  DMG: s3://$AWS_BUCKET_NAME/downloads/$DMG_NAME"
+  echo "  DMG files: s3://$AWS_BUCKET_NAME/downloads/*.dmg"
+  echo "  Delta files: s3://$AWS_BUCKET_NAME/downloads/*.delta"
   echo "  Appcast: s3://$AWS_BUCKET_NAME/api/Gaze/appcast.xml"
 else
   echo ""
@@ -168,7 +188,7 @@ if [ -f "$APPCAST_OUTPUT" ]; then
 fi
 echo ""
 echo "Next steps:"
-echo "  1. Upload DMG to: https://freno.me/downloads/$DMG_NAME"
+echo "  1. Upload DMG to: ${DOWNLOAD_URL_PREFIX}$DMG_NAME"
 echo "  2. Upload appcast to: $FEED_URL"
 echo "  3. Verify appcast is accessible and valid"
 echo "  4. Test update from previous version"

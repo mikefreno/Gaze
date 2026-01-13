@@ -107,76 +107,37 @@ except Exception as e:
 add_sparkle_package() {
     print_info "Adding Sparkle package dependency..."
     
-    # Check if Sparkle already exists
-    if has_sparkle_package || grep -q "Sparkle" "${PROJECT_FILE}"; then
-        print_info "Sparkle already present"
+    # Check if Sparkle package reference already fully exists (9 references like Lottie)
+    local sparkle_count=$(grep -c "Sparkle" "${PROJECT_FILE}" 2>/dev/null || echo "0")
+    sparkle_count=$(echo "$sparkle_count" | tr -d '[:space:]')
+    if [ "$sparkle_count" -ge 9 ]; then
+        print_info "Sparkle already fully configured"
         return 0
     fi
     
     # Backup project file
     cp "${PROJECT_FILE}" "${PROJECT_FILE}.backup"
     
-    # Add Sparkle to Package.resolved
-    if [ ! -f "${PACKAGE_RESOLVED}" ]; then
-        # Create Package.resolved if it doesn't exist
-        mkdir -p "$(dirname "${PACKAGE_RESOLVED}")"
-        cat > "${PACKAGE_RESOLVED}" << 'EOF'
-{
-  "originHash" : "6b3386dc9ff1f3a74f1534de9c41d47137eae0901cfe819ed442f1b241549359",
-  "pins" : [
-    {
-      "identity" : "lottie-spm",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/airbnb/lottie-spm.git",
-      "state" : {
-        "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
-        "version" : "4.6.0"
-      }
-    }
-  ],
-  "version" : 3
-}
-EOF
-    fi
-    
-    python3 -c "
+    # Remove any partial Sparkle from Package.resolved if it exists (Xcode will resolve it fresh)
+    if [ -f "${PACKAGE_RESOLVED}" ] && has_sparkle_package; then
+        python3 -c "
 import json
 
 try:
     with open('${PACKAGE_RESOLVED}', 'r') as f:
         data = json.load(f)
     
-    # Add Sparkle to pins if not present
-    # Note: We let Xcode resolve the actual revision
-    sparkle_pin = {
-        'identity': 'sparkle',
-        'kind': 'remoteSourceControl',
-        'location': '${SPARKLE_REPO}',
-        'state': {
-            'version': '${SPARKLE_VERSION}'
-        }
-    }
-    
-    if 'pins' not in data:
-        data['pins'] = []
-    
-    # Check if Sparkle already in pins
-    if not any(pin.get('identity', '').lower() == 'sparkle' for pin in data['pins']):
-        data['pins'].append(sparkle_pin)
-        data['pins'].sort(key=lambda x: x.get('identity', ''))
+    # Filter out Sparkle from pins - Xcode will resolve it fresh
+    if 'pins' in data:
+        data['pins'] = [pin for pin in data['pins'] if 'sparkle' not in pin.get('identity', '').lower()]
     
     with open('${PACKAGE_RESOLVED}', 'w') as f:
         json.dump(data, f, indent=2)
     
-    print('✓ Updated Package.resolved')
+    print('✓ Cleaned Package.resolved (Xcode will resolve Sparkle)')
 except Exception as e:
-    print(f'Error: {e}', file=sys.stderr)
-    sys.exit(1)
+    print(f'Warning: {e}', file=sys.stderr)
 "
-    if [ $? -ne 0 ]; then
-        print_error "Failed to update Package.resolved"
-        mv "${PROJECT_FILE}.backup" "${PROJECT_FILE}"
-        return 1
     fi
     
     # Use Python script to safely add Sparkle to project.pbxproj
@@ -452,9 +413,13 @@ switch_to_self() {
     print_success "Switched to self-distribution mode"
     print_info "Sparkle auto-updates enabled"
     
-    if ! has_sparkle_package; then
+    # Check if Sparkle was added to project.pbxproj (not Package.resolved since Xcode will resolve it)
+    if ! grep -q "Sparkle" "${PROJECT_FILE}"; then
         echo ""
-        print_warning "⚠️Sparkle not successfully added!"
+        print_warning "⚠️  Sparkle not successfully added to project!"
+    else
+        echo ""
+        print_info "Sparkle package will be resolved on next build"
     fi
 }
 

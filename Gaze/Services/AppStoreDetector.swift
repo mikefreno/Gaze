@@ -17,53 +17,38 @@ enum AppStoreDetector {
     /// This method is asynchronous due to the use of StoreKit's async API.
     static func isAppStoreVersion() async -> Bool {
         #if DEBUG
-            print("🔍 AppStoreDetector: DEBUG build, returning false")
             return false
         #else
-            print("🔍 AppStoreDetector: Checking App Store status...")
             if #available(macOS 15.0, *) {
-                print("  ℹ️ Using macOS 15+ AppTransaction API")
                 do {
                     let transaction = try await AppTransaction.shared
-                    print("  ✅ AppTransaction found: This is an App Store version")
                     return true
                 } catch {
-                    print("  ⚠️ AppTransaction error: \(error.localizedDescription)")
-                    print("  → Assuming NOT an App Store version")
                     return false
                 }
             } else {
                 // Fallback for older macOS: use legacy receipt check
-                print("  ℹ️ Using legacy receipt check (macOS <15)")
                 
                 guard let receiptURL = Bundle.main.appStoreReceiptURL else {
-                    print("  ⚠️ No receipt URL available")
                     return false
                 }
-                print("  📄 Receipt URL: \(receiptURL.path)")
                 
                 do {
                     let fileExists = FileManager.default.fileExists(atPath: receiptURL.path)
                     guard fileExists else {
-                        print("  ⚠️ Receipt file does not exist")
                         return false
                     }
-                    print("  ✓ Receipt file exists")
                     
                     guard let receiptData = try? Data(contentsOf: receiptURL),
                         receiptData.count > 2
                     else {
-                        print("  ⚠️ Receipt file is empty or unreadable")
                         return false
                     }
-                    print("  ✓ Receipt data loaded (\(receiptData.count) bytes)")
                     
                     let bytes = [UInt8](receiptData.prefix(2))
                     let isValid = bytes[0] == 0x30 && bytes[1] == 0x82
-                    print("  \(isValid ? "✅" : "⚠️") Receipt validation: \(isValid)")
                     return isValid
                 } catch {
-                    print("  ❌ Receipt check error: \(error.localizedDescription)")
                     return false
                 }
             }

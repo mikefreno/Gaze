@@ -14,55 +14,40 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var timerEngine: TimerEngine?
     private let settingsManager: SettingsManager = .shared
     private var updateManager: UpdateManager?
-    private var reminderWindowController: NSWindowController?
+    private var overlayReminderWindowController: NSWindowController?
+    private var subtleReminderWindowController: NSWindowController?
     private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        print("🚀 Gaze: applicationDidFinishLaunching")
-        
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
-        print("✓ Activation policy set to accessory")
         
         timerEngine = TimerEngine(settingsManager: settingsManager)
-        print("✓ TimerEngine initialized")
         
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
-            print("✓ Onboarding completed, initializing UpdateManager")
             updateManager = UpdateManager.shared
-        } else {
-            print("ℹ️ Onboarding not completed, skipping UpdateManager")
         }
         
         // Detect App Store version asynchronously at launch
         Task {
             do {
-                print("🔍 Detecting App Store version...")
                 await settingsManager.detectAppStoreVersion()
-                print("✓ App Store detection complete: \(settingsManager.settings.isAppStoreVersion)")
             } catch {
-                print("⚠️ Failed to detect App Store version: \(error)")
+                // Handle error silently in production
             }
         }
         
         setupLifecycleObservers()
-        print("✓ Lifecycle observers set up")
         
         observeSettingsChanges()
-        print("✓ Settings change observer set up")
         
         // Start timers if onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
-            print("▶️ Starting timers (onboarding complete)")
             startTimers()
-        } else {
-            print("⏸️ Timers not started (onboarding incomplete)")
         }
-        
-        print("✅ Gaze: Launch complete")
     }
     
     func onboardingCompleted() {
@@ -130,7 +115,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         timerEngine?.$activeReminder
             .sink { [weak self] reminder in
                 guard let reminder = reminder else {
-                    self?.dismissReminder()
+                    self?.dismissOverlayReminder()
                     return
                 }
                 self?.showReminder(reminder)
@@ -185,10 +170,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
         }
         
-        showReminderWindow(contentView, requiresFocus: requiresFocus)
+        showReminderWindow(contentView, requiresFocus: requiresFocus, isOverlay: requiresFocus)
     }
     
-    private func showReminderWindow(_ content: AnyView, requiresFocus: Bool) {
+    private func showReminderWindow(_ content: AnyView, requiresFocus: Bool, isOverlay: Bool) {
         guard let screen = NSScreen.main else { return }
         
         let window: NSWindow
@@ -229,12 +214,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             window.orderFront(nil)
         }
         
-        reminderWindowController = windowController
+        // Track overlay and subtle reminders separately
+        if isOverlay {
+            overlayReminderWindowController?.close()
+            overlayReminderWindowController = windowController
+        } else {
+            subtleReminderWindowController?.close()
+            subtleReminderWindowController = windowController
+        }
     }
     
-    private func dismissReminder() {
-        reminderWindowController?.close()
-        reminderWindowController = nil
+    private func dismissOverlayReminder() {
+        overlayReminderWindowController?.close()
+        overlayReminderWindowController = nil
+    }
+    
+    private func dismissSubtleReminder() {
+        subtleReminderWindowController?.close()
+        subtleReminderWindowController = nil
     }
     
     // Public method to open settings window

@@ -40,7 +40,6 @@ class UpdateManager: NSObject, ObservableObject {
         )
         
         guard let updater = updaterController?.updater else {
-            print("Failed to initialize Sparkle updater")
             return
         }
         
@@ -69,12 +68,10 @@ class UpdateManager: NSObject, ObservableObject {
     func checkForUpdates() {
         #if !APPSTORE
         guard let updater = updaterController?.updater else {
-            print("Updater not initialized")
             return
         }
         updater.checkForUpdates()
         #else
-        print("Updates are managed by the App Store")
         #endif
     }
     

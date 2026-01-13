@@ -27,9 +27,6 @@ class SettingsManager: ObservableObject {
 
     private init() {
         self.settings = Self.loadSettings()
-        #if DEBUG
-            validateTimerConfigMappings()
-        #endif
         setupDebouncedSave()
     }
 
@@ -49,34 +46,13 @@ class SettingsManager: ObservableObject {
 
     private static func loadSettings() -> AppSettings {
         guard let data = UserDefaults.standard.data(forKey: "gazeAppSettings") else {
-            #if DEBUG
-            print("ℹ️ No saved settings found, using defaults")
-            #endif
             return .defaults
         }
         
         do {
             let settings = try JSONDecoder().decode(AppSettings.self, from: data)
-            #if DEBUG
-            print("✅ Settings loaded successfully (\(data.count) bytes)")
-            #endif
             return settings
         } catch {
-            print("⚠️ Failed to decode settings, using defaults: \(error.localizedDescription)")
-            if let decodingError = error as? DecodingError {
-                switch decodingError {
-                case .keyNotFound(let key, let context):
-                    print("  Missing key: \(key.stringValue) at path: \(context.codingPath)")
-                case .typeMismatch(let type, let context):
-                    print("  Type mismatch for type: \(type) at path: \(context.codingPath)")
-                case .valueNotFound(let type, let context):
-                    print("  Value not found for type: \(type) at path: \(context.codingPath)")
-                case .dataCorrupted(let context):
-                    print("  Data corrupted at path: \(context.codingPath)")
-                @unknown default:
-                    print("  Unknown decoding error: \(decodingError)")
-                }
-            }
             return .defaults
         }
     }
@@ -90,20 +66,7 @@ class SettingsManager: ObservableObject {
             encoder.outputFormatting = .prettyPrinted
             let data = try encoder.encode(settings)
             userDefaults.set(data, forKey: settingsKey)
-            
-            #if DEBUG
-            print("✅ Settings saved successfully (\(data.count) bytes)")
-            #endif
         } catch {
-            print("❌ Failed to encode settings: \(error.localizedDescription)")
-            if let encodingError = error as? EncodingError {
-                switch encodingError {
-                case .invalidValue(let value, let context):
-                    print("  Invalid value: \(value) at path: \(context.codingPath)")
-                default:
-                    print("  Encoding error: \(encodingError)")
-                }
-            }
         }
     }
 

@@ -8,6 +8,238 @@ if [ -f .env ]; then
   set +a
 fi
 
+# Function to ask for version bump confirmation
+ask_version_bump() {
+    echo ""
+    echo "═══════════════════════════════════════"
+    echo "   Gaze Version Bump & Build Tool      "
+    echo "═══════════════════════════════════════"
+    echo ""
+    
+    # Check if we're in a git repository
+    if [ ! -d .git ] && [ ! -f .git ]; then
+        echo "Error: Not in a git repository"
+        exit 1
+    fi
+    
+    # Check for uncommitted changes
+    if ! git diff-index --quiet HEAD --; then
+        echo "Warning: You have uncommitted changes"
+        git status --short
+        echo ""
+        read -p "Continue anyway? (y/n) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Aborted"
+            exit 1
+        fi
+        echo ""
+    fi
+    
+    # Get current version from git tag or fallback to project file
+    CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+    if [ -z "$CURRENT_VERSION" ]; then
+        echo "Warning: No existing git tags found"
+        echo "Attempting to read version from Xcode project..."
+        PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
+        CURRENT_VERSION=$(grep -A 1 "MARKETING_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
+        if [ -z "$CURRENT_VERSION" ]; then
+            echo "Error: Could not extract version from git tags or project file"
+            exit 1
+        fi
+        echo "Using version from project file as fallback"
+    fi
+
+    echo "Current version: v${CURRENT_VERSION}"
+    
+    IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+
+    MAJOR=$(echo "$MAJOR" | sed 's/[^0-9].*//')
+    MINOR=$(echo "$MINOR" | sed 's/[^0-9].*//')
+    PATCH=$(echo "$PATCH" | sed 's/[^0-9].*//')
+
+    echo ""
+    echo "Select version bump type:"
+    echo "  1) Major (breaking changes)     ${MAJOR}.${MINOR}.${PATCH} → $((MAJOR+1)).0.0"
+    echo "  2) Minor (new features)          ${MAJOR}.${MINOR}.${PATCH} → ${MAJOR}.$((MINOR+1)).0"
+    echo "  3) Patch (bug fixes)             ${MAJOR}.${MINOR}.${PATCH} → ${MAJOR}.${MINOR}.$((PATCH+1))"
+    echo "  4) Custom version"
+    echo "  5) Keep current version"
+    echo ""
+    read -p "Enter choice (1-5): " -n 1 -r CHOICE
+    echo ""
+    echo ""
+
+    case $CHOICE in
+      1)
+        NEW_MAJOR=$((MAJOR+1))
+        NEW_MINOR=0
+        NEW_PATCH=0
+        BUMP_TYPE="major"
+        ;;
+      2)
+        NEW_MAJOR=$MAJOR
+        NEW_MINOR=$((MINOR+1))
+        NEW_PATCH=0
+        BUMP_TYPE="minor"
+        ;;
+      3)
+        NEW_MAJOR=$MAJOR
+        NEW_MINOR=$MINOR
+        NEW_PATCH=$((PATCH+1))
+        BUMP_TYPE="patch"
+        ;;
+      4)
+        read -p "Enter custom version (e.g., 1.0.0-beta): " CUSTOM_VERSION
+        NEW_VERSION="$CUSTOM_VERSION"
+        BUMP_TYPE="custom"
+        ;;
+      5)
+        echo "Keeping current version v${CURRENT_VERSION}"
+        NEW_VERSION="$CURRENT_VERSION"
+        ;;
+      *)
+        echo "Invalid choice"
+        exit 1
+        ;;
+    esac
+
+    # Construct new version (unless custom)
+    if [ "$BUMP_TYPE" != "custom" ] && [ "$BUMP_TYPE" != "keep" ]; then
+      NEW_VERSION="${NEW_MAJOR}.${NEW_MINOR}.${NEW_PATCH}"
+    fi
+
+    echo "New version: v${NEW_VERSION}"
+    
+    # Ask for confirmation to proceed with version bumping
+    echo ""
+    echo "This will:"
+    echo "  1. Update project.pbxproj → MARKETING_VERSION = ${NEW_VERSION}"
+    echo "  2. Update project.pbxproj → CURRENT_PROJECT_VERSION = $(($(date +%Y%m%d)))"
+    echo "  3. Create git tag v${NEW_VERSION}"
+    echo ""
+    read -p "Proceed with version bump? (y/n) " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "Aborted"
+        exit 0
+    fi
+    
+    # Update project files
+    echo "[1/3] Updating project version..."
+    
+    # Update MARKETING_VERSION
+    sed -i.bak "s/MARKETING_VERSION = [0-9.]*;/MARKETING_VERSION = ${NEW_VERSION};/" Gaze.xcodeproj/project.pbxproj
+    rm -f Gaze.xcodeproj/project.pbxproj.bak
+    
+    # Update CURRENT_PROJECT_VERSION (build number)
+    BUILD_NUMBER=$(date +%Y%m%d)
+    sed -i.bak "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD_NUMBER};/" Gaze.xcodeproj/project.pbxproj
+    rm -f Gaze.xcodeproj/project.pbxproj.bak
+    
+    echo "✓ Project version updated"
+    
+    # Stage changes and commit
+    echo "[2/3] Committing changes..."
+    git add Gaze.xcodeproj/project.pbxproj
+    git commit -m "Version bump to v${NEW_VERSION}"
+    
+    # Create tag
+    echo "[3/3] Creating tag..."
+    git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
+    echo "✓ Version bumped to v${NEW_VERSION}"
+}
+
+# Ask whether to bump version before continuing
+read -p "Do you want to bump the version before building? (y/n) " -n 1 -r
+echo ""
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    ask_version_bump
+fi
+
+# Validate required code signing and notarization credentials
+echo "🔐 Validating credentials..."
+MISSING_CREDS=()
+
+if [ -z "$DEVELOPER_ID_APPLICATION" ]; then
+    MISSING_CREDS+=("DEVELOPER_ID_APPLICATION")
+fi
+
+if [ -z "$NOTARY_KEYCHAIN_PROFILE" ]; then
+    MISSING_CREDS+=("NOTARY_KEYCHAIN_PROFILE")
+fi
+
+if [ -z "$APPLE_TEAM_ID" ]; then
+    MISSING_CREDS+=("APPLE_TEAM_ID")
+fi
+
+if [ ${#MISSING_CREDS[@]} -gt 0 ]; then
+    echo "❌ ERROR: Missing required credentials in .env file:"
+    for cred in "${MISSING_CREDS[@]}"; do
+        echo "  - $cred"
+    done
+    echo ""
+    echo "Required environment variables:"
+    echo "  DEVELOPER_ID_APPLICATION='Developer ID Application: Your Name (TEAM_ID)'"
+    echo "  APPLE_TEAM_ID='XXXXXXXXXX'"
+    echo "  NOTARY_KEYCHAIN_PROFILE='notary-profile'"
+    echo ""
+    echo "Setup instructions:"
+    echo "  1. Find your Developer ID certificate:"
+    echo "     security find-identity -v -p codesigning"
+    echo ""
+    echo "  2. Store notarization credentials in keychain (one-time setup):"
+    echo "     xcrun notarytool store-credentials \"notary-profile\" \\"
+    echo "       --apple-id \"your@email.com\" \\"
+    echo "       --team-id \"TEAM_ID\""
+    echo ""
+    echo "     You'll be prompted for an app-specific password."
+    echo "     Generate one at: https://appleid.apple.com/account/manage"
+    echo ""
+    echo "  3. Set NOTARY_KEYCHAIN_PROFILE='notary-profile' in .env"
+    exit 1
+fi
+
+# Verify keychain profile exists
+echo "🔍 Verifying keychain profile..."
+if ! xcrun notarytool history --keychain-profile "$NOTARY_KEYCHAIN_PROFILE" &>/dev/null; then
+    echo "❌ ERROR: Keychain profile '$NOTARY_KEYCHAIN_PROFILE' not found or invalid"
+    echo ""
+    echo "Create the profile with:"
+    echo "  xcrun notarytool store-credentials \"$NOTARY_KEYCHAIN_PROFILE\" \\"
+    echo "    --apple-id \"your@email.com\" \\"
+    echo "    --team-id \"$APPLE_TEAM_ID\""
+    exit 1
+fi
+
+echo "✅ All credentials validated"
+
+# Extract version from Xcode project (Release configuration)
+PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
+VERSION=$(grep -A 1 "MARKETING_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -1)
+BUILD_NUMBER=$(grep -A 1 "CURRENT_PROJECT_VERSION" "$PROJECT_FILE" | grep -o '[0-9]\+' | head -1)
+
+# Fallback to manual values if extraction fails
+if [ -z "$VERSION" ]; then
+    echo "⚠️  Could not extract MARKETING_VERSION from project, using fallback"
+    VERSION="0.2.0"
+fi
+
+if [ -z "$BUILD_NUMBER" ]; then
+    echo "⚠️  Could not extract CURRENT_PROJECT_VERSION from project, using fallback"
+    BUILD_NUMBER="1"
+fi
+
+echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER}) for distribution"
+
+RELEASES_DIR="./releases"
+ARCHIVE_PATH="./build/Gaze.xcarchive"
+EXPORT_PATH="./build/export"
+APPCAST_OUTPUT="${RELEASES_DIR}/appcast.xml"
+FEED_URL="https://freno.me/api/Gaze/appcast.xml"
+DOWNLOAD_URL_PREFIX="https://freno.me/api/downloads/"
+DMG_NAME="Gaze-${VERSION}.dmg"
+
 # Validate required code signing and notarization credentials
 echo "🔐 Validating credentials..."
 MISSING_CREDS=()

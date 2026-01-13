@@ -40,19 +40,19 @@ final class ReminderEventTests: XCTestCase {
         }
     }
     
-    func testTypePropertyForLookAway() {
+    func testIdentifierPropertyForLookAway() {
         let event = ReminderEvent.lookAwayTriggered(countdownSeconds: 20)
-        XCTAssertEqual(event.type, .lookAway)
+        XCTAssertEqual(event.identifier, .builtIn(.lookAway))
     }
     
-    func testTypePropertyForBlink() {
+    func testIdentifierPropertyForBlink() {
         let event = ReminderEvent.blinkTriggered
-        XCTAssertEqual(event.type, .blink)
+        XCTAssertEqual(event.identifier, .builtIn(.blink))
     }
     
-    func testTypePropertyForPosture() {
+    func testIdentifierPropertyForPosture() {
         let event = ReminderEvent.postureTriggered
-        XCTAssertEqual(event.type, .posture)
+        XCTAssertEqual(event.identifier, .builtIn(.posture))
     }
     
     func testEquality() {
@@ -79,9 +79,9 @@ final class ReminderEventTests: XCTestCase {
         XCTAssertNotEqual(event2, event3)
         XCTAssertNotEqual(event1, event3)
         
-        XCTAssertEqual(event1.type, .lookAway)
-        XCTAssertEqual(event2.type, .lookAway)
-        XCTAssertEqual(event3.type, .lookAway)
+        XCTAssertEqual(event1.identifier, .builtIn(.lookAway))
+        XCTAssertEqual(event2.identifier, .builtIn(.lookAway))
+        XCTAssertEqual(event3.identifier, .builtIn(.lookAway))
     }
     
     func testNegativeCountdown() {
@@ -104,11 +104,13 @@ final class ReminderEventTests: XCTestCase {
         for event in events {
             switch event {
             case .lookAwayTriggered:
-                XCTAssertEqual(event.type, .lookAway)
+                XCTAssertEqual(event.identifier, .builtIn(.lookAway))
             case .blinkTriggered:
-                XCTAssertEqual(event.type, .blink)
+                XCTAssertEqual(event.identifier, .builtIn(.blink))
             case .postureTriggered:
-                XCTAssertEqual(event.type, .posture)
+                XCTAssertEqual(event.identifier, .builtIn(.posture))
+            case .userTimerTriggered:
+                XCTFail("Unexpected user timer in this test")
             }
         }
     }

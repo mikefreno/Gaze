@@ -26,10 +26,6 @@ class SettingsManager: ObservableObject {
         ]
 
     private init() {
-        #if DEBUG
-            // Clear settings on every development build
-            UserDefaults.standard.removeObject(forKey: "gazeAppSettings")
-        #endif
         self.settings = Self.loadSettings()
         #if DEBUG
             validateTimerConfigMappings()
@@ -39,7 +35,7 @@ class SettingsManager: ObservableObject {
 
     deinit {
         saveCancellable?.cancel()
-        // Final save will be called by AppDelegate.applicationWillTerminate
+        // Final save is called by AppDelegate.applicationWillTerminate
     }
 
     private func setupDebouncedSave() {
@@ -52,23 +48,72 @@ class SettingsManager: ObservableObject {
     }
 
     private static func loadSettings() -> AppSettings {
-        guard let data = UserDefaults.standard.data(forKey: "gazeAppSettings"),
-            let settings = try? JSONDecoder().decode(AppSettings.self, from: data)
-        else {
+        guard let data = UserDefaults.standard.data(forKey: "gazeAppSettings") else {
+            #if DEBUG
+            print("ℹ️ No saved settings found, using defaults")
+            #endif
             return .defaults
         }
-        return settings
+        
+        do {
+            let settings = try JSONDecoder().decode(AppSettings.self, from: data)
+            #if DEBUG
+            print("✅ Settings loaded successfully (\(data.count) bytes)")
+            #endif
+            return settings
+        } catch {
+            print("⚠️ Failed to decode settings, using defaults: \(error.localizedDescription)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("  Missing key: \(key.stringValue) at path: \(context.codingPath)")
+                case .typeMismatch(let type, let context):
+                    print("  Type mismatch for type: \(type) at path: \(context.codingPath)")
+                case .valueNotFound(let type, let context):
+                    print("  Value not found for type: \(type) at path: \(context.codingPath)")
+                case .dataCorrupted(let context):
+                    print("  Data corrupted at path: \(context.codingPath)")
+                @unknown default:
+                    print("  Unknown decoding error: \(decodingError)")
+                }
+            }
+            return .defaults
+        }
     }
 
     /// Saves settings to UserDefaults.
     /// Note: Settings are automatically saved via debouncing (500ms delay) when the `settings` property changes.
     /// This method is also called explicitly during app termination to ensure final state is persisted.
     func save() {
-        guard let data = try? JSONEncoder().encode(settings) else {
-            print("Failed to encode settings")
-            return
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(settings)
+            userDefaults.set(data, forKey: settingsKey)
+            
+            #if DEBUG
+            print("✅ Settings saved successfully (\(data.count) bytes)")
+            #endif
+        } catch {
+            print("❌ Failed to encode settings: \(error.localizedDescription)")
+            if let encodingError = error as? EncodingError {
+                switch encodingError {
+                case .invalidValue(let value, let context):
+                    print("  Invalid value: \(value) at path: \(context.codingPath)")
+                default:
+                    print("  Encoding error: \(encodingError)")
+                }
+            }
         }
-        userDefaults.set(data, forKey: settingsKey)
+    }
+
+    /// Forces immediate save and ensures UserDefaults are persisted to disk.
+    /// Use this for critical save points like app termination or system sleep.
+    func saveImmediately() {
+        save()
+        // Cancel any pending debounced saves
+        saveCancellable?.cancel()
+        setupDebouncedSave()
     }
 
     func load() {

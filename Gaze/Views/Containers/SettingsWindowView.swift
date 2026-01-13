@@ -59,6 +59,13 @@ struct SettingsWindowView: View {
             Divider()
 
             HStack {
+                #if DEBUG
+                Button("Retrigger Onboarding") {
+                    retriggerOnboarding()
+                }
+                .buttonStyle(.bordered)
+                #endif
+                
                 Spacer()
 
                 Button("Close") {
@@ -87,6 +94,22 @@ struct SettingsWindowView: View {
             window.close()
         }
     }
+    
+    #if DEBUG
+    private func retriggerOnboarding() {
+        // Close settings window first
+        closeWindow()
+        
+        // Get AppDelegate and open onboarding
+        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
+            // Reset onboarding state so it shows as fresh
+            settingsManager.settings.hasCompletedOnboarding = false
+            
+            // Open onboarding window
+            appDelegate.openOnboarding()
+        }
+    }
+    #endif
 }
 
 #Preview {

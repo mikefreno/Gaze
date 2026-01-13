@@ -31,7 +31,7 @@ final class IntegrationTests: XCTestCase {
     func testSettingsChangePropagateToTimerEngine() {
         timerEngine.start()
         
-        let originalInterval = timerEngine.timerStates[.lookAway]?.remainingSeconds
+        let originalInterval = timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds
         XCTAssertEqual(originalInterval, 20 * 60)
         
         let newConfig = TimerConfiguration(enabled: true, intervalSeconds: 10 * 60)
@@ -39,31 +39,31 @@ final class IntegrationTests: XCTestCase {
         
         timerEngine.start()
         
-        let newInterval = timerEngine.timerStates[.lookAway]?.remainingSeconds
+        let newInterval = timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds
         XCTAssertEqual(newInterval, 10 * 60)
     }
     
     func testDisablingTimerRemovesFromEngine() {
         timerEngine.start()
-        XCTAssertNotNil(timerEngine.timerStates[.blink])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
         
         var config = TimerConfiguration(enabled: false, intervalSeconds: 5 * 60)
         settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
         
         timerEngine.start()
-        XCTAssertNil(timerEngine.timerStates[.blink])
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
     }
     
     func testEnablingTimerAddsToEngine() {
         settingsManager.settings.postureTimer.enabled = false
         timerEngine.start()
-        XCTAssertNil(timerEngine.timerStates[.posture])
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.posture)])
         
         let config = TimerConfiguration(enabled: true, intervalSeconds: 30 * 60)
         settingsManager.updateTimerConfiguration(for: .posture, configuration: config)
         
         timerEngine.start()
-        XCTAssertNotNil(timerEngine.timerStates[.posture])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.posture)])
     }
     
     func testSettingsPersistAcrossEngineLifecycle() {
@@ -76,7 +76,7 @@ final class IntegrationTests: XCTestCase {
         let newEngine = TimerEngine(settingsManager: settingsManager)
         newEngine.start()
         
-        XCTAssertNil(newEngine.timerStates[.lookAway])
+        XCTAssertNil(newEngine.timerStates[.builtIn(.lookAway)])
     }
     
     func testMultipleTimerConfigurationUpdates() {
@@ -94,9 +94,9 @@ final class IntegrationTests: XCTestCase {
         
         timerEngine.start()
         
-        XCTAssertEqual(timerEngine.timerStates[.lookAway]?.remainingSeconds, 600)
-        XCTAssertEqual(timerEngine.timerStates[.blink]?.remainingSeconds, 300)
-        XCTAssertEqual(timerEngine.timerStates[.posture]?.remainingSeconds, 1800)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 600)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 300)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.posture)]?.remainingSeconds, 1800)
     }
     
     func testResetToDefaultsAffectsTimerEngine() {
@@ -104,13 +104,13 @@ final class IntegrationTests: XCTestCase {
         settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
         
         timerEngine.start()
-        XCTAssertNil(timerEngine.timerStates[.blink])
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
         
         settingsManager.resetToDefaults()
         timerEngine.start()
         
-        XCTAssertNotNil(timerEngine.timerStates[.blink])
-        XCTAssertEqual(timerEngine.timerStates[.blink]?.remainingSeconds, 5 * 60)
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 5 * 60)
     }
     
     func testTimerEngineRespectsDisabledTimers() {
@@ -138,8 +138,8 @@ final class IntegrationTests: XCTestCase {
             XCTAssertFalse(state.isPaused)
         }
         
-        timerEngine.skipNext(type: .lookAway)
-        XCTAssertEqual(timerEngine.timerStates[.lookAway]?.remainingSeconds, 20 * 60)
+        timerEngine.skipNext(identifier: .builtIn(.lookAway))
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 20 * 60)
         
         timerEngine.stop()
         XCTAssertTrue(timerEngine.timerStates.isEmpty)
@@ -148,7 +148,7 @@ final class IntegrationTests: XCTestCase {
     func testReminderWorkflow() {
         timerEngine.start()
         
-        timerEngine.triggerReminder(for: .lookAway)
+        timerEngine.triggerReminder(for: .builtIn(.lookAway))
         XCTAssertNotNil(timerEngine.activeReminder)
         
         for (_, state) in timerEngine.timerStates {

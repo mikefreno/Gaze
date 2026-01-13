@@ -76,7 +76,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
     
     func applicationWillTerminate(_ notification: Notification) {
-        settingsManager.save()
+        settingsManager.saveImmediately()
         timerEngine?.stop()
     }
     
@@ -98,7 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     @objc private func systemWillSleep() {
         timerEngine?.handleSystemSleep()
-        settingsManager.save()
+        settingsManager.saveImmediately()
     }
     
     @objc private func systemDidWake() {

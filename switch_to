@@ -454,7 +454,7 @@ switch_to_self() {
     
     if ! has_sparkle_package; then
         echo ""
-        print_warning "Remember to add Sparkle package in Xcode (see instructions above)"
+        print_warning "⚠️Sparkle not successfully added!"
     fi
 }
 

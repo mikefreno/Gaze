@@ -78,10 +78,17 @@ struct SettingsWindowView: View {
             }
             .padding()
         }
-        .frame(
-            minWidth: 750,
-            minHeight: 700
-        )
+        #if APPSTORE
+            .frame(
+                minWidth: 750,
+                minHeight: 700
+            )
+        #else
+            .frame(
+                minWidth: 750,
+                minHeight: 900
+            )
+        #endif
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
         ) { notification in

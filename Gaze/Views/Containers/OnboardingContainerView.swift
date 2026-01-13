@@ -123,20 +123,25 @@ struct OnboardingContainerView: View {
                 }
             }
         }
-        .frame(
-            minWidth: 1000,
-            minHeight: 700
-        )
+        #if APPSTORE
+            .frame(
+                minWidth: 1000,
+                minHeight: 700
+            )
+        #else
+            .frame(
+                minWidth: 1000,
+                minHeight: 900
+            )
+        #endif
     }
 
     private func completeOnboarding() {
         // Mark onboarding as complete - settings are already being updated in real-time
         settingsManager.settings.hasCompletedOnboarding = true
 
-        // Close window with standard macOS animation
         dismiss()
 
-        // After a brief delay, trigger the menu bar extra to open
         DispatchQueue.main.asyncAfter(deadline: .now()) {
             if let menuBarWindow = NSApp.windows.first(where: {
                 $0.className.contains("MenuBarExtra") || $0.className.contains("StatusBar")

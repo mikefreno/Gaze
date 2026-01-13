@@ -31,12 +31,13 @@ def remove_sparkle(pbxproj_path):
     # Remove PBXBuildFile section for Sparkle
     content = re.sub(r'\t\t27SPARKLE\d+ /\* Sparkle in Frameworks \*/ = \{isa = PBXBuildFile; productRef = 27SPARKLE\d+ /\* Sparkle \*/; \};\n', '', content)
     
-    # Remove XCRemoteSwiftPackageReference section (multi-line) - more flexible pattern
-    pattern = r'\t\t27SPARKLE\d+ /\* XCRemoteSwiftPackageReference "Sparkle" \*/ = \{[^}]+\};\n'
+    # Remove XCRemoteSwiftPackageReference section (multi-line)
+    # Match the entire block including nested braces
+    pattern = r'\t\t27SPARKLE\d+ /\* XCRemoteSwiftPackageReference "Sparkle" \*/ = \{[^}]*\{[^}]*\}[^}]*\};\n'
     content = re.sub(pattern, '', content, flags=re.DOTALL)
     
-    # Remove XCSwiftPackageProductDependency section (multi-line) - match "Sparkle" comment not "XCSwiftPackageProductDependency"
-    pattern = r'\t\t27SPARKLE\d+ /\* Sparkle \*/ = \{[^}]+\};\n'
+    # Remove XCSwiftPackageProductDependency section (multi-line)
+    pattern = r'\t\t27SPARKLE\d+ /\* Sparkle \*/ = \{[^}]*\};\n'
     content = re.sub(pattern, '', content, flags=re.DOTALL)
     
     with open(pbxproj_path, 'w') as f:

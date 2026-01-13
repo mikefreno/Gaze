@@ -64,10 +64,8 @@ remove_sparkle_package() {
     
     # Remove Sparkle from Package.resolved
     if [ -f "${PACKAGE_RESOLVED}" ]; then
-        # Create a temp file without Sparkle entry
         python3 -c "
 import json
-import sys
 
 try:
     with open('${PACKAGE_RESOLVED}', 'r') as f:
@@ -92,23 +90,12 @@ except Exception as e:
         fi
     fi
     
-    # Remove Sparkle references from project.pbxproj
-    # This removes: package references, product dependencies, and framework build files
-    
-    # Remove XCRemoteSwiftPackageReference for Sparkle
-    sed -i '' '/XCRemoteSwiftPackageReference "Sparkle"/,/};/d' "${PROJECT_FILE}"
-    
-    # Remove XCSwiftPackageProductDependency for Sparkle
-    sed -i '' '/XCSwiftPackageProductDependency "Sparkle"/,/};/d' "${PROJECT_FILE}"
-    
-    # Remove Sparkle from packageProductDependencies array
-    sed -i '' '/\/\* Sparkle \*\/,/d' "${PROJECT_FILE}"
-    
-    # Remove Sparkle from Frameworks build phase
-    sed -i '' '/Sparkle in Frameworks/d' "${PROJECT_FILE}"
-    
-    # Clean up empty lines
-    sed -i '' '/^[[:space:]]*$/d' "${PROJECT_FILE}"
+    # Use Python script to safely remove Sparkle from project.pbxproj
+    if ! python3 .manage_sparkle.py remove "${PROJECT_FILE}"; then
+        print_error "Failed to update project.pbxproj"
+        mv "${PROJECT_FILE}.backup" "${PROJECT_FILE}"
+        return 1
+    fi
     
     rm -f "${PROJECT_FILE}.backup"
     
@@ -126,23 +113,83 @@ add_sparkle_package() {
         return 0
     fi
     
-    print_warning "Sparkle package must be added manually in Xcode:"
-    echo ""
-    echo "  1. Open Gaze.xcodeproj in Xcode"
-    echo "  2. Select the project in the navigator"
-    echo "  3. Go to 'Package Dependencies' tab"
-    echo "  4. Click '+' button"
-    echo "  5. Enter: ${SPARKLE_REPO}"
-    echo "  6. Select version ${SPARKLE_VERSION}"
-    echo "  7. Click 'Add Package'"
-    echo "  8. Select 'Sparkle' product and add to Gaze target"
-    echo ""
-    print_info "Or run this from command line:"
-    echo "  xed Gaze.xcodeproj"
-    echo ""
+    # Backup project file
+    cp "${PROJECT_FILE}" "${PROJECT_FILE}.backup"
     
-    # Note: Programmatically adding Swift packages via pbxproj is extremely complex
-    # and error-prone. Manual addition via Xcode UI is recommended.
+    # Add Sparkle to Package.resolved
+    if [ ! -f "${PACKAGE_RESOLVED}" ]; then
+        # Create Package.resolved if it doesn't exist
+        mkdir -p "$(dirname "${PACKAGE_RESOLVED}")"
+        cat > "${PACKAGE_RESOLVED}" << 'EOF'
+{
+  "originHash" : "6b3386dc9ff1f3a74f1534de9c41d47137eae0901cfe819ed442f1b241549359",
+  "pins" : [
+    {
+      "identity" : "lottie-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/airbnb/lottie-spm.git",
+      "state" : {
+        "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
+        "version" : "4.6.0"
+      }
+    }
+  ],
+  "version" : 3
+}
+EOF
+    fi
+    
+    python3 -c "
+import json
+
+try:
+    with open('${PACKAGE_RESOLVED}', 'r') as f:
+        data = json.load(f)
+    
+    # Add Sparkle to pins if not present
+    # Note: We let Xcode resolve the actual revision
+    sparkle_pin = {
+        'identity': 'sparkle',
+        'kind': 'remoteSourceControl',
+        'location': '${SPARKLE_REPO}',
+        'state': {
+            'version': '${SPARKLE_VERSION}'
+        }
+    }
+    
+    if 'pins' not in data:
+        data['pins'] = []
+    
+    # Check if Sparkle already in pins
+    if not any(pin.get('identity', '').lower() == 'sparkle' for pin in data['pins']):
+        data['pins'].append(sparkle_pin)
+        data['pins'].sort(key=lambda x: x.get('identity', ''))
+    
+    with open('${PACKAGE_RESOLVED}', 'w') as f:
+        json.dump(data, f, indent=2)
+    
+    print('✓ Updated Package.resolved')
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
+    sys.exit(1)
+"
+    if [ $? -ne 0 ]; then
+        print_error "Failed to update Package.resolved"
+        mv "${PROJECT_FILE}.backup" "${PROJECT_FILE}"
+        return 1
+    fi
+    
+    # Use Python script to safely add Sparkle to project.pbxproj
+    if ! python3 .manage_sparkle.py add "${PROJECT_FILE}"; then
+        print_error "Failed to update project.pbxproj"
+        mv "${PROJECT_FILE}.backup" "${PROJECT_FILE}"
+        return 1
+    fi
+    
+    rm -f "${PROJECT_FILE}.backup"
+    
+    print_success "Added Sparkle package dependency"
+    print_info "Run './run build' or open Xcode to resolve packages"
     
     return 0
 }
@@ -206,18 +253,23 @@ restore_config() {
     if [ -f "${config_dir}/project_release.txt" ]; then
         # Check if we're restoring to appstore or self mode based on file content
         if grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${config_dir}/project_release.txt"; then
-            # Add APPSTORE flag
+            # Add APPSTORE flag to both Debug and Release
             if ! grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${PROJECT_FILE}"; then
-                # Find the Release config section and add the flag
-                sed -i.backup '/27A21B5F2F0F69DD0018C4F3 \/\* Release \*\/ = {/,/name = Release;/{
+                # Add to Debug configuration
+                sed -i.backup '/27A21B5E2F0F69DD0018C4F3 \/\* Debug \*\/ = {/,/name = Debug;/{
                     /MARKETING_VERSION = /a\
 				OTHER_SWIFT_FLAGS = "-D APPSTORE";
                 }' "${PROJECT_FILE}"
-                rm -f "${PROJECT_FILE}.backup"
+                # Add to Release configuration
+                sed -i.backup2 '/27A21B5F2F0F69DD0018C4F3 \/\* Release \*\/ = {/,/name = Release;/{
+                    /MARKETING_VERSION = /a\
+				OTHER_SWIFT_FLAGS = "-D APPSTORE";
+                }' "${PROJECT_FILE}"
+                rm -f "${PROJECT_FILE}.backup" "${PROJECT_FILE}.backup2"
                 print_success "Added APPSTORE compiler flag"
             fi
         else
-            # Remove APPSTORE flag
+            # Remove APPSTORE flag from both Debug and Release
             if grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${PROJECT_FILE}"; then
                 sed -i.backup '/OTHER_SWIFT_FLAGS = "-D APPSTORE";/d' "${PROJECT_FILE}"
                 rm -f "${PROJECT_FILE}.backup"

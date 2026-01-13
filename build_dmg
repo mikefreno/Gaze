@@ -97,6 +97,7 @@ ask_version_bump() {
       5)
         echo "Keeping current version v${CURRENT_VERSION}"
         NEW_VERSION="$CURRENT_VERSION"
+        BUMP_TYPE="keep"
         ;;
       *)
         echo "Invalid choice"
@@ -120,10 +121,17 @@ ask_version_bump() {
     
     # Ask for confirmation to proceed with version bumping
     echo ""
-    echo "This will:"
-    echo "  1. Update project.pbxproj → MARKETING_VERSION = ${NEW_VERSION}"
-    echo "  2. Update project.pbxproj → CURRENT_PROJECT_VERSION = ${DISPLAY_NEW_BUILD} (currently ${DISPLAY_CURRENT_BUILD})"
-    echo "  3. Create git tag v${NEW_VERSION}"
+    if [ "$BUMP_TYPE" = "keep" ]; then
+        echo "This will:"
+        echo "  1. Keep MARKETING_VERSION = ${NEW_VERSION}"
+        echo "  2. Update project.pbxproj → CURRENT_PROJECT_VERSION = ${DISPLAY_NEW_BUILD} (currently ${DISPLAY_CURRENT_BUILD})"
+        echo "  3. Create git commit (no new tag)"
+    else
+        echo "This will:"
+        echo "  1. Update project.pbxproj → MARKETING_VERSION = ${NEW_VERSION}"
+        echo "  2. Update project.pbxproj → CURRENT_PROJECT_VERSION = ${DISPLAY_NEW_BUILD} (currently ${DISPLAY_CURRENT_BUILD})"
+        echo "  3. Create git tag v${NEW_VERSION}"
+    fi
     echo ""
     read -p "Proceed with version bump? (y/n) " -n 1 -r
     echo ""
@@ -135,9 +143,11 @@ ask_version_bump() {
     # Update project files
     echo "[1/3] Updating project version..."
     
-    # Update MARKETING_VERSION
-    sed -i.bak "s/MARKETING_VERSION = [0-9.]*;/MARKETING_VERSION = ${NEW_VERSION};/" Gaze.xcodeproj/project.pbxproj
-    rm -f Gaze.xcodeproj/project.pbxproj.bak
+    # Update MARKETING_VERSION (unless keeping)
+    if [ "$BUMP_TYPE" != "keep" ]; then
+        sed -i.bak "s/MARKETING_VERSION = [0-9.]*;/MARKETING_VERSION = ${NEW_VERSION};/" Gaze.xcodeproj/project.pbxproj
+        rm -f Gaze.xcodeproj/project.pbxproj.bak
+    fi
     
     # Update CURRENT_PROJECT_VERSION (build number) - increment by 1
     CURRENT_BUILD=$(grep -A 1 "CURRENT_PROJECT_VERSION" Gaze.xcodeproj/project.pbxproj | grep -o '[0-9]\+' | head -1)
@@ -153,12 +163,21 @@ ask_version_bump() {
     # Stage changes and commit
     echo "[2/3] Committing changes..."
     git add Gaze.xcodeproj/project.pbxproj
-    git commit -m "Version bump to v${NEW_VERSION}"
+    if [ "$BUMP_TYPE" = "keep" ]; then
+        git commit -m "Build bump to v${NEW_VERSION} (${BUILD_NUMBER})"
+    else
+        git commit -m "Version bump to v${NEW_VERSION}"
+    fi
     
-    # Create tag
-    echo "[3/3] Creating tag..."
-    git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
-    echo "✓ Version bumped to v${NEW_VERSION}"
+    # Create tag (skip if keeping version)
+    if [ "$BUMP_TYPE" != "keep" ]; then
+        echo "[3/3] Creating tag..."
+        git tag -a "v${NEW_VERSION}" -m "Release version ${NEW_VERSION}"
+        echo "✓ Version bumped to v${NEW_VERSION}"
+    else
+        echo "[3/3] Skipping tag creation (keeping version)"
+        echo "✓ Build number bumped to ${BUILD_NUMBER}"
+    fi
 }
 
 # Ask whether to bump version before continuing

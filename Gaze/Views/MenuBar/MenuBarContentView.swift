@@ -436,6 +436,7 @@ struct TimerStatusRowWithIndividualControls: View {
                         in: .circle
                     )
                     .help("Trigger \(displayName) reminder now (dev)")
+                    .accessibilityIdentifier("trigger_\(displayName.replacingOccurrences(of: " ", with: "_"))")
                     .onHover { hovering in
                         isHoveredDevTrigger = hovering
                     }

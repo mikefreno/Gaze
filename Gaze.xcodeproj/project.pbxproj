@@ -121,7 +121,6 @@
 			buildPhases = (
 				27A21B382F0F69DC0018C4F3 /* Sources */,
 				27A21B392F0F69DC0018C4F3 /* Frameworks */,
-				27D081082F16AA7100FF3A31 /* Run Script */,
 				27A21B3A2F0F69DC0018C4F3 /* Resources */,
 			);
 			buildRules = (
@@ -257,27 +256,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		27D081082F16AA7100FF3A31 /* Run Script */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "Run Script";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "      #!/bin/bash\n   if [[ \"${OTHER_SWIFT_FLAGS}\" == *\"APPSTORE\"* ]]; then\n       echo \"Removing Sparkle framework for App Store build...\"\n       rm -rf \"${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework\"\n       echo \"Sparkle framework removed successfully\"\n   fi\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		27A21B382F0F69DC0018C4F3 /* Sources */ = {

@@ -3,7 +3,9 @@ set -e
 
 # Load environment variables from .env file
 if [ -f .env ]; then
-  export $(grep -v '^#' .env | xargs)
+  set -a
+  source .env
+  set +a
 fi
 
 # Validate required code signing and notarization credentials
@@ -118,15 +120,7 @@ xcodebuild archive \
   -archivePath "$ARCHIVE_PATH" \
   CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
   CODE_SIGN_STYLE=Manual \
-  DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-  | xcpretty || xcodebuild archive \
-    -project Gaze.xcodeproj \
-    -scheme Gaze \
-    -configuration Release \
-    -archivePath "$ARCHIVE_PATH" \
-    CODE_SIGN_IDENTITY="$DEVELOPER_ID_APPLICATION" \
-    CODE_SIGN_STYLE=Manual \
-    DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
+  DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
 
 if [ ! -d "$ARCHIVE_PATH" ]; then
     echo "❌ ERROR: Archive creation failed"
@@ -165,11 +159,7 @@ echo "📤 Exporting signed application..."
 xcodebuild -exportArchive \
   -archivePath "$ARCHIVE_PATH" \
   -exportPath "$EXPORT_PATH" \
-  -exportOptionsPlist /tmp/exportOptions.plist \
-  | xcpretty || xcodebuild -exportArchive \
-    -archivePath "$ARCHIVE_PATH" \
-    -exportPath "$EXPORT_PATH" \
-    -exportOptionsPlist /tmp/exportOptions.plist
+  -exportOptionsPlist /tmp/exportOptions.plist
 
 if [ ! -d "$EXPORT_PATH/Gaze.app" ]; then
     echo "❌ ERROR: Export failed - Gaze.app not found"
@@ -249,8 +239,11 @@ fi
 # Step 8: Verify with Gatekeeper
 echo ""
 echo "🔍 Verifying Gatekeeper acceptance..."
+set +e  # Temporarily disable exit on error
 spctl --assess --type execute --verbose=4 "$EXPORT_PATH/Gaze.app" 2>&1
-if [ $? -eq 0 ]; then
+SPCTL_RESULT=$?
+set -e  # Re-enable exit on error
+if [ $SPCTL_RESULT -eq 0 ]; then
     echo "✅ Application passes Gatekeeper verification"
 else
     echo "⚠️  Warning: Gatekeeper assessment returned non-zero status"
@@ -342,8 +335,11 @@ fi
 # Step 13: Final verification
 echo ""
 echo "🔍 Final DMG verification..."
+set +e  # Temporarily disable exit on error
 spctl --assess --type open --context context:primary-signature --verbose=4 "$DMG_NAME" 2>&1
-if [ $? -eq 0 ]; then
+DMG_SPCTL_RESULT=$?
+set -e  # Re-enable exit on error
+if [ $DMG_SPCTL_RESULT -eq 0 ]; then
     echo "✅ DMG passes all Gatekeeper checks"
 else
     echo "⚠️  Warning: Gatekeeper assessment returned non-zero status"
@@ -492,9 +488,7 @@ echo "  ✅ DMG notarized by Apple"
 echo "  ✅ Gatekeeper approved"
 echo ""
 echo "Next steps:"
-echo "  1. Upload DMG to: ${DOWNLOAD_URL_PREFIX}$DMG_NAME"
-echo "  2. Upload appcast to: $FEED_URL"
-echo "  3. Verify appcast is accessible and valid"
-echo "  4. Test installation on clean macOS system"
-echo "  5. Test update from previous version"
+echo "  1. Verify appcast is accessible and valid"
+echo "  2. Test installation on clean macOS system"
+echo "  3. Test update from previous version"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

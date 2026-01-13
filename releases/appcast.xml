@@ -3,6 +3,21 @@
     <channel>
         <title>Gaze</title>
         <item>
+            <title>0.4.0</title>
+            <pubDate>Tue, 13 Jan 2026 10:29:35 -0500</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>0.4.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://freno.me/api/downloads/Gaze-0.4.0.dmg" length="4858993" type="application/octet-stream" sparkle:edSignature="YtrxJhPjFBVYfXYWTkQYn9bGHPog7H0x/b8KtUrEF+zt7wVbQMZYK18Qc+SAxaWv8C/D/CbGVd0fCR53caxvCw=="/>
+            <sparkle:deltas>
+                <enclosure url="https://freno.me/api/downloads/Gaze6-5.delta" sparkle:deltaFrom="5" length="100986" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="860560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="yI8bMr1kqmlEshJ/zVOVZPNw3GCgxOz3bDBWAOMLk+0HnNTIQ1PP8UeCjck23Bh20XQylglUt/2DYRm3wP1GCg=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze6-4.delta" sparkle:deltaFrom="4" length="284390" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="A/9xcq5khvey8KwyFRRMxb8Sb+goC4VSQrZcXlJvNP91ECn2mnmN8PLcZY58EDIMj8xTRXKSym1UJP91VIBrDg=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze6-3.delta" sparkle:deltaFrom="3" length="314298" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="5PhndI7FBtGoURMoY97YfF1bjyASBu/ajuxD9g0cVssBNSweAHd/yOJSPw0ghseprSbPstd8E/PZSoJ233wyAQ=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze6-2.delta" sparkle:deltaFrom="2" length="313982" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="1/ULn9/GMvwabbFqxVs9e1OopxFIFSdYBvEdVE20O6mM/f1s5zO1MXcguXUxGiHCRcTH7MzyBlEBhPtkajAICA=="/>
+                <enclosure url="https://freno.me/api/downloads/Gaze6-1.delta" sparkle:deltaFrom="1" length="313606" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="ldDmqAH6CHULwfOVmVxvq8j+PnMTPTsc3oIb41licUJMF2N+bJuM7ISsXndTRw2P9VBEADrhDm2+wi2j76DEAg=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.3.0</title>
             <pubDate>Mon, 12 Jan 2026 22:56:56 -0500</pubDate>
             <sparkle:version>5</sparkle:version>

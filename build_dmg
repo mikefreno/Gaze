@@ -353,6 +353,10 @@ rm -rf "$ARCHIVE_PATH"
 rm -rf "$EXPORT_PATH"
 rm -f "$DMG_NAME"
 
+# Clean Xcode build cache to ensure version changes are picked up
+echo "🧹 Cleaning Xcode build cache..."
+xcodebuild clean -project Gaze.xcodeproj -scheme Gaze -configuration Release
+
 # Step 1: Archive the application
 echo ""
 echo "📦 Creating archive..."

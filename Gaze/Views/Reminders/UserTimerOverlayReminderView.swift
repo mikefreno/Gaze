@@ -101,13 +101,15 @@ struct UserTimerOverlayReminderView: View {
     }
 
     private func startCountdown() {
-        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [self] _ in
             if remainingSeconds > 0 {
                 remainingSeconds -= 1
             } else {
                 dismiss()
             }
         }
+        RunLoop.current.add(timer, forMode: .common)
+        countdownTimer = timer
     }
 
     private func dismiss() {

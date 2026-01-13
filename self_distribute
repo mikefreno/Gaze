@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Ensure we're using self-distribution configuration
+echo "🔄 Switching to self-distribution configuration..."
+./switch_to self
+
 # Load environment variables from .env file
 if [ -f .env ]; then
   set -a

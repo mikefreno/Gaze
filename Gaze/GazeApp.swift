@@ -12,6 +12,15 @@ struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var settingsManager = SettingsManager.shared
 
+    init() {
+        // Handle test launch arguments
+        if TestingEnvironment.shouldSkipOnboarding {
+            SettingsManager.shared.settings.hasCompletedOnboarding = true
+        } else if TestingEnvironment.shouldResetOnboarding {
+            SettingsManager.shared.settings.hasCompletedOnboarding = false
+        }
+    }
+
     var body: some Scene {
         // Onboarding window (only shown when not completed)
         WindowGroup {

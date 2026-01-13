@@ -1,0 +1,348 @@
+#!/bin/bash
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuration paths
+INFO_PLIST="Gaze/Info.plist"
+ENTITLEMENTS="Gaze/Gaze.entitlements"
+PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
+BACKUP_DIR=".distribution_configs"
+
+# Distribution configurations
+APPSTORE_CONFIG="${BACKUP_DIR}/appstore"
+SELF_CONFIG="${BACKUP_DIR}/self"
+
+# Function to print colored messages
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+# Function to create backup directories
+create_backup_dirs() {
+    mkdir -p "${APPSTORE_CONFIG}"
+    mkdir -p "${SELF_CONFIG}"
+}
+
+# Function to backup current configuration
+backup_current_config() {
+    local config_name=$1
+    local config_dir=$2
+    
+    print_info "Backing up ${config_name} configuration..."
+    
+    # Backup Info.plist
+    if [ -f "${INFO_PLIST}" ]; then
+        cp "${INFO_PLIST}" "${config_dir}/Info.plist"
+    fi
+    
+    # Backup entitlements
+    if [ -f "${ENTITLEMENTS}" ]; then
+        cp "${ENTITLEMENTS}" "${config_dir}/Gaze.entitlements"
+    fi
+    
+    # Backup relevant parts of project.pbxproj (just the Release config)
+    if [ -f "${PROJECT_FILE}" ]; then
+        # Extract the Release configuration section
+        awk '/27A21B5F2F0F69DD0018C4F3 \/\* Release \*\/ = {/,/name = Release;/ {print}' "${PROJECT_FILE}" > "${config_dir}/project_release.txt"
+    fi
+    
+    print_success "Backed up ${config_name} configuration"
+}
+
+# Function to restore configuration
+restore_config() {
+    local config_name=$1
+    local config_dir=$2
+    
+    print_info "Restoring ${config_name} configuration..."
+    
+    # Restore Info.plist
+    if [ -f "${config_dir}/Info.plist" ]; then
+        cp "${config_dir}/Info.plist" "${INFO_PLIST}"
+        print_success "Restored Info.plist"
+    else
+        print_warning "No Info.plist backup found for ${config_name}"
+    fi
+    
+    # Restore entitlements
+    if [ -f "${config_dir}/Gaze.entitlements" ]; then
+        cp "${config_dir}/Gaze.entitlements" "${ENTITLEMENTS}"
+        print_success "Restored entitlements"
+    else
+        print_warning "No entitlements backup found for ${config_name}"
+    fi
+    
+    # Restore project.pbxproj Release configuration
+    if [ -f "${config_dir}/project_release.txt" ]; then
+        # Check if we're restoring to appstore or self mode based on file content
+        if grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${config_dir}/project_release.txt"; then
+            # Add APPSTORE flag
+            if ! grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${PROJECT_FILE}"; then
+                # Find the Release config section and add the flag
+                sed -i.backup '/27A21B5F2F0F69DD0018C4F3 \/\* Release \*\/ = {/,/name = Release;/{
+                    /MARKETING_VERSION = /a\
+				OTHER_SWIFT_FLAGS = "-D APPSTORE";
+                }' "${PROJECT_FILE}"
+                rm -f "${PROJECT_FILE}.backup"
+                print_success "Added APPSTORE compiler flag"
+            fi
+        else
+            # Remove APPSTORE flag
+            if grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${PROJECT_FILE}"; then
+                sed -i.backup '/OTHER_SWIFT_FLAGS = "-D APPSTORE";/d' "${PROJECT_FILE}"
+                rm -f "${PROJECT_FILE}.backup"
+                print_success "Removed APPSTORE compiler flag"
+            fi
+        fi
+    else
+        print_warning "No project.pbxproj backup found for ${config_name}"
+    fi
+}
+
+# Function to initialize configurations if they don't exist
+initialize_configs() {
+    create_backup_dirs
+    
+    # Check if we have existing backups
+    if [ ! -f "${SELF_CONFIG}/Info.plist" ]; then
+        print_info "No self-distribution config found. Creating from current state..."
+        
+        # The current state should be self-distribution (before my changes)
+        # Let's create the self-distribution version with Sparkle keys
+        cat > "${SELF_CONFIG}/Info.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>CFBundleName</key>
+	<string>Gaze</string>
+	<key>CFBundleDisplayName</key>
+	<string>Gaze</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2026 Mike Freno. All rights reserved.</string>
+	<key>SUPublicEDKey</key>
+	<string>Z2RmohI1y2bgeGQQUDqO9F0HNF2AzFotOt8CwGB6VJM=</string>
+	<key>SUFeedURL</key>
+	<string>https://freno.me/api/Gaze/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+</dict>
+</plist>
+EOF
+        
+        cat > "${SELF_CONFIG}/Gaze.entitlements" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.network.client</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
+	</array>
+</dict>
+</plist>
+EOF
+        
+        # Extract current Release config WITHOUT APPSTORE flag
+        awk '/27A21B5F2F0F69DD0018C4F3 \/\* Release \*\/ = {/,/name = Release;/ {
+            if ($0 !~ /OTHER_SWIFT_FLAGS/) {
+                print
+            } else {
+                # Skip the APPSTORE flag line
+                if ($0 !~ /APPSTORE/) {
+                    print
+                }
+            }
+        }' "${PROJECT_FILE}" > "${SELF_CONFIG}/project_release.txt"
+        
+        print_success "Created self-distribution config"
+    fi
+    
+    if [ ! -f "${APPSTORE_CONFIG}/Info.plist" ]; then
+        print_info "Creating App Store config..."
+        
+        # Backup current state as App Store config (after my changes)
+        backup_current_config "App Store" "${APPSTORE_CONFIG}"
+    fi
+}
+
+# Function to show current distribution mode
+show_current_mode() {
+    print_info "Current configuration:"
+    echo ""
+    
+    # Check for Sparkle keys in Info.plist
+    if grep -q "SUPublicEDKey" "${INFO_PLIST}" 2>/dev/null; then
+        echo "  Info.plist: ${GREEN}Self-Distribution${NC} (has Sparkle keys)"
+    else
+        echo "  Info.plist: ${BLUE}App Store${NC} (no Sparkle keys)"
+    fi
+    
+    # Check for Sparkle entitlements
+    if grep -q "mach-lookup.global-name" "${ENTITLEMENTS}" 2>/dev/null; then
+        echo "  Entitlements: ${GREEN}Self-Distribution${NC} (has Sparkle exceptions)"
+    else
+        echo "  Entitlements: ${BLUE}App Store${NC} (no Sparkle exceptions)"
+    fi
+    
+    # Check for APPSTORE flag
+    if grep -q "OTHER_SWIFT_FLAGS.*APPSTORE" "${PROJECT_FILE}" 2>/dev/null; then
+        echo "  Build Settings: ${BLUE}App Store${NC} (has APPSTORE flag)"
+    else
+        echo "  Build Settings: ${GREEN}Self-Distribution${NC} (no APPSTORE flag)"
+    fi
+    
+    echo ""
+}
+
+# Function to switch to App Store configuration
+switch_to_appstore() {
+    print_info "Switching to App Store distribution configuration..."
+    echo ""
+    
+    # Backup current state if it's self-distribution
+    if grep -q "SUPublicEDKey" "${INFO_PLIST}" 2>/dev/null; then
+        backup_current_config "self-distribution" "${SELF_CONFIG}"
+    fi
+    
+    # Restore App Store config
+    restore_config "App Store" "${APPSTORE_CONFIG}"
+    
+    echo ""
+    print_success "Switched to App Store distribution mode"
+    print_warning "Remember to add the Run Script phase to remove Sparkle framework!"
+    echo ""
+    echo "Run Script to add in Xcode Build Phases:"
+    echo '#!/bin/bash'
+    echo 'if [[ "${OTHER_SWIFT_FLAGS}" == *"APPSTORE"* ]]; then'
+    echo '    rm -rf "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework"'
+    echo 'fi'
+}
+
+# Function to switch to self-distribution configuration
+switch_to_self() {
+    print_info "Switching to self-distribution configuration..."
+    echo ""
+    
+    # Backup current state if it's App Store
+    if ! grep -q "SUPublicEDKey" "${INFO_PLIST}" 2>/dev/null; then
+        backup_current_config "App Store" "${APPSTORE_CONFIG}"
+    fi
+    
+    # Restore self-distribution config
+    restore_config "self-distribution" "${SELF_CONFIG}"
+    
+    echo ""
+    print_success "Switched to self-distribution mode"
+    print_info "Sparkle auto-updates enabled"
+}
+
+# Function to show usage
+show_usage() {
+    cat << EOF
+${BLUE}Gaze Distribution Configuration Switcher${NC}
+
+${GREEN}Usage:${NC}
+  ./switch_to [command]
+
+${GREEN}Commands:${NC}
+  appstore    Switch to App Store distribution configuration
+              - Removes Sparkle keys from Info.plist
+              - Removes Sparkle entitlements
+              - Adds APPSTORE compiler flag
+              
+  self        Switch to self-distribution configuration
+              - Adds Sparkle keys to Info.plist
+              - Adds Sparkle entitlements for XPC services
+              - Removes APPSTORE compiler flag
+              
+  status      Show current distribution configuration
+  
+  help        Show this help message
+
+${GREEN}Examples:${NC}
+  ./switch_to appstore    # Prepare for App Store submission
+  ./switch_to self        # Prepare for direct distribution with auto-updates
+  ./switch_to status      # Check current configuration
+
+${YELLOW}Note:${NC} Configuration backups are stored in ${BACKUP_DIR}/
+EOF
+}
+
+# Main script logic
+main() {
+    # Check if we're in the right directory
+    if [ ! -f "${PROJECT_FILE}" ]; then
+        print_error "Not in Gaze project directory. Please run from project root."
+        exit 1
+    fi
+    
+    # Initialize configurations if needed
+    initialize_configs
+    
+    # Parse command
+    case "${1:-}" in
+        appstore)
+            switch_to_appstore
+            ;;
+        self)
+            switch_to_self
+            ;;
+        status)
+            show_current_mode
+            ;;
+        help|--help|-h)
+            show_usage
+            ;;
+        *)
+            print_error "Unknown command: ${1:-}"
+            echo ""
+            show_usage
+            exit 1
+            ;;
+    esac
+}
+
+# Run main function
+main "$@"

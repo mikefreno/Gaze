@@ -193,8 +193,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.acceptsMouseMovedEvents = !requiresFocus
-        window.ignoresMouseEvents = !requiresFocus
+        
+        // Allow mouse events for all reminders (needed for dismiss button)
+        window.acceptsMouseMovedEvents = true
+        window.ignoresMouseEvents = false
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)

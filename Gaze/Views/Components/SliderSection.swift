@@ -26,11 +26,11 @@ struct SliderSection: View {
         guard enabled else {
             return "\(type) reminders are currently disabled."
         }
-        if countdownSettings.isNil && intervalSettings.isNil {
-            return "You will be reminded every \(intervalSettings.val) minutes"
+        if countdownSettings.isNil && !intervalSettings.isNil {
+            return "You will be reminded every \(intervalSettings.val ?? 0) minutes"
         }
         return
-            "You will be \(countdownSettings.isNil ? "subtly" : "") reminded every \(intervalSettings.val) minutes for \(countdownSettings.val!) seconds"
+            "You will be \(countdownSettings.isNil ? "subtly" : "") reminded every \(intervalSettings.val ?? 0) minutes for \(countdownSettings.val ?? 0) seconds"
     }
 
     var body: some View {
@@ -51,10 +51,10 @@ struct SliderSection: View {
                             ),
                             in:
                                 Double(
-                                    intervalSettings.range.bounds.lowerBound)...Double(
-                                    intervalSettings.range.bounds.upperBound),
+                                    intervalSettings.range?.bounds.lowerBound ?? 0)...Double(
+                                    intervalSettings.range?.bounds.upperBound ?? 100),
                             step: 5.0)
-                        Text("\(intervalSettings.val) min")
+                        Text("\(intervalSettings.val ?? 0) min")
                             .frame(width: 60, alignment: .trailing)
                             .monospacedDigit()
                     }
@@ -66,14 +66,14 @@ struct SliderSection: View {
                         HStack {
                             Slider(
                                 value: Binding(
-                                    get: { Double(countdownSettings.seconds ?? 0) },
-                                    set: { countdownSettings.seconds = Int($0) }
+                                    get: { Double(countdownSettings.val ?? 0) },
+                                    set: { countdownSettings.val = Int($0) }
                                 ),
                                 in:
                                     Double(
                                         range.bounds.lowerBound)...Double(range.bounds.upperBound),
                                 step: 5.0)
-                            Text("\(countdownSettings.seconds ?? 0) sec")
+                            Text("\(countdownSettings.val ?? 0) sec")
                                 .frame(width: 60, alignment: .trailing)
                                 .monospacedDigit()
                         }
@@ -119,4 +119,3 @@ struct SliderSection: View {
         )
     }
 }
-

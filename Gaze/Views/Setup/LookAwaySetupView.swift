@@ -13,9 +13,7 @@ import SwiftUI
 #endif
 
 struct LookAwaySetupView: View {
-    @Binding var enabled: Bool
-    @Binding var intervalSettings: RangeChoice
-    @Binding var countdownSettings: RangeChoice
+    @ObservedObject var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -62,9 +60,32 @@ struct LookAwaySetupView: View {
                     GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 SliderSection(
-                    intervalSettings: $intervalSettings,
-                    countdownSettings: $countdownSettings,
-                    enabled: $enabled,
+                    intervalSettings: Binding(
+                        get: {
+                            RangeChoice(
+                                val: settingsManager.settings.lookAwayTimer.intervalSeconds / 60,
+                                range: Range(bounds: 5...60, step: 5)
+                            )
+                        },
+                        set: { newValue in
+                            settingsManager.settings.lookAwayTimer.intervalSeconds = (newValue.val ?? 20) * 60
+                        }
+                    ),
+                    countdownSettings: Binding(
+                        get: {
+                            RangeChoice(
+                                val: settingsManager.settings.lookAwayCountdownSeconds,
+                                range: Range(bounds: 5...60, step: 5)
+                            )
+                        },
+                        set: { newValue in
+                            settingsManager.settings.lookAwayCountdownSeconds = newValue.val ?? 20
+                        }
+                    ),
+                    enabled: Binding(
+                        get: { settingsManager.settings.lookAwayTimer.enabled },
+                        set: { settingsManager.settings.lookAwayTimer.enabled = $0 }
+                    ),
                     type: "Look away",
                     previewFunc: showPreviewWindow
                 )
@@ -93,7 +114,9 @@ struct LookAwaySetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = LookAwayReminderView(countdownSeconds: countdownSettings.val ?? 20) {
+        let contentView = LookAwayReminderView(
+            countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds
+        ) {
             [weak window] in
             window?.close()
         }
@@ -109,11 +132,6 @@ struct LookAwaySetupView: View {
     }
 }
 
-//TODO: add this back
-/*#Preview("Look Away Setup View") {*/
-/*LookAwaySetupView(*/
-/*enabled: .constant(true),*/
-/*intervalMinutes: .constant(20),*/
-/*countdownSeconds: .constant(20)*/
-/*)*/
-/*}*/
+#Preview("Look Away Setup View") {
+    LookAwaySetupView(settingsManager: SettingsManager.shared)
+}

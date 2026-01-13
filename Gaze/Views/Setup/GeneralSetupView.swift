@@ -8,9 +8,7 @@
 import SwiftUI
 
 struct GeneralSetupView: View {
-    @Binding var launchAtLogin: Bool
-    @Binding var subtleReminderSize: ReminderSize
-    @Binding var isAppStoreVersion: Bool
+    @ObservedObject var settingsManager: SettingsManager
     @ObservedObject var updateManager = UpdateManager.shared
     var isOnboarding: Bool = true
 
@@ -44,9 +42,12 @@ struct GeneralSetupView: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Toggle("", isOn: $launchAtLogin)
+                        Toggle("", isOn: Binding(
+                            get: { settingsManager.settings.launchAtLogin },
+                            set: { settingsManager.settings.launchAtLogin = $0 }
+                        ))
                             .labelsHidden()
-                            .onChange(of: launchAtLogin) { isEnabled in
+                            .onChange(of: settingsManager.settings.launchAtLogin) { isEnabled in
                                 applyLaunchAtLoginSetting(enabled: isEnabled)
                             }
                     }
@@ -54,7 +55,7 @@ struct GeneralSetupView: View {
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     // Software Updates Section
-                    if !isAppStoreVersion {
+                    if !settingsManager.settings.isAppStoreVersion {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Software Updates")
@@ -102,12 +103,12 @@ struct GeneralSetupView: View {
                         HStack(spacing: 12) {
                             ForEach(ReminderSize.allCases, id: \.self) { size in
                                 Button(action: {
-                                    subtleReminderSize = size
+                                    settingsManager.settings.subtleReminderSize = size
                                 }) {
                                     VStack(spacing: 8) {
                                         Circle()
                                             .fill(
-                                                subtleReminderSize == size
+                                                settingsManager.settings.subtleReminderSize == size
                                                     ? Color.accentColor
                                                     : Color.secondary.opacity(0.3)
                                             )
@@ -118,16 +119,16 @@ struct GeneralSetupView: View {
                                         Text(size.displayName)
                                             .font(.caption)
                                             .fontWeight(
-                                                subtleReminderSize == size ? .semibold : .regular
+                                                settingsManager.settings.subtleReminderSize == size ? .semibold : .regular
                                             )
                                             .foregroundColor(
-                                                subtleReminderSize == size ? .primary : .secondary)
+                                                settingsManager.settings.subtleReminderSize == size ? .primary : .secondary)
                                     }
                                     .frame(maxWidth: .infinity, minHeight: 60)
                                     .padding(.vertical, 12)
                                 }
                                 .glassEffectIfAvailable(
-                                    subtleReminderSize == size
+                                    settingsManager.settings.subtleReminderSize == size
                                         ? GlassStyle.regular.tint(.accentColor.opacity(0.3))
                                         : GlassStyle.regular,
                                     in: .rect(cornerRadius: 10)
@@ -173,7 +174,7 @@ struct GeneralSetupView: View {
                         .glassEffectIfAvailable(
                             GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
 
-                        if !isAppStoreVersion {
+                        if !settingsManager.settings.isAppStoreVersion {
                             Button(action: {
                                 if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
                                     NSWorkspace.shared.open(url)
@@ -239,9 +240,7 @@ struct GeneralSetupView: View {
 
 #Preview("Settings Onboarding") {
     GeneralSetupView(
-        launchAtLogin: .constant(false),
-        subtleReminderSize: .constant(.medium),
-        isAppStoreVersion: .constant(false),
+        settingsManager: SettingsManager.shared,
         isOnboarding: true
     )
 }

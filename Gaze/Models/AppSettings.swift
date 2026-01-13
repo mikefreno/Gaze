@@ -31,11 +31,7 @@ enum ReminderSize: String, Codable, CaseIterable {
     }
 }
 
-// MARK: - Centralized Configuration System
-
-/// Unified configuration class that manages all app settings in a centralized way
 struct AppSettings: Codable, Equatable, Hashable {
-    // Timer configurations
     var lookAwayTimer: TimerConfiguration
     var lookAwayCountdownSeconds: Int
     var blinkTimer: TimerConfiguration

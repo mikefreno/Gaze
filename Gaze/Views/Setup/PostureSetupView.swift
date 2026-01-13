@@ -9,9 +9,8 @@ import AppKit
 import SwiftUI
 
 struct PostureSetupView: View {
-    @Binding var enabled: Bool
-    @Binding var intervalSettings: RangeChoice
-    var subtleReminderSize: ReminderSize = .medium
+    @ObservedObject var settingsManager: SettingsManager
+
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -61,8 +60,22 @@ struct PostureSetupView: View {
                     GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 SliderSection(
-                    intervalSettings: $intervalSettings,
-                    enabled: $enabled,
+                    intervalSettings: Binding(
+                        get: {
+                            RangeChoice(
+                                val: settingsManager.settings.postureTimer.intervalSeconds / 60,
+                                range: Range(bounds: 5...60, step: 5)
+                            )
+                        },
+                        set: { newValue in
+                            settingsManager.settings.postureTimer.intervalSeconds = (newValue.val ?? 30) * 60
+                        }
+                    ),
+                    countdownSettings: nil,
+                    enabled: Binding(
+                        get: { settingsManager.settings.postureTimer.enabled },
+                        set: { settingsManager.settings.postureTimer.enabled = $0 }
+                    ),
                     type: "Posture",
                     previewFunc: showPreviewWindow
                 )
@@ -91,7 +104,9 @@ struct PostureSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = PostureReminderView(sizePercentage: subtleReminderSize.percentage) {
+        let contentView = PostureReminderView(
+            sizePercentage: settingsManager.settings.subtleReminderSize.percentage
+        ) {
             [weak window] in
             window?.close()
         }
@@ -107,16 +122,6 @@ struct PostureSetupView: View {
     }
 }
 
-#Preview("Posture Setup - Enabled") {
-    PostureSetupView(
-        enabled: .constant(true),
-        intervalMinutes: .constant(30)
-    )
-}
-
-#Preview("Posture Setup - Disabled") {
-    PostureSetupView(
-        enabled: .constant(false),
-        intervalMinutes: .constant(30)
-    )
+#Preview("Posture Setup") {
+    PostureSetupView(settingsManager: SettingsManager.shared)
 }

@@ -9,9 +9,7 @@ import AppKit
 import SwiftUI
 
 struct BlinkSetupView: View {
-    @Binding var enabled: Bool
-    @Binding var intervalMinutes: Int
-    var subtleReminderSize: ReminderSize = .medium
+    @ObservedObject var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
@@ -59,10 +57,13 @@ struct BlinkSetupView: View {
                     GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Blink Reminders", isOn: $enabled)
+                    Toggle("Enable Blink Reminders", isOn: Binding(
+                        get: { settingsManager.settings.blinkTimer.enabled },
+                        set: { settingsManager.settings.blinkTimer.enabled = $0 }
+                    ))
                         .font(.headline)
 
-                    if enabled {
+                    if settingsManager.settings.blinkTimer.enabled {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Remind me every:")
                                 .font(.subheadline)
@@ -71,11 +72,11 @@ struct BlinkSetupView: View {
                             HStack {
                                 Slider(
                                     value: Binding(
-                                        get: { Double(intervalMinutes) },
-                                        set: { intervalMinutes = Int($0) }
+                                        get: { Double(settingsManager.settings.blinkTimer.intervalSeconds / 60) },
+                                        set: { settingsManager.settings.blinkTimer.intervalSeconds = Int($0) * 60 }
                                     ), in: 1...20, step: 1)
 
-                                Text("\(intervalMinutes) min")
+                                Text("\(settingsManager.settings.blinkTimer.intervalSeconds / 60) min")
                                     .frame(width: 60, alignment: .trailing)
                                     .monospacedDigit()
                             }
@@ -85,9 +86,9 @@ struct BlinkSetupView: View {
                 .padding()
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                if enabled {
+                if settingsManager.settings.blinkTimer.enabled {
                     Text(
-                        "You will be subtly reminded every \(intervalMinutes) minutes to blink"
+                        "You will be subtly reminded every \(settingsManager.settings.blinkTimer.intervalSeconds / 60) minutes to blink"
                     )
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -143,7 +144,9 @@ struct BlinkSetupView: View {
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         window.acceptsMouseMovedEvents = true
 
-        let contentView = BlinkReminderView(sizePercentage: subtleReminderSize.percentage) {
+        let contentView = BlinkReminderView(
+            sizePercentage: settingsManager.settings.subtleReminderSize.percentage
+        ) {
             [weak window] in
             window?.close()
         }
@@ -159,16 +162,6 @@ struct BlinkSetupView: View {
     }
 }
 
-#Preview("Blink Setup - Enabled") {
-    BlinkSetupView(
-        enabled: .constant(true),
-        intervalMinutes: .constant(5)
-    )
-}
-
-#Preview("Blink Setup - Disabled") {
-    BlinkSetupView(
-        enabled: .constant(false),
-        intervalMinutes: .constant(5)
-    )
+#Preview("Blink Setup") {
+    BlinkSetupView(settingsManager: SettingsManager.shared)
 }

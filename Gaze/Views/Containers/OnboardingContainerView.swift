@@ -22,22 +22,7 @@ struct VisualEffectView: NSViewRepresentable {
 struct OnboardingContainerView: View {
     @ObservedObject var settingsManager: SettingsManager
     @State private var currentPage = 0
-    @State private var lookAwayEnabled = true
-    @State private var lookAwayIntervalMinutes = 20
-    @State private var lookAwayCountdownSeconds = 20
-    @State private var blinkEnabled = false
-    @State private var blinkIntervalMinutes = 5
-    @State private var postureEnabled = true
-    @State private var postureIntervalMinutes = 30
-    @State private var launchAtLogin = false
-    @State private var subtleReminderSize: ReminderSize = .medium
-    @State private var isAppStoreVersion: Bool
     @Environment(\.dismiss) private var dismiss
-
-    init(settingsManager: SettingsManager) {
-        self.settingsManager = settingsManager
-        _isAppStoreVersion = State(initialValue: settingsManager.settings.isAppStoreVersion)
-    }
 
     var body: some View {
         ZStack {
@@ -51,40 +36,26 @@ struct OnboardingContainerView: View {
                             Image(systemName: "hand.wave.fill")
                         }
 
-                    LookAwaySetupView(
-                        enabled: $lookAwayEnabled,
-                        intervalMinutes: $lookAwayIntervalMinutes,
-                        countdownSeconds: $lookAwayCountdownSeconds
-                    )
-                    .tag(1)
-                    .tabItem {
-                        Image(systemName: "eye.fill")
-                    }
+                    LookAwaySetupView(settingsManager: settingsManager)
+                        .tag(1)
+                        .tabItem {
+                            Image(systemName: "eye.fill")
+                        }
 
-                    BlinkSetupView(
-                        enabled: $blinkEnabled,
-                        intervalMinutes: $blinkIntervalMinutes,
-                        subtleReminderSize: subtleReminderSize
-                    )
-                    .tag(2)
-                    .tabItem {
-                        Image(systemName: "eye.circle.fill")
-                    }
+                    BlinkSetupView(settingsManager: settingsManager)
+                        .tag(2)
+                        .tabItem {
+                            Image(systemName: "eye.circle.fill")
+                        }
 
-                    PostureSetupView(
-                        enabled: $postureEnabled,
-                        intervalMinutes: $postureIntervalMinutes,
-                        subtleReminderSize: subtleReminderSize
-                    )
-                    .tag(3)
-                    .tabItem {
-                        Image(systemName: "figure.stand")
-                    }
+                    PostureSetupView(settingsManager: settingsManager)
+                        .tag(3)
+                        .tabItem {
+                            Image(systemName: "figure.stand")
+                        }
 
                     GeneralSetupView(
-                        launchAtLogin: $launchAtLogin,
-                        subtleReminderSize: $subtleReminderSize,
-                        isAppStoreVersion: .constant(isAppStoreVersion),
+                        settingsManager: settingsManager,
                         isOnboarding: true
                     )
                     .tag(4)
@@ -155,45 +126,13 @@ struct OnboardingContainerView: View {
 
         .frame(
             minWidth: 1000,
-            minHeight: isAppStoreVersion ? 700 : 900
+            minHeight: settingsManager.settings.isAppStoreVersion ? 700 : 900
         )
-        .onReceive(settingsManager.$settings) { newSettings in
-            isAppStoreVersion = newSettings.isAppStoreVersion
-        }
     }
 
     private func completeOnboarding() {
-        // Save settings
-        settingsManager.settings.lookAwayTimer = TimerConfiguration(
-            enabled: lookAwayEnabled,
-            intervalSeconds: lookAwayIntervalMinutes * 60
-        )
-        settingsManager.settings.lookAwayCountdownSeconds = lookAwayCountdownSeconds
-
-        settingsManager.settings.blinkTimer = TimerConfiguration(
-            enabled: blinkEnabled,
-            intervalSeconds: blinkIntervalMinutes * 60
-        )
-
-        settingsManager.settings.postureTimer = TimerConfiguration(
-            enabled: postureEnabled,
-            intervalSeconds: postureIntervalMinutes * 60
-        )
-
-        settingsManager.settings.launchAtLogin = launchAtLogin
-        settingsManager.settings.subtleReminderSize = subtleReminderSize
+        // Mark onboarding as complete - settings are already being updated in real-time
         settingsManager.settings.hasCompletedOnboarding = true
-
-        // Apply launch at login setting
-        do {
-            if launchAtLogin {
-                try LaunchAtLoginManager.enable()
-            } else {
-                try LaunchAtLoginManager.disable()
-            }
-        } catch {
-            print("Failed to set launch at login: \(error)")
-        }
 
         // Close window with standard macOS animation
         dismiss()

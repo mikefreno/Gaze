@@ -31,15 +31,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             updateManager = UpdateManager.shared
         }
         
-        // Detect App Store version asynchronously at launch
-        Task {
-            do {
-                await settingsManager.detectAppStoreVersion()
-            } catch {
-                // Handle error silently in production
-            }
-        }
-        
         setupLifecycleObservers()
         
         observeSettingsChanges()

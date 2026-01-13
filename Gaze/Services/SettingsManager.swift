@@ -74,9 +74,6 @@ class SettingsManager: ObservableObject {
     /// Use this for critical save points like app termination or system sleep.
     func saveImmediately() {
         save()
-        // Cancel any pending debounced saves
-        saveCancellable?.cancel()
-        setupDebouncedSave()
     }
 
     func load() {
@@ -118,15 +115,6 @@ class SettingsManager: ObservableObject {
         let missing = allTypes.subtracting(mappedTypes)
         if !missing.isEmpty {
             preconditionFailure("Missing timer configuration mappings for: \(missing)")
-        }
-    }
-
-    /// Detects and caches the App Store version status.
-    /// This should be called once at app launch to avoid async checks throughout the app.
-    func detectAppStoreVersion() async {
-        let isAppStore = await AppStoreDetector.isAppStoreVersion()
-        await MainActor.run {
-            settings.isAppStoreVersion = isAppStore
         }
     }
 }

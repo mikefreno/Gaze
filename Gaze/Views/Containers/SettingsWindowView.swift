@@ -80,7 +80,7 @@ struct SettingsWindowView: View {
         }
         .frame(
             minWidth: 750,
-            minHeight: settingsManager.settings.isAppStoreVersion ? 700 : 900
+            minHeight: 700
         )
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))

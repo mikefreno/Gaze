@@ -306,4 +306,106 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
         XCTAssertNotNil(timerEngine.timerStates[.builtIn(.posture)])
     }
+    
+    func testMultipleReminderTypesCanTriggerSimultaneously() {
+        // Setup: Create a user timer with overlay type (focus-stealing)
+        let overlayTimer = UserTimer(
+            title: "Water Break",
+            type: .overlay,
+            timeOnScreenSeconds: 10,
+            intervalMinutes: 1,
+            message: "Drink water"
+        )
+        settingsManager.settings.userTimers = [overlayTimer]
+        
+        timerEngine.start()
+        
+        // Trigger an overlay reminder (look away or user timer overlay)
+        timerEngine.triggerReminder(for: .user(id: overlayTimer.id))
+        
+        // Verify overlay reminder is active
+        XCTAssertNotNil(timerEngine.activeReminder)
+        if case .userTimerTriggered(let timer) = timerEngine.activeReminder {
+            XCTAssertEqual(timer.id, overlayTimer.id)
+            XCTAssertEqual(timer.type, .overlay)
+        } else {
+            XCTFail("Expected userTimerTriggered with overlay type")
+        }
+        
+        // Verify the overlay timer is paused
+        XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+        
+        // Now trigger a subtle reminder (blink) while overlay is still active
+        let previousActiveReminder = timerEngine.activeReminder
+        timerEngine.triggerReminder(for: .builtIn(.blink))
+        
+        // The activeReminder should be replaced with the blink reminder
+        // This is expected behavior - TimerEngine only tracks one activeReminder
+        XCTAssertNotNil(timerEngine.activeReminder)
+        if case .blinkTriggered = timerEngine.activeReminder {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected blinkTriggered reminder")
+        }
+        
+        // Both timers should be paused (the one that triggered their reminder)
+        XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+        XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.blink)))
+        
+        // The key insight: Even though TimerEngine only tracks one activeReminder,
+        // AppDelegate now tracks overlay and subtle windows separately, so both
+        // reminders can be displayed simultaneously without interference
+    }
+    
+    func testOverlayReminderDoesNotBlockSubtleReminders() {
+        // This test verifies the fix for the bug where a subtle reminder
+        // would cause an overlay reminder to get stuck
+        
+        // Setup overlay user timer
+        let overlayTimer = UserTimer(
+            title: "Stand Up",
+            type: .overlay,
+            timeOnScreenSeconds: 10,
+            intervalMinutes: 1
+        )
+        settingsManager.settings.userTimers = [overlayTimer]
+        settingsManager.settings.blinkTimer.enabled = true
+        settingsManager.settings.blinkTimer.intervalSeconds = 60
+        
+        timerEngine.start()
+        
+        // Trigger overlay reminder first
+        timerEngine.triggerReminder(for: .user(id: overlayTimer.id))
+        XCTAssertNotNil(timerEngine.activeReminder)
+        XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+        
+        // Trigger subtle reminder while overlay is active
+        timerEngine.triggerReminder(for: .builtIn(.blink))
+        
+        // The blink reminder should now be active
+        if case .blinkTriggered = timerEngine.activeReminder {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected blinkTriggered reminder")
+        }
+        
+        // Both timers should be paused
+        XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+        XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.blink)))
+        
+        // Dismiss the blink reminder
+        timerEngine.dismissReminder()
+        
+        // After dismissing blink, the reminder should be cleared
+        XCTAssertNil(timerEngine.activeReminder)
+        
+        // Blink timer should be reset and resumed
+        XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.blink)))
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 60)
+        
+        // The overlay timer should still be paused (user needs to dismiss it manually)
+        // Note: In the actual app, AppDelegate tracks this window separately and it
+        // remains visible even after the subtle reminder dismisses
+        XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+    }
 }

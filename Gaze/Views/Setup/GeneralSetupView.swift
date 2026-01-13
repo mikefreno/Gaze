@@ -55,34 +55,34 @@ struct GeneralSetupView: View {
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     // Software Updates Section
-                    if !settingsManager.settings.isAppStoreVersion {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Software Updates")
-                                    .font(.headline)
+                    #if !APPSTORE
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Software Updates")
+                                .font(.headline)
 
-                                if let lastCheck = updateManager.lastUpdateCheckDate {
-                                    Text("Last checked: \(lastCheck, style: .relative)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .italic()
-                                } else {
-                                    Text("Never checked for updates")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .italic()
-                                }
+                            if let lastCheck = updateManager.lastUpdateCheckDate {
+                                Text("Last checked: \(lastCheck, style: .relative)")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
+                            } else {
+                                Text("Never checked for updates")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .italic()
                             }
+                        }
 
-                            Spacer()
+                        Spacer()
 
-                            Button("Check for Updates Now") {
-                                updateManager.checkForUpdates()
-                            }
-                            .buttonStyle(.bordered)
+                        Button("Check for Updates Now") {
+                            updateManager.checkForUpdates()
+                        }
+                        .buttonStyle(.bordered)
 
-                            Toggle(
-                                "Automatically check for updates",
+                        Toggle(
+                            "Automatically check for updates",
                                 isOn: $updateManager.automaticallyChecksForUpdates
                             )
                             .labelsHidden()
@@ -90,7 +90,7 @@ struct GeneralSetupView: View {
                         }
                         .padding()
                         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-                    }
+                    #endif
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Subtle Reminder Size")
@@ -171,41 +171,41 @@ struct GeneralSetupView: View {
                             .contentShape(RoundedRectangle(cornerRadius: 10))
                         }
                         .buttonStyle(.plain)
-                        .glassEffectIfAvailable(
-                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
-
-                        if !settingsManager.settings.isAppStoreVersion {
-                            Button(action: {
-                                if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
-                                    NSWorkspace.shared.open(url)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "cup.and.saucer.fill")
-                                        .font(.title3)
-                                        .foregroundColor(.brown)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Buy Me a Coffee")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                        Text("Support development of Gaze")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                    Image(systemName: "arrow.up.right")
-                                        .font(.caption)
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity)
-                                .cornerRadius(10)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
                             .glassEffectIfAvailable(
-                                GlassStyle.regular.tint(.orange).interactive(),
-                                in: .rect(cornerRadius: 10))
+                                GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
+
+                        #if !APPSTORE
+                        Button(action: {
+                            if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "cup.and.saucer.fill")
+                                    .font(.title3)
+                                    .foregroundColor(.brown)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Buy Me a Coffee")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                    Text("Support development of Gaze")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.up.right")
+                                    .font(.caption)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .cornerRadius(10)
+                            .contentShape(RoundedRectangle(cornerRadius: 10))
                         }
+                        .buttonStyle(.plain)
+                        .glassEffectIfAvailable(
+                            GlassStyle.regular.tint(.orange).interactive(),
+                            in: .rect(cornerRadius: 10))
+                        #endif
                     }
                     .padding()
                 }

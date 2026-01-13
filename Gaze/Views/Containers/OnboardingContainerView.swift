@@ -123,10 +123,9 @@ struct OnboardingContainerView: View {
                 }
             }
         }
-
         .frame(
             minWidth: 1000,
-            minHeight: settingsManager.settings.isAppStoreVersion ? 700 : 900
+            minHeight: 700
         )
     }
 

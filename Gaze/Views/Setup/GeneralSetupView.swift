@@ -42,47 +42,50 @@ struct GeneralSetupView: View {
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { settingsManager.settings.launchAtLogin },
-                            set: { settingsManager.settings.launchAtLogin = $0 }
-                        ))
-                            .labelsHidden()
-                            .onChange(of: settingsManager.settings.launchAtLogin) { isEnabled in
-                                applyLaunchAtLoginSetting(enabled: isEnabled)
-                            }
+                        Toggle(
+                            "",
+                            isOn: Binding(
+                                get: { settingsManager.settings.launchAtLogin },
+                                set: { settingsManager.settings.launchAtLogin = $0 }
+                            )
+                        )
+                        .labelsHidden()
+                        .onChange(of: settingsManager.settings.launchAtLogin) { isEnabled in
+                            applyLaunchAtLoginSetting(enabled: isEnabled)
+                        }
                     }
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     // Software Updates Section
                     #if !APPSTORE
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Software Updates")
-                                .font(.headline)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Software Updates")
+                                    .font(.headline)
 
-                            if let lastCheck = updateManager.lastUpdateCheckDate {
-                                Text("Last checked: \(lastCheck, style: .relative)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .italic()
-                            } else {
-                                Text("Never checked for updates")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .italic()
+                                if let lastCheck = updateManager.lastUpdateCheckDate {
+                                    Text("Last checked: \(lastCheck, style: .relative)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .italic()
+                                } else {
+                                    Text("Never checked for updates")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .italic()
+                                }
                             }
-                        }
 
-                        Spacer()
+                            Spacer()
 
-                        Button("Check for Updates Now") {
-                            updateManager.checkForUpdates()
-                        }
-                        .buttonStyle(.bordered)
+                            Button("Check for Updates Now") {
+                                updateManager.checkForUpdates()
+                            }
+                            .buttonStyle(.bordered)
 
-                        Toggle(
-                            "Automatically check for updates",
+                            Toggle(
+                                "Automatically check for updates",
                                 isOn: $updateManager.automaticallyChecksForUpdates
                             )
                             .labelsHidden()
@@ -119,10 +122,12 @@ struct GeneralSetupView: View {
                                         Text(size.displayName)
                                             .font(.caption)
                                             .fontWeight(
-                                                settingsManager.settings.subtleReminderSize == size ? .semibold : .regular
+                                                settingsManager.settings.subtleReminderSize == size
+                                                    ? .semibold : .regular
                                             )
                                             .foregroundColor(
-                                                settingsManager.settings.subtleReminderSize == size ? .primary : .secondary)
+                                                settingsManager.settings.subtleReminderSize == size
+                                                    ? .primary : .secondary)
                                     }
                                     .frame(maxWidth: .infinity, minHeight: 60)
                                     .padding(.vertical, 12)
@@ -139,75 +144,74 @@ struct GeneralSetupView: View {
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                    // Links Section
-                    VStack(spacing: 12) {
-                        Text("Support & Contribute")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    #if !APPSTORE
+                        VStack(spacing: 12) {
+                            Text("Support & Contribute")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                        // GitHub Link
-                        Button(action: {
-                            if let url = URL(string: "https://github.com/mikefreno/Gaze") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "chevron.left.forwardslash.chevron.right")
-                                    .font(.title3)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("View on GitHub")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Text("Star the repo, report issues, contribute")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                            // GitHub Link
+                            Button(action: {
+                                if let url = URL(string: "https://github.com/mikefreno/Gaze") {
+                                    NSWorkspace.shared.open(url)
                                 }
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption)
+                            }) {
+                                HStack {
+                                    Image(systemName: "chevron.left.forwardslash.chevron.right")
+                                        .font(.title3)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("View on GitHub")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                        Text("Star the repo, report issues, contribute")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .contentShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .buttonStyle(.plain)
+                            .buttonStyle(.plain)
                             .glassEffectIfAvailable(
                                 GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
 
-                        #if !APPSTORE
-                        Button(action: {
-                            if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
-                                NSWorkspace.shared.open(url)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: "cup.and.saucer.fill")
-                                    .font(.title3)
-                                    .foregroundColor(.brown)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Buy Me a Coffee")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                    Text("Support development of Gaze")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                            Button(action: {
+                                if let url = URL(string: "https://buymeacoffee.com/mikefreno") {
+                                    NSWorkspace.shared.open(url)
                                 }
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.caption)
+                            }) {
+                                HStack {
+                                    Image(systemName: "cup.and.saucer.fill")
+                                        .font(.title3)
+                                        .foregroundColor(.brown)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Buy Me a Coffee")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                        Text("Support development of Gaze")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.caption)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .cornerRadius(10)
+                                .contentShape(RoundedRectangle(cornerRadius: 10))
                             }
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .cornerRadius(10)
-                            .contentShape(RoundedRectangle(cornerRadius: 10))
+                            .buttonStyle(.plain)
+                            .glassEffectIfAvailable(
+                                GlassStyle.regular.tint(.orange).interactive(),
+                                in: .rect(cornerRadius: 10))
                         }
-                        .buttonStyle(.plain)
-                        .glassEffectIfAvailable(
-                            GlassStyle.regular.tint(.orange).interactive(),
-                            in: .rect(cornerRadius: 10))
-                        #endif
-                    }
-                    .padding()
+                        .padding()
+                    #endif
                 }
             }
             Spacer()

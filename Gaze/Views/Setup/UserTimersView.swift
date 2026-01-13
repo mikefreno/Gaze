@@ -14,7 +14,6 @@ struct UserTimersView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed header section
             VStack(spacing: 16) {
                 Image(systemName: "clock.badge.checkmark")
                     .font(.system(size: 60))
@@ -25,7 +24,6 @@ struct UserTimersView: View {
             .padding(.top, 20)
             .padding(.bottom, 30)
 
-            // Vertically centered content
             Spacer()
             VStack(spacing: 30) {
                 Text("Create your own reminder schedules")
@@ -40,22 +38,25 @@ struct UserTimersView: View {
                         .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.purple), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.purple), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text("Active Timers (\(userTimers.count)/3)")
-                            .font(.headline)
-                        Spacer()
-                        if userTimers.count < 3 {
-                            Button(action: {
-                                showingAddTimer = true
-                            }) {
-                                Label("Add Timer", systemImage: "plus.circle.fill")
+                    #if APPSTORE
+                        HStack {
+                            Text("Active Timers (\(userTimers.count)/3)")
+                                .font(.headline)
+                            Spacer()
+                            if userTimers.count < 3 {
+                                Button(action: {
+                                    showingAddTimer = true
+                                }) {
+                                    Label("Add Timer", systemImage: "plus.circle.fill")
+                                }
+                                .buttonStyle(.borderedProminent)
                             }
-                            .buttonStyle(.borderedProminent)
                         }
-                    }
+                    #endif
 
                     if userTimers.isEmpty {
                         VStack(spacing: 12) {
@@ -156,9 +157,11 @@ struct UserTimerRow: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                Text("\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                Text(
+                    "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
 
             Spacer()
@@ -188,7 +191,8 @@ struct UserTimerRow: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: {
-                    Text("Are you sure you want to delete this timer? This action cannot be undone.")
+                    Text(
+                        "Are you sure you want to delete this timer? This action cannot be undone.")
                 }
             }
         }
@@ -209,7 +213,7 @@ struct UserTimerEditSheet: View {
     var onSave: (UserTimer) -> Void
     var onCancel: () -> Void
 
-@State private var title: String
+    @State private var title: String
     @State private var message: String
     @State private var type: UserTimerType
     @State private var timeOnScreen: Int
@@ -297,11 +301,9 @@ struct UserTimerEditSheet: View {
                     }
                     .pickerStyle(.segmented)
                     .onChange(of: type) { newType in
-                        // When switching to subtle, set timeOnScreen to 3 (not user-configurable)
                         if newType == .subtle {
                             timeOnScreen = 3
                         } else if timeOnScreen == 3 {
-                            // When switching from subtle to overlay, set to default overlay duration
                             timeOnScreen = 10
                         }
                     }

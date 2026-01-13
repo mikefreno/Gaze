@@ -119,6 +119,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     private func showReminder(_ event: ReminderEvent) {
         let contentView: AnyView
+        let requiresFocus: Bool
         
         switch event {
         case .lookAwayTriggered(let countdownSeconds):
@@ -127,6 +128,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     self?.timerEngine?.dismissReminder()
                 }
             )
+            requiresFocus = true
         case .blinkTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             contentView = AnyView(
@@ -134,6 +136,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     self?.timerEngine?.dismissReminder()
                 }
             )
+            requiresFocus = false
         case .postureTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             contentView = AnyView(
@@ -141,6 +144,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                     self?.timerEngine?.dismissReminder()
                 }
             )
+            requiresFocus = false
         case .userTimerTriggered(let timer):
             if timer.type == .overlay {
                 contentView = AnyView(
@@ -148,6 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                         self?.timerEngine?.dismissReminder()
                     }
                 )
+                requiresFocus = true
             } else {
                 let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
                 contentView = AnyView(
@@ -155,21 +160,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                         self?.timerEngine?.dismissReminder()
                     }
                 )
+                requiresFocus = false
             }
         }
         
-        showReminderWindow(contentView)
+        showReminderWindow(contentView, requiresFocus: requiresFocus)
     }
     
-    private func showReminderWindow(_ content: AnyView) {
+    private func showReminderWindow(_ content: AnyView, requiresFocus: Bool) {
         guard let screen = NSScreen.main else { return }
         
-        let window = KeyableWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
+        let window: NSWindow
+        if requiresFocus {
+            window = KeyableWindow(
+                contentRect: screen.frame,
+                styleMask: [.borderless, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+        } else {
+            window = NonKeyWindow(
+                contentRect: screen.frame,
+                styleMask: [.borderless, .fullSizeContentView],
+                backing: .buffered,
+                defer: false
+            )
+        }
         
         window.identifier = WindowIdentifiers.reminder
         window.level = .floating
@@ -177,13 +193,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.acceptsMouseMovedEvents = true
-        window.makeFirstResponder(window.contentView)
+        window.acceptsMouseMovedEvents = !requiresFocus
+        window.ignoresMouseEvents = !requiresFocus
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        
+        if requiresFocus {
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+        } else {
+            window.orderFront(nil)
+        }
         
         reminderWindowController = windowController
     }
@@ -306,5 +327,16 @@ class KeyableWindow: NSWindow {
     
     override var canBecomeMain: Bool {
         return true
+    }
+}
+
+// Non-key window class for subtle reminders that don't steal focus
+class NonKeyWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return false
+    }
+    
+    override var canBecomeMain: Bool {
+        return false
     }
 }

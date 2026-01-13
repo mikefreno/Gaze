@@ -12,11 +12,16 @@ NC='\033[0m' # No Color
 INFO_PLIST="Gaze/Info.plist"
 ENTITLEMENTS="Gaze/Gaze.entitlements"
 PROJECT_FILE="Gaze.xcodeproj/project.pbxproj"
+PACKAGE_RESOLVED="Gaze.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved"
 BACKUP_DIR=".distribution_configs"
 
 # Distribution configurations
 APPSTORE_CONFIG="${BACKUP_DIR}/appstore"
 SELF_CONFIG="${BACKUP_DIR}/self"
+
+# Sparkle package details
+SPARKLE_REPO="https://github.com/sparkle-project/Sparkle"
+SPARKLE_VERSION="2.8.1"
 
 # Function to print colored messages
 print_info() {
@@ -33,6 +38,113 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}✗${NC} $1"
+}
+
+# Function to check if Sparkle is in Package.resolved
+has_sparkle_package() {
+    if [ -f "${PACKAGE_RESOLVED}" ]; then
+        grep -q "Sparkle" "${PACKAGE_RESOLVED}"
+        return $?
+    fi
+    return 1
+}
+
+# Function to remove Sparkle from Xcode project
+remove_sparkle_package() {
+    print_info "Removing Sparkle package dependency..."
+    
+    # Check if Sparkle exists in the project
+    if ! has_sparkle_package && ! grep -q "Sparkle" "${PROJECT_FILE}"; then
+        print_info "Sparkle already removed"
+        return 0
+    fi
+    
+    # Backup project file
+    cp "${PROJECT_FILE}" "${PROJECT_FILE}.backup"
+    
+    # Remove Sparkle from Package.resolved
+    if [ -f "${PACKAGE_RESOLVED}" ]; then
+        # Create a temp file without Sparkle entry
+        python3 -c "
+import json
+import sys
+
+try:
+    with open('${PACKAGE_RESOLVED}', 'r') as f:
+        data = json.load(f)
+    
+    # Filter out Sparkle from pins
+    if 'pins' in data:
+        data['pins'] = [pin for pin in data['pins'] if 'sparkle' not in pin.get('identity', '').lower()]
+    
+    with open('${PACKAGE_RESOLVED}', 'w') as f:
+        json.dump(data, f, indent=2)
+    
+    print('✓ Updated Package.resolved')
+except Exception as e:
+    print(f'Error: {e}', file=sys.stderr)
+    sys.exit(1)
+"
+        if [ $? -ne 0 ]; then
+            print_error "Failed to update Package.resolved"
+            mv "${PROJECT_FILE}.backup" "${PROJECT_FILE}"
+            return 1
+        fi
+    fi
+    
+    # Remove Sparkle references from project.pbxproj
+    # This removes: package references, product dependencies, and framework build files
+    
+    # Remove XCRemoteSwiftPackageReference for Sparkle
+    sed -i '' '/XCRemoteSwiftPackageReference "Sparkle"/,/};/d' "${PROJECT_FILE}"
+    
+    # Remove XCSwiftPackageProductDependency for Sparkle
+    sed -i '' '/XCSwiftPackageProductDependency "Sparkle"/,/};/d' "${PROJECT_FILE}"
+    
+    # Remove Sparkle from packageProductDependencies array
+    sed -i '' '/\/\* Sparkle \*\/,/d' "${PROJECT_FILE}"
+    
+    # Remove Sparkle from Frameworks build phase
+    sed -i '' '/Sparkle in Frameworks/d' "${PROJECT_FILE}"
+    
+    # Clean up empty lines
+    sed -i '' '/^[[:space:]]*$/d' "${PROJECT_FILE}"
+    
+    rm -f "${PROJECT_FILE}.backup"
+    
+    print_success "Removed Sparkle package dependency"
+    print_info "Xcode will resolve packages on next build"
+}
+
+# Function to add Sparkle to Xcode project
+add_sparkle_package() {
+    print_info "Adding Sparkle package dependency..."
+    
+    # Check if Sparkle already exists
+    if has_sparkle_package || grep -q "Sparkle" "${PROJECT_FILE}"; then
+        print_info "Sparkle already present"
+        return 0
+    fi
+    
+    print_warning "Sparkle package must be added manually in Xcode:"
+    echo ""
+    echo "  1. Open Gaze.xcodeproj in Xcode"
+    echo "  2. Select the project in the navigator"
+    echo "  3. Go to 'Package Dependencies' tab"
+    echo "  4. Click '+' button"
+    echo "  5. Enter: ${SPARKLE_REPO}"
+    echo "  6. Select version ${SPARKLE_VERSION}"
+    echo "  7. Click 'Add Package'"
+    echo "  8. Select 'Sparkle' product and add to Gaze target"
+    echo ""
+    print_info "Or run this from command line:"
+    echo "  xed Gaze.xcodeproj"
+    echo ""
+    
+    # Note: Programmatically adding Swift packages via pbxproj is extremely complex
+    # and error-prone. Manual addition via Xcode UI is recommended.
+    
+    return 0
 }
 
 # Function to create backup directories
@@ -233,6 +345,13 @@ show_current_mode() {
         echo "  Build Settings: ${GREEN}Self-Distribution${NC} (no APPSTORE flag)"
     fi
     
+    # Check for Sparkle package dependency
+    if has_sparkle_package || grep -q "Sparkle" "${PROJECT_FILE}" 2>/dev/null; then
+        echo "  Package Dependency: ${GREEN}Self-Distribution${NC} (has Sparkle)"
+    else
+        echo "  Package Dependency: ${BLUE}App Store${NC} (no Sparkle)"
+    fi
+    
     echo ""
 }
 
@@ -246,18 +365,17 @@ switch_to_appstore() {
         backup_current_config "self-distribution" "${SELF_CONFIG}"
     fi
     
+    # Remove Sparkle package dependency
+    remove_sparkle_package
+    echo ""
+    
     # Restore App Store config
     restore_config "App Store" "${APPSTORE_CONFIG}"
     
     echo ""
     print_success "Switched to App Store distribution mode"
-    print_warning "Remember to add the Run Script phase to remove Sparkle framework!"
-    echo ""
-    echo "Run Script to add in Xcode Build Phases:"
-    echo '#!/bin/bash'
-    echo 'if [[ "${OTHER_SWIFT_FLAGS}" == *"APPSTORE"* ]]; then'
-    echo '    rm -rf "${BUILT_PRODUCTS_DIR}/${FRAMEWORKS_FOLDER_PATH}/Sparkle.framework"'
-    echo 'fi'
+    print_info "Sparkle framework has been removed from dependencies"
+    print_info "You can now archive and submit to App Store"
 }
 
 # Function to switch to self-distribution configuration
@@ -274,8 +392,18 @@ switch_to_self() {
     restore_config "self-distribution" "${SELF_CONFIG}"
     
     echo ""
+    
+    # Add Sparkle package dependency
+    add_sparkle_package
+    
+    echo ""
     print_success "Switched to self-distribution mode"
     print_info "Sparkle auto-updates enabled"
+    
+    if ! has_sparkle_package; then
+        echo ""
+        print_warning "Remember to add Sparkle package in Xcode (see instructions above)"
+    fi
 }
 
 # Function to show usage
@@ -288,11 +416,13 @@ ${GREEN}Usage:${NC}
 
 ${GREEN}Commands:${NC}
   appstore    Switch to App Store distribution configuration
+              - Removes Sparkle package dependency from project
               - Removes Sparkle keys from Info.plist
               - Removes Sparkle entitlements
               - Adds APPSTORE compiler flag
               
   self        Switch to self-distribution configuration
+              - Prompts to add Sparkle package dependency
               - Adds Sparkle keys to Info.plist
               - Adds Sparkle entitlements for XPC services
               - Removes APPSTORE compiler flag

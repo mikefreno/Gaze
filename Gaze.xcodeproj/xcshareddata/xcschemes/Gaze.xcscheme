@@ -98,23 +98,5 @@
    <ArchiveAction
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES">
-      <PostActions>
-         <ExecutionAction
-            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
-            <ActionContent
-               title = "Run Script"
-               scriptText = "if [[ &quot;${OTHER_SWIFT_FLAGS}&quot; == *&quot;APPSTORE&quot;* ]]; then&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    echo &quot;&#x1f5d1;&#xfe0f;  Removing Sparkle from archived app...&quot;&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    &#10;    SPARKLE_PATH=&quot;${ARCHIVE_PATH}/Products/Applications/Gaze.app/Contents/Frameworks/Sparkle.framework&quot;&#10;    &#10;    if [ -d &quot;$SPARKLE_PATH&quot; ]; then&#10;        echo &quot;&#x1f4c2; Found Sparkle at: $SPARKLE_PATH&quot;&#10;        &#10;        # Make writable and remove&#10;        chmod -R u+w &quot;$SPARKLE_PATH&quot; 2&gt;/dev/null || true&#10;        chflags -R nouchg &quot;$SPARKLE_PATH&quot; 2&gt;/dev/null || true&#10;        rm -rf &quot;$SPARKLE_PATH&quot;&#10;        &#10;        if [ ! -d &quot;$SPARKLE_PATH&quot; ]; then&#10;            echo &quot;&#x2705; Sparkle framework removed successfully!&quot;&#10;        else&#10;            echo &quot;&#x274c; ERROR: Could not remove Sparkle framework&quot;&#10;            echo &quot;   This will cause App Store validation to fail&quot;&#10;            exit 1&#10;        fi&#10;    else&#10;        echo &quot;&#x2139;&#xfe0f;  Sparkle framework not found (already removed)&quot;&#10;    fi&#10;    &#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    echo &quot;&#x2705; Archive ready for App Store distribution&quot;&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;else&#10;    echo &quot;&#x2713; Self-distribution archive - Sparkle retained&quot;&#10;fi&#10;">
-               <EnvironmentBuildable>
-                  <BuildableReference
-                     BuildableIdentifier = "primary"
-                     BlueprintIdentifier = "27A21B3B2F0F69DC0018C4F3"
-                     BuildableName = "Gaze.app"
-                     BlueprintName = "Gaze"
-                     ReferencedContainer = "container:Gaze.xcodeproj">
-                  </BuildableReference>
-               </EnvironmentBuildable>
-            </ActionContent>
-         </ExecutionAction>
-      </PostActions>
    </ArchiveAction>
 </Scheme>

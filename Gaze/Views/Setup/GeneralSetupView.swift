@@ -57,7 +57,6 @@ struct GeneralSetupView: View {
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                    // Software Updates Section
                     #if !APPSTORE
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {

@@ -191,9 +191,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         
-        // Allow mouse events for all reminders (needed for dismiss button)
-        window.acceptsMouseMovedEvents = true
-        window.ignoresMouseEvents = false
+        // Allow mouse events only for overlay reminders (they need dismiss button)
+        // Subtle reminders should be completely transparent to mouse input
+        window.acceptsMouseMovedEvents = requiresFocus
+        window.ignoresMouseEvents = !requiresFocus
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)

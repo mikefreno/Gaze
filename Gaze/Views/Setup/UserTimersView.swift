@@ -42,21 +42,25 @@ struct UserTimersView: View {
                     GlassStyle.regular.tint(.purple), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 12) {
-                    #if APPSTORE
-                        HStack {
-                            Text("Active Timers (\(userTimers.count)/3)")
-                                .font(.headline)
-                            Spacer()
-                            if userTimers.count < 3 {
-                                Button(action: {
-                                    showingAddTimer = true
-                                }) {
-                                    Label("Add Timer", systemImage: "plus.circle.fill")
-                                }
-                                .buttonStyle(.borderedProminent)
+                    /*#if APPSTORE || DEBUG*/
+                    // we will add these back in when payment method is established - and checked
+                    // for
+                    HStack {
+                        Text("Active Timers (\(userTimers.count)/3)")
+                            .font(.headline)
+                        Spacer()
+                        if userTimers.count < 3 {
+                            Button(action: {
+                                showingAddTimer = true
+                            }) {
+                                Label("Add Timer", systemImage: "plus.circle.fill")
                             }
+                            .buttonStyle(.borderedProminent)
                         }
-                    #endif
+                    }
+                    /*#else*/
+                    /*Text("Custom Timers avilable in App Store version only")*/
+                    /*#endif*/
 
                     if userTimers.isEmpty {
                         VStack(spacing: 12) {

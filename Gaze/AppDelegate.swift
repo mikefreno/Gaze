@@ -20,28 +20,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var hasStartedTimers = false
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        print("🚀 Gaze: applicationDidFinishLaunching")
+        
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
+        print("✓ Activation policy set to accessory")
         
         timerEngine = TimerEngine(settingsManager: settingsManager)
+        print("✓ TimerEngine initialized")
         
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
+            print("✓ Onboarding completed, initializing UpdateManager")
             updateManager = UpdateManager.shared
+        } else {
+            print("ℹ️ Onboarding not completed, skipping UpdateManager")
         }
         
         // Detect App Store version asynchronously at launch
         Task {
-            await settingsManager.detectAppStoreVersion()
+            do {
+                print("🔍 Detecting App Store version...")
+                await settingsManager.detectAppStoreVersion()
+                print("✓ App Store detection complete: \(settingsManager.settings.isAppStoreVersion)")
+            } catch {
+                print("⚠️ Failed to detect App Store version: \(error)")
+            }
         }
         
         setupLifecycleObservers()
+        print("✓ Lifecycle observers set up")
+        
         observeSettingsChanges()
+        print("✓ Settings change observer set up")
         
         // Start timers if onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
+            print("▶️ Starting timers (onboarding complete)")
             startTimers()
+        } else {
+            print("⏸️ Timers not started (onboarding incomplete)")
         }
+        
+        print("✅ Gaze: Launch complete")
     }
     
     func onboardingCompleted() {

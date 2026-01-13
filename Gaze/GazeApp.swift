@@ -13,12 +13,18 @@ struct GazeApp: App {
     @StateObject private var settingsManager = SettingsManager.shared
 
     init() {
+        print("🚀 GazeApp: init")
+        
         // Handle test launch arguments
         if TestingEnvironment.shouldSkipOnboarding {
+            print("ℹ️ Test mode: Skipping onboarding")
             SettingsManager.shared.settings.hasCompletedOnboarding = true
         } else if TestingEnvironment.shouldResetOnboarding {
+            print("ℹ️ Test mode: Resetting onboarding")
             SettingsManager.shared.settings.hasCompletedOnboarding = false
         }
+        
+        print("✓ GazeApp initialized")
     }
 
     var body: some Scene {

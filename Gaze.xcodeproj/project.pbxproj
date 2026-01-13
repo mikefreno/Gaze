@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		275915892F132A9200D0E60D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B12F10B1FC00E00DBC /* Lottie */; };
-		275915902F132B0000D0E60D /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B22F10B20000E00DBC /* Sparkle */; };
+		275915902F132B0000D0E60D /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B22F10B20000E00DBC /* Sparkle */; settings = {ATTRIBUTES = (Weak, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */

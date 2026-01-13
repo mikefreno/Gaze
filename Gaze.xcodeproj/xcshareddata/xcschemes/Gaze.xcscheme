@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Scheme
+   LastUpgradeVersion = "2620"
+   version = "1.7">
+   <BuildAction
+      parallelizeBuildables = "YES"
+      buildImplicitDependencies = "YES"
+      buildArchitectures = "Automatic">
+      <BuildActionEntries>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "27A21B3B2F0F69DC0018C4F3"
+               BuildableName = "Gaze.app"
+               BlueprintName = "Gaze"
+               ReferencedContainer = "container:Gaze.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+      </BuildActionEntries>
+   </BuildAction>
+   <TestAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "27A21B482F0F69DD0018C4F3"
+               BuildableName = "GazeTests.xctest"
+               BlueprintName = "GazeTests"
+               ReferencedContainer = "container:Gaze.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "27A21B522F0F69DD0018C4F3"
+               BuildableName = "GazeUITests.xctest"
+               BlueprintName = "GazeUITests"
+               ReferencedContainer = "container:Gaze.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
+   </TestAction>
+   <LaunchAction
+      buildConfiguration = "Debug"
+      selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+      selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+      launchStyle = "0"
+      useCustomWorkingDirectory = "NO"
+      ignoresPersistentStateOnLaunch = "NO"
+      debugDocumentVersioning = "YES"
+      debugServiceExtension = "internal"
+      allowLocationSimulation = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "27A21B3B2F0F69DC0018C4F3"
+            BuildableName = "Gaze.app"
+            BlueprintName = "Gaze"
+            ReferencedContainer = "container:Gaze.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </LaunchAction>
+   <ProfileAction
+      buildConfiguration = "Release"
+      shouldUseLaunchSchemeArgsEnv = "YES"
+      savedToolIdentifier = ""
+      useCustomWorkingDirectory = "NO"
+      debugDocumentVersioning = "YES">
+      <BuildableProductRunnable
+         runnableDebuggingMode = "0">
+         <BuildableReference
+            BuildableIdentifier = "primary"
+            BlueprintIdentifier = "27A21B3B2F0F69DC0018C4F3"
+            BuildableName = "Gaze.app"
+            BlueprintName = "Gaze"
+            ReferencedContainer = "container:Gaze.xcodeproj">
+         </BuildableReference>
+      </BuildableProductRunnable>
+   </ProfileAction>
+   <AnalyzeAction
+      buildConfiguration = "Debug">
+   </AnalyzeAction>
+   <ArchiveAction
+      buildConfiguration = "Release"
+      revealArchiveInOrganizer = "YES">
+      <PostActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Run Script"
+               scriptText = "if [[ &quot;${OTHER_SWIFT_FLAGS}&quot; == *&quot;APPSTORE&quot;* ]]; then&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    echo &quot;&#x1f5d1;&#xfe0f;  Removing Sparkle from archived app...&quot;&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    &#10;    SPARKLE_PATH=&quot;${ARCHIVE_PATH}/Products/Applications/Gaze.app/Contents/Frameworks/Sparkle.framework&quot;&#10;    &#10;    if [ -d &quot;$SPARKLE_PATH&quot; ]; then&#10;        echo &quot;&#x1f4c2; Found Sparkle at: $SPARKLE_PATH&quot;&#10;        &#10;        # Make writable and remove&#10;        chmod -R u+w &quot;$SPARKLE_PATH&quot; 2&gt;/dev/null || true&#10;        chflags -R nouchg &quot;$SPARKLE_PATH&quot; 2&gt;/dev/null || true&#10;        rm -rf &quot;$SPARKLE_PATH&quot;&#10;        &#10;        if [ ! -d &quot;$SPARKLE_PATH&quot; ]; then&#10;            echo &quot;&#x2705; Sparkle framework removed successfully!&quot;&#10;        else&#10;            echo &quot;&#x274c; ERROR: Could not remove Sparkle framework&quot;&#10;            echo &quot;   This will cause App Store validation to fail&quot;&#10;            exit 1&#10;        fi&#10;    else&#10;        echo &quot;&#x2139;&#xfe0f;  Sparkle framework not found (already removed)&quot;&#10;    fi&#10;    &#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;    echo &quot;&#x2705; Archive ready for App Store distribution&quot;&#10;    echo &quot;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&#x2501;&quot;&#10;else&#10;    echo &quot;&#x2713; Self-distribution archive - Sparkle retained&quot;&#10;fi&#10;">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "27A21B3B2F0F69DC0018C4F3"
+                     BuildableName = "Gaze.app"
+                     BlueprintName = "Gaze"
+                     ReferencedContainer = "container:Gaze.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PostActions>
+   </ArchiveAction>
+</Scheme>

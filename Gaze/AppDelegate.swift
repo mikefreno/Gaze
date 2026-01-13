@@ -239,6 +239,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         // Post notification to close menu bar popover
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
         
+        // Dismiss overlay reminders to prevent them from blocking settings window
+        // Overlay reminders are at .floating level which would sit above settings
+        dismissOverlayReminder()
+        
         // Small delay to allow menu bar to close before opening settings
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.openSettingsWindow(tab: tab)
@@ -248,6 +252,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     // Public method to reopen onboarding window
     func openOnboarding() {
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
+        
+        // Dismiss overlay reminders to prevent blocking onboarding window
+        dismissOverlayReminder()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self else { return }

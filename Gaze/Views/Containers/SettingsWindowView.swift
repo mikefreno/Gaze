@@ -37,14 +37,16 @@ struct SettingsWindowView: View {
                         Label("Posture", systemImage: "figure.stand")
                     }
 
-                UserTimersView(userTimers: Binding(
-                    get: { settingsManager.settings.userTimers },
-                    set: { settingsManager.settings.userTimers = $0 }
-                ))
-                    .tag(3)
-                    .tabItem {
-                        Label("User Timers", systemImage: "plus.circle")
-                    }
+                UserTimersView(
+                    userTimers: Binding(
+                        get: { settingsManager.settings.userTimers },
+                        set: { settingsManager.settings.userTimers = $0 }
+                    )
+                )
+                .tag(3)
+                .tabItem {
+                    Label("User Timers", systemImage: "plus.circle")
+                }
 
                 GeneralSetupView(
                     settingsManager: settingsManager,
@@ -60,12 +62,12 @@ struct SettingsWindowView: View {
 
             HStack {
                 #if DEBUG
-                Button("Retrigger Onboarding") {
-                    retriggerOnboarding()
-                }
-                .buttonStyle(.bordered)
+                    Button("Retrigger Onboarding") {
+                        retriggerOnboarding()
+                    }
+                    .buttonStyle(.bordered)
                 #endif
-                
+
                 Spacer()
 
                 Button("Close") {
@@ -94,21 +96,21 @@ struct SettingsWindowView: View {
             window.close()
         }
     }
-    
+
     #if DEBUG
-    private func retriggerOnboarding() {
-        // Close settings window first
-        closeWindow()
-        
-        // Get AppDelegate and open onboarding
-        if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-            // Reset onboarding state so it shows as fresh
-            settingsManager.settings.hasCompletedOnboarding = false
-            
-            // Open onboarding window
-            appDelegate.openOnboarding()
+        private func retriggerOnboarding() {
+            // Close settings window first
+            closeWindow()
+
+            // Get AppDelegate and open onboarding
+            if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
+                // Reset onboarding state so it shows as fresh
+                settingsManager.settings.hasCompletedOnboarding = false
+
+                // Open onboarding window
+                appDelegate.openOnboarding()
+            }
         }
-    }
     #endif
 }
 

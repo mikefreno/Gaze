@@ -32,9 +32,9 @@ final class TimerEngineTests: XCTestCase {
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 3)
-        XCTAssertNotNil(timerEngine.timerStates[.lookAway])
-        XCTAssertNotNil(timerEngine.timerStates[.blink])
-        XCTAssertNotNil(timerEngine.timerStates[.posture])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.lookAway)])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.posture)])
     }
     
     func testDisabledTimersNotInitialized() {
@@ -43,16 +43,16 @@ final class TimerEngineTests: XCTestCase {
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 2)
-        XCTAssertNotNil(timerEngine.timerStates[.lookAway])
-        XCTAssertNil(timerEngine.timerStates[.blink])
-        XCTAssertNotNil(timerEngine.timerStates[.posture])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.lookAway)])
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.posture)])
     }
     
     func testTimerStateInitialValues() {
         timerEngine.start()
         
-        let lookAwayState = timerEngine.timerStates[.lookAway]!
-        XCTAssertEqual(lookAwayState.type, .lookAway)
+        let lookAwayState = timerEngine.timerStates[.builtIn(.lookAway)]!
+        XCTAssertEqual(lookAwayState.identifier, .builtIn(.lookAway))
         XCTAssertEqual(lookAwayState.remainingSeconds, 20 * 60)
         XCTAssertFalse(lookAwayState.isPaused)
         XCTAssertTrue(lookAwayState.isActive)
@@ -81,33 +81,33 @@ final class TimerEngineTests: XCTestCase {
         settingsManager.settings.lookAwayTimer.intervalSeconds = 60
         timerEngine.start()
         
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 10
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 10
         
-        timerEngine.skipNext(type: .lookAway)
+        timerEngine.skipNext(identifier: .builtIn(.lookAway))
         
-        XCTAssertEqual(timerEngine.timerStates[.lookAway]?.remainingSeconds, 60)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 60)
     }
     
     func testGetTimeRemaining() {
         timerEngine.start()
         
-        let timeRemaining = timerEngine.getTimeRemaining(for: .lookAway)
+        let timeRemaining = timerEngine.getTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(timeRemaining, TimeInterval(20 * 60))
     }
     
     func testGetFormattedTimeRemaining() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 125
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 125
         
-        let formatted = timerEngine.getFormattedTimeRemaining(for: .lookAway)
+        let formatted = timerEngine.getFormattedTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(formatted, "2:05")
     }
     
     func testGetFormattedTimeRemainingWithHours() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 3665
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 3665
         
-        let formatted = timerEngine.getFormattedTimeRemaining(for: .lookAway)
+        let formatted = timerEngine.getFormattedTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(formatted, "1:01:05")
     }
     
@@ -121,13 +121,13 @@ final class TimerEngineTests: XCTestCase {
     
     func testDismissReminderResetsTimer() {
         timerEngine.start()
-        timerEngine.timerStates[.blink]?.remainingSeconds = 0
+        timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds = 0
         timerEngine.activeReminder = .blinkTriggered
         
         timerEngine.dismissReminder()
         
         XCTAssertNil(timerEngine.activeReminder)
-        XCTAssertEqual(timerEngine.timerStates[.blink]?.remainingSeconds, 5 * 60)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 5 * 60)
     }
     
     func testDismissLookAwayResumesTimers() {
@@ -145,7 +145,7 @@ final class TimerEngineTests: XCTestCase {
     func testTriggerReminderForLookAway() {
         timerEngine.start()
         
-        timerEngine.triggerReminder(for: .lookAway)
+        timerEngine.triggerReminder(for: .builtIn(.lookAway))
         
         XCTAssertNotNil(timerEngine.activeReminder)
         if case .lookAwayTriggered(let countdown) = timerEngine.activeReminder {
@@ -162,7 +162,7 @@ final class TimerEngineTests: XCTestCase {
     func testTriggerReminderForBlink() {
         timerEngine.start()
         
-        timerEngine.triggerReminder(for: .blink)
+        timerEngine.triggerReminder(for: .builtIn(.blink))
         
         XCTAssertNotNil(timerEngine.activeReminder)
         if case .blinkTriggered = timerEngine.activeReminder {
@@ -175,7 +175,7 @@ final class TimerEngineTests: XCTestCase {
     func testTriggerReminderForPosture() {
         timerEngine.start()
         
-        timerEngine.triggerReminder(for: .posture)
+        timerEngine.triggerReminder(for: .builtIn(.posture))
         
         XCTAssertNotNil(timerEngine.activeReminder)
         if case .postureTriggered = timerEngine.activeReminder {
@@ -186,58 +186,58 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testGetTimeRemainingForNonExistentTimer() {
-        let timeRemaining = timerEngine.getTimeRemaining(for: .lookAway)
+        let timeRemaining = timerEngine.getTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(timeRemaining, 0)
     }
     
     func testGetFormattedTimeRemainingZeroSeconds() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 0
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 0
         
-        let formatted = timerEngine.getFormattedTimeRemaining(for: .lookAway)
+        let formatted = timerEngine.getFormattedTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(formatted, "0:00")
     }
     
     func testGetFormattedTimeRemainingLessThanMinute() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 45
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 45
         
-        let formatted = timerEngine.getFormattedTimeRemaining(for: .lookAway)
+        let formatted = timerEngine.getFormattedTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(formatted, "0:45")
     }
     
     func testGetFormattedTimeRemainingExactHour() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 3600
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 3600
         
-        let formatted = timerEngine.getFormattedTimeRemaining(for: .lookAway)
+        let formatted = timerEngine.getFormattedTimeRemaining(for: .builtIn(.lookAway))
         XCTAssertEqual(formatted, "1:00:00")
     }
     
     func testMultipleStartCallsResetTimers() {
         timerEngine.start()
-        timerEngine.timerStates[.lookAway]?.remainingSeconds = 100
+        timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 100
         
         timerEngine.start()
         
-        XCTAssertEqual(timerEngine.timerStates[.lookAway]?.remainingSeconds, 20 * 60)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 20 * 60)
     }
     
     func testSkipNextPreservesPausedState() {
         timerEngine.start()
         timerEngine.pause()
         
-        timerEngine.skipNext(type: .lookAway)
+        timerEngine.skipNext(identifier: .builtIn(.lookAway))
         
-        XCTAssertTrue(timerEngine.timerStates[.lookAway]?.isPaused ?? false)
+        XCTAssertTrue(timerEngine.timerStates[.builtIn(.lookAway)]?.isPaused ?? false)
     }
     
     func testSkipNextPreservesActiveState() {
         timerEngine.start()
         
-        timerEngine.skipNext(type: .lookAway)
+        timerEngine.skipNext(identifier: .builtIn(.lookAway))
         
-        XCTAssertTrue(timerEngine.timerStates[.lookAway]?.isActive ?? false)
+        XCTAssertTrue(timerEngine.timerStates[.builtIn(.lookAway)]?.isActive ?? false)
     }
     
     func testDismissReminderWithNoActiveReminder() {
@@ -279,8 +279,8 @@ final class TimerEngineTests: XCTestCase {
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 3)
-        for timerType in TimerType.allCases {
-            XCTAssertNotNil(timerEngine.timerStates[timerType])
+        for builtInTimer in TimerType.allCases {
+            XCTAssertNotNil(timerEngine.timerStates[.builtIn(builtInTimer)])
         }
     }
     
@@ -302,8 +302,8 @@ final class TimerEngineTests: XCTestCase {
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 2)
-        XCTAssertNotNil(timerEngine.timerStates[.lookAway])
-        XCTAssertNil(timerEngine.timerStates[.blink])
-        XCTAssertNotNil(timerEngine.timerStates[.posture])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.lookAway)])
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.posture)])
     }
 }

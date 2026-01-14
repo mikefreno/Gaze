@@ -143,7 +143,6 @@ struct MenuBarContentView: View {
 
             Divider()
 
-            // Quit
             Button(action: onQuit) {
                 HStack {
                     Image(systemName: "power")
@@ -190,7 +189,8 @@ struct MenuBarContentView: View {
                     .padding(.top, 8)
 
                 // Show all timers using unified identifier system
-                ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) { identifier in
+                ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) {
+                    identifier in
                     if timerEngine.timerStates[identifier] != nil {
                         TimerStatusRowWithIndividualControls(
                             identifier: identifier,
@@ -294,7 +294,7 @@ struct MenuBarContentView: View {
         let activeStates = timerEngine.timerStates.values.filter { $0.isActive }
         return !activeStates.isEmpty && activeStates.allSatisfy { $0.isPaused }
     }
-    
+
     private func getSortedTimerIdentifiers(timerEngine: TimerEngine) -> [TimerIdentifier] {
         return timerEngine.timerStates.keys.sorted { id1, id2 in
             // Sort built-in timers before user timers
@@ -333,16 +333,17 @@ struct TimerStatusRowWithIndividualControls: View {
     private var isPaused: Bool {
         return state?.isPaused ?? false
     }
-    
+
     private var displayName: String {
         switch identifier {
         case .builtIn(let type):
             return type.displayName
         case .user(let id):
-            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.title ?? "User Timer"
+            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.title
+                ?? "User Timer"
         }
     }
-    
+
     private var iconName: String {
         switch identifier {
         case .builtIn(let type):
@@ -351,7 +352,7 @@ struct TimerStatusRowWithIndividualControls: View {
             return "clock.fill"
         }
     }
-    
+
     private var color: Color {
         switch identifier {
         case .builtIn(let type):
@@ -361,16 +362,18 @@ struct TimerStatusRowWithIndividualControls: View {
             case .posture: return .orange
             }
         case .user(let id):
-            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.color ?? .purple
+            return settingsManager.settings.userTimers.first(where: { $0.id == id })?.color
+                ?? .purple
         }
     }
-    
+
     private var tooltipText: String {
         switch identifier {
         case .builtIn(let type):
             return type.tooltipText
         case .user(let id):
-            guard let timer = settingsManager.settings.userTimers.first(where: { $0.id == id }) else {
+            guard let timer = settingsManager.settings.userTimers.first(where: { $0.id == id })
+            else {
                 return "User Timer"
             }
             let typeText = timer.type == .subtle ? "Subtle" : "Overlay"
@@ -379,7 +382,7 @@ struct TimerStatusRowWithIndividualControls: View {
             return "\(typeText) timer - \(durationText)\(statusText)"
         }
     }
-    
+
     private var userTimer: UserTimer? {
         if case .user(let id) = identifier {
             return settingsManager.settings.userTimers.first(where: { $0.id == id })
@@ -440,7 +443,9 @@ struct TimerStatusRowWithIndividualControls: View {
                         colorScheme: colorScheme
                     )
                     .help("Trigger \(displayName) reminder now (dev)")
-                    .accessibilityIdentifier("trigger_\(displayName.replacingOccurrences(of: " ", with: "_"))")
+                    .accessibilityIdentifier(
+                        "trigger_\(displayName.replacingOccurrences(of: " ", with: "_"))"
+                    )
                     .onHover { hovering in
                         isHoveredDevTrigger = hovering
                     }

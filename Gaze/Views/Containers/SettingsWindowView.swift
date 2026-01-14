@@ -9,64 +9,92 @@ import SwiftUI
 
 struct SettingsWindowView: View {
     @ObservedObject var settingsManager: SettingsManager
-    @State private var currentTab: Int
+    @State private var selectedSection: SettingsSection
 
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
         self.settingsManager = settingsManager
-        _currentTab = State(initialValue: initialTab)
+        _selectedSection = State(initialValue: SettingsSection(rawValue: initialTab) ?? .general)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            TabView(selection: $currentTab) {
-                LookAwaySetupView(settingsManager: settingsManager)
-                    .tag(0)
-                    .tabItem {
-                        Label("Look Away", systemImage: "eye.fill")
+            if #available(macOS 15.0, *) {
+                TabView(selection: $selectedSection) {
+                    Tab(
+                        SettingsSection.general.title,
+                        systemImage: SettingsSection.general.iconName,
+                        value: SettingsSection.general
+                    ) {
+                        GeneralSetupView(
+                            settingsManager: settingsManager,
+                            isOnboarding: false
+                        )
                     }
 
-                BlinkSetupView(settingsManager: settingsManager)
-                    .tag(1)
-                    .tabItem {
-                        Label("Blink", systemImage: "eye.circle.fill")
+                    Tab(
+                        SettingsSection.lookAway.title,
+                        systemImage: SettingsSection.lookAway.iconName,
+                        value: SettingsSection.lookAway
+                    ) {
+                        LookAwaySetupView(settingsManager: settingsManager)
                     }
 
-                PostureSetupView(settingsManager: settingsManager)
-                    .tag(2)
-                    .tabItem {
-                        Label("Posture", systemImage: "figure.stand")
+                    Tab(
+                        SettingsSection.blink.title, systemImage: SettingsSection.blink.iconName,
+                        value: SettingsSection.blink
+                    ) {
+                        BlinkSetupView(settingsManager: settingsManager)
                     }
 
-                EnforceModeSetupView(settingsManager: settingsManager)
-                    .tag(3)
-                    .tabItem {
-                        Label("Enforce Mode", systemImage: "video.fill")
+                    Tab(
+                        SettingsSection.posture.title,
+                        systemImage: SettingsSection.posture.iconName,
+                        value: SettingsSection.posture
+                    ) {
+                        PostureSetupView(settingsManager: settingsManager)
                     }
 
-                UserTimersView(
-                    userTimers: Binding(
-                        get: { settingsManager.settings.userTimers },
-                        set: { settingsManager.settings.userTimers = $0 }
-                    )
-                )
-                .tag(4)
-                .tabItem {
-                    Label("User Timers", systemImage: "plus.circle")
+                    Tab(
+                        SettingsSection.userTimers.title,
+                        systemImage: SettingsSection.userTimers.iconName,
+                        value: SettingsSection.userTimers
+                    ) {
+                        UserTimersView(
+                            userTimers: Binding(
+                                get: { settingsManager.settings.userTimers },
+                                set: { settingsManager.settings.userTimers = $0 }
+                            )
+                        )
+                    }
+                    Tab(
+                        SettingsSection.enforceMode.title,
+                        systemImage: SettingsSection.enforceMode.iconName,
+                        value: SettingsSection.enforceMode
+                    ) {
+                        EnforceModeSetupView(settingsManager: settingsManager)
+                    }
+
+                    Tab(
+                        SettingsSection.smartMode.title,
+                        systemImage: SettingsSection.smartMode.iconName,
+                        value: SettingsSection.smartMode
+                    ) {
+                        SmartModeSetupView(settingsManager: settingsManager)
+                    }
                 }
-
-                SmartModeSetupView(settingsManager: settingsManager)
-                    .tag(5)
-                    .tabItem {
-                        Label("Smart Mode", systemImage: "brain.fill")
+                .tabViewStyle(.sidebarAdaptable)
+            } else {
+                // Fallback for macOS 14 and earlier
+                NavigationSplitView {
+                    List(SettingsSection.allCases, selection: $selectedSection) { section in
+                        NavigationLink(value: section) {
+                            Label(section.title, systemImage: section.iconName)
+                        }
                     }
-
-                GeneralSetupView(
-                    settingsManager: settingsManager,
-                    isOnboarding: false
-                )
-                .tag(6)
-                .tabItem {
-                    Label("General", systemImage: "gearshape.fill")
+                    .navigationTitle("Settings")
+                    .listStyle(.sidebar)
+                } detail: {
+                    detailView(for: selectedSection)
                 }
             }
 
@@ -92,21 +120,51 @@ struct SettingsWindowView: View {
         }
         #if APPSTORE
             .frame(
-                minWidth: 750,
+                minWidth: 1000,
                 minHeight: 700
             )
         #else
             .frame(
-                minWidth: 750,
+                minWidth: 1000,
                 minHeight: 900
             )
         #endif
         .onReceive(
             NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
         ) { notification in
-            if let tab = notification.object as? Int {
-                currentTab = tab
+            if let tab = notification.object as? Int,
+                let section = SettingsSection(rawValue: tab)
+            {
+                selectedSection = section
             }
+        }
+    }
+
+    @ViewBuilder
+    private func detailView(for section: SettingsSection) -> some View {
+        switch section {
+        case .general:
+            GeneralSetupView(
+                settingsManager: settingsManager,
+                isOnboarding: false
+            )
+        case .lookAway:
+            LookAwaySetupView(settingsManager: settingsManager)
+        case .blink:
+            BlinkSetupView(settingsManager: settingsManager)
+        case .posture:
+            PostureSetupView(settingsManager: settingsManager)
+        case .enforceMode:
+            EnforceModeSetupView(settingsManager: settingsManager)
+        case .userTimers:
+            UserTimersView(
+                userTimers: Binding(
+                    get: { settingsManager.settings.userTimers },
+                    set: { settingsManager.settings.userTimers = $0 }
+                )
+            )
+        case .smartMode:
+            SmartModeSetupView(settingsManager: settingsManager)
         }
     }
 

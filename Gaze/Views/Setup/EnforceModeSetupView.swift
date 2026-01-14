@@ -14,6 +14,7 @@ struct EnforceModeSetupView: View {
     @ObservedObject var enforceModeService = EnforceModeService.shared
     
     @State private var isProcessingToggle = false
+    @State private var isTestModeActive = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -40,7 +41,7 @@ struct EnforceModeSetupView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Enable Enforce Mode")
                                 .font(.headline)
-                            Text("Uses camera to detect when you look away from screen")
+                            Text("Camera activates 3 seconds before lookaway reminders")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -70,11 +71,21 @@ struct EnforceModeSetupView: View {
                     
                     cameraStatusView
                     
-                    if enforceModeService.isEnforceModeActive {
-                        eyeTrackingStatusView
+                    if enforceModeService.isEnforceModeEnabled {
+                        testModeButton
                     }
                     
-                    privacyInfoView
+                    if isTestModeActive && enforceModeService.isCameraActive {
+                        testModePreviewView
+                    } else {
+                        if enforceModeService.isCameraActive && !isTestModeActive {
+                            eyeTrackingStatusView
+                        } else if enforceModeService.isEnforceModeEnabled {
+                            cameraPendingView
+                        }
+                        
+                        privacyInfoView
+                    }
                 }
             }
             
@@ -83,6 +94,71 @@ struct EnforceModeSetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
+    }
+    
+    private var testModeButton: some View {
+        Button(action: {
+            Task { @MainActor in
+                if isTestModeActive {
+                    enforceModeService.stopTestMode()
+                    isTestModeActive = false
+                } else {
+                    await enforceModeService.startTestMode()
+                    isTestModeActive = enforceModeService.isCameraActive
+                }
+            }
+        }) {
+            HStack {
+                Image(systemName: isTestModeActive ? "stop.circle.fill" : "play.circle.fill")
+                    .font(.title3)
+                Text(isTestModeActive ? "Stop Test" : "Test Tracking")
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding()
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+    }
+    
+    private var testModePreviewView: some View {
+        VStack(spacing: 16) {
+            if let previewLayer = eyeTrackingService.previewLayer {
+                let lookingAway = !eyeTrackingService.userLookingAtScreen
+                let borderColor: NSColor = lookingAway ? .systemGreen : .systemRed
+                
+                CameraPreviewView(previewLayer: previewLayer, borderColor: borderColor)
+                    .frame(height: 300)
+                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Live Tracking Status")
+                        .font(.headline)
+                    
+                    HStack(spacing: 20) {
+                        statusIndicator(
+                            title: "Face Detected",
+                            isActive: eyeTrackingService.faceDetected,
+                            icon: "person.fill"
+                        )
+                        
+                        statusIndicator(
+                            title: "Looking Away",
+                            isActive: !eyeTrackingService.userLookingAtScreen,
+                            icon: "arrow.turn.up.right"
+                        )
+                    }
+                    
+                    Text(lookingAway ? "✓ Break compliance detected" : "⚠️ Please look away from screen")
+                        .font(.caption)
+                        .foregroundColor(lookingAway ? .green : .orange)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 4)
+                }
+                .padding()
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+            }
+        }
     }
     
     private var cameraStatusView: some View {
@@ -140,17 +216,31 @@ struct EnforceModeSetupView: View {
                 )
                 
                 statusIndicator(
-                    title: "Looking at Screen",
-                    isActive: eyeTrackingService.userLookingAtScreen,
-                    icon: "eye.fill"
-                )
-                
-                statusIndicator(
-                    title: "Eyes Closed",
-                    isActive: eyeTrackingService.isEyesClosed,
-                    icon: "eye.slash.fill"
+                    title: "Looking Away",
+                    isActive: !eyeTrackingService.userLookingAtScreen,
+                    icon: "arrow.turn.up.right"
                 )
             }
+        }
+        .padding()
+        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+    }
+    
+    private var cameraPendingView: some View {
+        HStack {
+            Image(systemName: "timer")
+                .font(.title2)
+                .foregroundColor(.orange)
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Camera Ready")
+                    .font(.headline)
+                Text("Will activate 3 seconds before lookaway reminder")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
         }
         .padding()
         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
@@ -183,7 +273,8 @@ struct EnforceModeSetupView: View {
             VStack(alignment: .leading, spacing: 8) {
                 privacyBullet("All processing happens on-device")
                 privacyBullet("No images are stored or transmitted")
-                privacyBullet("Camera only active during lookaway reminders")
+                privacyBullet("Camera only active during lookaway reminders (3 second window)")
+                privacyBullet("Eyes closed does not affect countdown")
                 privacyBullet("You can disable at any time")
             }
             .font(.caption)
@@ -212,9 +303,9 @@ struct EnforceModeSetupView: View {
             if enabled {
                 print("🎛️ Enabling enforce mode...")
                 await enforceModeService.enableEnforceMode()
-                print("🎛️ Enforce mode enabled, isActive: \(enforceModeService.isEnforceModeActive)")
+                print("🎛️ Enforce mode enabled: \(enforceModeService.isEnforceModeEnabled)")
                 
-                if !enforceModeService.isEnforceModeActive {
+                if !enforceModeService.isEnforceModeEnabled {
                     print("⚠️ Failed to activate, reverting toggle")
                     settingsManager.settings.enforcementMode = false
                 }

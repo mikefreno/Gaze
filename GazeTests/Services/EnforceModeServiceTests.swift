@@ -25,14 +25,16 @@ final class EnforceModeServiceTests: XCTestCase {
     
     func testEnforceModeServiceInitialization() {
         XCTAssertNotNil(enforceModeService)
-        XCTAssertFalse(enforceModeService.isEnforceModeActive)
+        XCTAssertFalse(enforceModeService.isEnforceModeEnabled)
+        XCTAssertFalse(enforceModeService.isCameraActive)
         XCTAssertFalse(enforceModeService.userCompliedWithBreak)
     }
     
     func testDisableEnforceModeResetsState() {
         enforceModeService.disableEnforceMode()
         
-        XCTAssertFalse(enforceModeService.isEnforceModeActive)
+        XCTAssertFalse(enforceModeService.isEnforceModeEnabled)
+        XCTAssertFalse(enforceModeService.isCameraActive)
         XCTAssertFalse(enforceModeService.userCompliedWithBreak)
     }
     

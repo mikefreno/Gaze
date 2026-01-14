@@ -80,10 +80,7 @@ class TimerEngine: ObservableObject {
     
     /// Check if enforce mode is active and should affect timer behavior
     func checkEnforceMode() {
-        guard let enforceService = enforceModeService else { return }
-        guard enforceService.isEnforceModeActive else { return }
-        
-        enforceService.startEnforcementForActiveReminder()
+        // Deprecated - camera is now activated in handleTick before timer triggers
     }
     
     private func updateConfigurations() {
@@ -210,10 +207,11 @@ class TimerEngine: ObservableObject {
         guard let reminder = activeReminder else { return }
         activeReminder = nil
 
-        // Skip to next interval and resume the timer that was paused
         let identifier = reminder.identifier
         skipNext(identifier: identifier)
         resumeTimer(identifier: identifier)
+        
+        enforceModeService?.handleReminderDismissed()
     }
 
     private func handleTick() {
@@ -228,13 +226,23 @@ class TimerEngine: ObservableObject {
 
             timerStates[identifier]?.remainingSeconds -= 1
 
-            if let updatedState = timerStates[identifier], updatedState.remainingSeconds <= 0 {
-                triggerReminder(for: identifier)
-                break
+            if let updatedState = timerStates[identifier] {
+                if updatedState.remainingSeconds <= 3 && !updatedState.isPaused {
+                    if case .builtIn(.lookAway) = identifier {
+                        if enforceModeService?.shouldEnforceBreak(for: identifier) == true {
+                            Task { @MainActor in
+                                await enforceModeService?.startCameraForLookawayTimer(secondsRemaining: updatedState.remainingSeconds)
+                            }
+                        }
+                    }
+                }
+                
+                if updatedState.remainingSeconds <= 0 {
+                    triggerReminder(for: identifier)
+                    break
+                }
             }
         }
-        
-        checkEnforceMode()
     }
 
     func triggerReminder(for identifier: TimerIdentifier) {

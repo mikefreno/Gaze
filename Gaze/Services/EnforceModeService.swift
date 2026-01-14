@@ -12,8 +12,10 @@ import Foundation
 class EnforceModeService: ObservableObject {
     static let shared = EnforceModeService()
     
-    @Published var isEnforceModeActive = false
+    @Published var isEnforceModeEnabled = false
+    @Published var isCameraActive = false
     @Published var userCompliedWithBreak = false
+    @Published var isTestMode = false
     
     private var settingsManager: SettingsManager
     private var eyeTrackingService: EyeTrackingService
@@ -37,27 +39,36 @@ class EnforceModeService: ObservableObject {
     
     func enableEnforceMode() async {
         print("🔒 enableEnforceMode called")
-        guard !isEnforceModeActive else {
-            print("⚠️ Enforce mode already active")
+        guard !isEnforceModeEnabled else {
+            print("⚠️ Enforce mode already enabled")
             return
         }
         
-        do {
-            print("🔒 Starting eye tracking...")
-            try await eyeTrackingService.startEyeTracking()
-            isEnforceModeActive = true
-            print("✓ Enforce mode enabled")
-        } catch {
-            print("⚠️ Failed to enable enforce mode: \(error.localizedDescription)")
-            isEnforceModeActive = false
+        let cameraService = CameraAccessService.shared
+        if !cameraService.isCameraAuthorized {
+            do {
+                print("🔒 Requesting camera permission...")
+                try await cameraService.requestCameraAccess()
+            } catch {
+                print("⚠️ Failed to get camera permission: \(error.localizedDescription)")
+                return
+            }
         }
+        
+        guard cameraService.isCameraAuthorized else {
+            print("❌ Camera permission denied")
+            return
+        }
+        
+        isEnforceModeEnabled = true
+        print("✓ Enforce mode enabled (camera will activate before lookaway reminders)")
     }
     
     func disableEnforceMode() {
-        guard isEnforceModeActive else { return }
+        guard isEnforceModeEnabled else { return }
         
-        eyeTrackingService.stopEyeTracking()
-        isEnforceModeActive = false
+        stopCamera()
+        isEnforceModeEnabled = false
         userCompliedWithBreak = false
         print("✓ Enforce mode disabled")
     }
@@ -67,7 +78,7 @@ class EnforceModeService: ObservableObject {
     }
     
     func shouldEnforceBreak(for timerIdentifier: TimerIdentifier) -> Bool {
-        guard isEnforceModeActive else { return false }
+        guard isEnforceModeEnabled else { return false }
         guard settingsManager.settings.enforcementMode else { return false }
         
         switch timerIdentifier {
@@ -78,8 +89,32 @@ class EnforceModeService: ObservableObject {
         }
     }
     
+    func startCameraForLookawayTimer(secondsRemaining: Int) async {
+        guard isEnforceModeEnabled else { return }
+        guard !isCameraActive else { return }
+        
+        print("👁️ Starting camera for lookaway reminder (T-\(secondsRemaining)s)")
+        
+        do {
+            try await eyeTrackingService.startEyeTracking()
+            isCameraActive = true
+            print("✓ Camera active")
+        } catch {
+            print("⚠️ Failed to start camera: \(error.localizedDescription)")
+        }
+    }
+    
+    func stopCamera() {
+        guard isCameraActive else { return }
+        
+        print("👁️ Stopping camera")
+        eyeTrackingService.stopEyeTracking()
+        isCameraActive = false
+        userCompliedWithBreak = false
+    }
+    
     func checkUserCompliance() {
-        guard isEnforceModeActive else {
+        guard isCameraActive else {
             userCompliedWithBreak = false
             return
         }
@@ -89,22 +124,37 @@ class EnforceModeService: ObservableObject {
     }
     
     private func handleGazeChange(lookingAtScreen: Bool) {
-        guard isEnforceModeActive else { return }
+        guard isCameraActive else { return }
         
         checkUserCompliance()
     }
     
-    func startEnforcementForActiveReminder() {
-        guard let engine = timerEngine else { return }
-        guard let activeReminder = engine.activeReminder else { return }
+    func handleReminderDismissed() {
+        stopCamera()
+    }
+    
+    func startTestMode() async {
+        guard isEnforceModeEnabled else { return }
+        guard !isCameraActive else { return }
         
-        switch activeReminder {
-        case .lookAwayTriggered:
-            if shouldEnforceBreak(for: .builtIn(.lookAway)) {
-                checkUserCompliance()
-            }
-        default:
-            break
+        print("🧪 Starting test mode")
+        isTestMode = true
+        
+        do {
+            try await eyeTrackingService.startEyeTracking()
+            isCameraActive = true
+            print("✓ Test mode camera active")
+        } catch {
+            print("⚠️ Failed to start test mode camera: \(error.localizedDescription)")
+            isTestMode = false
         }
+    }
+    
+    func stopTestMode() {
+        guard isTestMode else { return }
+        
+        print("🧪 Stopping test mode")
+        stopCamera()
+        isTestMode = false
     }
 }

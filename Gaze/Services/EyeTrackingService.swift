@@ -22,6 +22,13 @@ class EyeTrackingService: NSObject, ObservableObject {
     private var videoOutput: AVCaptureVideoDataOutput?
     private let videoDataOutputQueue = DispatchQueue(label: "com.gaze.videoDataOutput", qos: .userInitiated)
     
+    var previewLayer: AVCaptureVideoPreviewLayer? {
+        guard let session = captureSession else { return nil }
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        layer.videoGravity = .resizeAspectFill
+        return layer
+    }
+    
     private override init() {
         super.init()
     }

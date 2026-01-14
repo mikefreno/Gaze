@@ -46,6 +46,7 @@ struct MenuBarButtonStyle: ButtonStyle {
 }
 
 struct MenuBarHoverButtonStyle: ButtonStyle {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
@@ -55,7 +56,8 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
                 isHovered
                     ? GlassStyle.regular.tint(.accentColor).interactive()
                     : GlassStyle.regular,
-                in: .rect(cornerRadius: 6)
+                in: .rect(cornerRadius: 6),
+                colorScheme: colorScheme
             )
             .contentShape(Rectangle())
             .onHover { hovering in
@@ -318,6 +320,7 @@ struct TimerStatusRowWithIndividualControls: View {
     var onDevTrigger: (() -> Void)? = nil
     var onTogglePause: (Bool) -> Void
     var onTap: (() -> Void)? = nil
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHoveredSkip = false
     @State private var isHoveredDevTrigger = false
     @State private var isHoveredBody = false
@@ -433,7 +436,8 @@ struct TimerStatusRowWithIndividualControls: View {
                     .glassEffectIfAvailable(
                         isHoveredDevTrigger
                             ? GlassStyle.regular.tint(.yellow) : GlassStyle.regular,
-                        in: .circle
+                        in: .circle,
+                        colorScheme: colorScheme
                     )
                     .help("Trigger \(displayName) reminder now (dev)")
                     .accessibilityIdentifier("trigger_\(displayName.replacingOccurrences(of: " ", with: "_"))")
@@ -459,7 +463,8 @@ struct TimerStatusRowWithIndividualControls: View {
             .glassEffectIfAvailable(
                 isHoveredPauseButton
                     ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
-                in: .circle
+                in: .circle,
+                colorScheme: colorScheme
             )
             .help(
                 isPaused
@@ -480,7 +485,8 @@ struct TimerStatusRowWithIndividualControls: View {
             .glassEffectIfAvailable(
                 isHoveredSkip
                     ? GlassStyle.regular.tint(.accentColor) : GlassStyle.regular,
-                in: .circle
+                in: .circle,
+                colorScheme: colorScheme
             )
             .help("Skip to next \(displayName) reminder")
             .onHover { hovering in
@@ -493,7 +499,8 @@ struct TimerStatusRowWithIndividualControls: View {
             isHoveredBody
                 ? GlassStyle.regular.tint(.accentColor)
                 : GlassStyle.regular,
-            in: .rect(cornerRadius: 6)
+            in: .rect(cornerRadius: 6),
+            colorScheme: colorScheme
         )
         .padding(.horizontal, 8)
         .onHover { hovering in

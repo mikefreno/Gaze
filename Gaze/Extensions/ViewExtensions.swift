@@ -11,7 +11,8 @@ extension View {
     @ViewBuilder
     func glassEffectIfAvailable<S: InsettableShape>(
         _ style: GlassStyle,
-        in shape: S
+        in shape: S,
+        colorScheme: ColorScheme? = nil
     ) -> some View {
         if #available(macOS 26.0, *) {
             self.glassEffect(style.toGlass(), in: shape)
@@ -40,6 +41,7 @@ extension View {
                     }
                 }
                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .id(colorScheme)
             }
         }
     }

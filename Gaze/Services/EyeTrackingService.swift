@@ -21,11 +21,23 @@ class EyeTrackingService: NSObject, ObservableObject {
     private var captureSession: AVCaptureSession?
     private var videoOutput: AVCaptureVideoDataOutput?
     private let videoDataOutputQueue = DispatchQueue(label: "com.gaze.videoDataOutput", qos: .userInitiated)
+    private var _previewLayer: AVCaptureVideoPreviewLayer?
     
     var previewLayer: AVCaptureVideoPreviewLayer? {
-        guard let session = captureSession else { return nil }
+        guard let session = captureSession else { 
+            _previewLayer = nil
+            return nil 
+        }
+        
+        // Reuse existing layer if session hasn't changed
+        if let existing = _previewLayer, existing.session === session {
+            return existing
+        }
+        
+        // Create new layer only when session changes
         let layer = AVCaptureVideoPreviewLayer(session: session)
         layer.videoGravity = .resizeAspectFill
+        _previewLayer = layer
         return layer
     }
     
@@ -66,6 +78,7 @@ class EyeTrackingService: NSObject, ObservableObject {
         captureSession?.stopRunning()
         captureSession = nil
         videoOutput = nil
+        _previewLayer = nil
         isEyeTrackingActive = false
         isEyesClosed = false
         userLookingAtScreen = true

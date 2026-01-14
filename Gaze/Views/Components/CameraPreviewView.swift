@@ -12,20 +12,36 @@ struct CameraPreviewView: NSViewRepresentable {
     let previewLayer: AVCaptureVideoPreviewLayer
     let borderColor: NSColor
     
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context: Context) -> PreviewContainerView {
         let view = PreviewContainerView()
         view.wantsLayer = true
         
-        previewLayer.frame = view.bounds
-        view.layer?.addSublayer(previewLayer)
+        // Add the preview layer once
+        if view.layer?.sublayers?.first as? AVCaptureVideoPreviewLayer !== previewLayer {
+            view.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
+            previewLayer.frame = view.bounds
+            view.layer?.addSublayer(previewLayer)
+        }
         
         updateBorder(view: view, color: borderColor)
         
         return view
     }
     
-    func updateNSView(_ nsView: NSView, context: Context) {
-        previewLayer.frame = nsView.bounds
+    func updateNSView(_ nsView: PreviewContainerView, context: Context) {
+        // Only update border color and frame, don't recreate layer
+        let currentLayer = nsView.layer?.sublayers?.first as? AVCaptureVideoPreviewLayer
+        
+        if currentLayer !== previewLayer {
+            // Layer changed, need to replace
+            nsView.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
+            previewLayer.frame = nsView.bounds
+            nsView.layer?.addSublayer(previewLayer)
+        } else {
+            // Same layer, just update frame
+            previewLayer.frame = nsView.bounds
+        }
+        
         updateBorder(view: nsView, color: borderColor)
     }
     

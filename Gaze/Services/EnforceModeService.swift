@@ -27,6 +27,7 @@ class EnforceModeService: ObservableObject {
         self.settingsManager = SettingsManager.shared
         self.eyeTrackingService = EyeTrackingService.shared
         setupObservers()
+        initializeEnforceModeState()
     }
     
     private func setupObservers() {
@@ -35,6 +36,20 @@ class EnforceModeService: ObservableObject {
                 self?.handleGazeChange(lookingAtScreen: lookingAtScreen)
             }
             .store(in: &cancellables)
+    }
+    
+    private func initializeEnforceModeState() {
+        let cameraService = CameraAccessService.shared
+        let settingsEnabled = settingsManager.settings.enforcementMode
+        
+        // If settings say it's enabled AND camera is authorized, mark as enabled
+        if settingsEnabled && cameraService.isCameraAuthorized {
+            isEnforceModeEnabled = true
+            print("✓ Enforce mode initialized as enabled (camera authorized)")
+        } else {
+            isEnforceModeEnabled = false
+            print("🔒 Enforce mode initialized as disabled")
+        }
     }
     
     func enableEnforceMode() async {

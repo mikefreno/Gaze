@@ -41,6 +41,8 @@ struct AppSettings: Codable, Equatable, Hashable {
     var userTimers: [UserTimer]
 
     var subtleReminderSize: ReminderSize
+    
+    var smartMode: SmartModeSettings
 
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
@@ -56,6 +58,7 @@ struct AppSettings: Codable, Equatable, Hashable {
             enabled: true, intervalSeconds: 30 * 60),
         userTimers: [UserTimer] = [],
         subtleReminderSize: ReminderSize = .medium,
+        smartMode: SmartModeSettings = .defaults,
         hasCompletedOnboarding: Bool = false,
         launchAtLogin: Bool = false,
         playSounds: Bool = true
@@ -66,6 +69,7 @@ struct AppSettings: Codable, Equatable, Hashable {
         self.postureTimer = postureTimer
         self.userTimers = userTimers
         self.subtleReminderSize = subtleReminderSize
+        self.smartMode = smartMode
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.launchAtLogin = launchAtLogin
         self.playSounds = playSounds
@@ -79,6 +83,7 @@ struct AppSettings: Codable, Equatable, Hashable {
             postureTimer: TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
             userTimers: [],
             subtleReminderSize: .medium,
+            smartMode: .defaults,
             hasCompletedOnboarding: false,
             launchAtLogin: false,
             playSounds: true

@@ -19,6 +19,11 @@ class TimerEngine: ObservableObject {
     
     // For enforce mode integration
     private var enforceModeService: EnforceModeService?
+    
+    // Smart Mode services
+    private var fullscreenService: FullscreenDetectionService?
+    private var idleService: IdleMonitoringService?
+    private var cancellables = Set<AnyCancellable>()
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
@@ -26,6 +31,72 @@ class TimerEngine: ObservableObject {
         
         Task { @MainActor in
             self.enforceModeService?.setTimerEngine(self)
+        }
+    }
+    
+    func setupSmartMode(
+        fullscreenService: FullscreenDetectionService?,
+        idleService: IdleMonitoringService?
+    ) {
+        self.fullscreenService = fullscreenService
+        self.idleService = idleService
+        
+        // Subscribe to fullscreen state changes
+        fullscreenService?.$isFullscreenActive
+            .sink { [weak self] isFullscreen in
+                Task { @MainActor in
+                    self?.handleFullscreenChange(isFullscreen: isFullscreen)
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Subscribe to idle state changes
+        idleService?.$isIdle
+            .sink { [weak self] isIdle in
+                Task { @MainActor in
+                    self?.handleIdleChange(isIdle: isIdle)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handleFullscreenChange(isFullscreen: Bool) {
+        guard settingsManager.settings.smartMode.autoPauseOnFullscreen else { return }
+        
+        if isFullscreen {
+            pauseAllTimers(reason: .fullscreen)
+            print("⏸️ Timers paused: fullscreen detected")
+        } else {
+            resumeAllTimers(reason: .fullscreen)
+            print("▶️ Timers resumed: fullscreen exited")
+        }
+    }
+    
+    private func handleIdleChange(isIdle: Bool) {
+        guard settingsManager.settings.smartMode.autoPauseOnIdle else { return }
+        
+        if isIdle {
+            pauseAllTimers(reason: .idle)
+            print("⏸️ Timers paused: user idle")
+        } else {
+            resumeAllTimers(reason: .idle)
+            print("▶️ Timers resumed: user active")
+        }
+    }
+    
+    private func pauseAllTimers(reason: PauseReason) {
+        for (id, var state) in timerStates {
+            state.pauseReasons.insert(reason)
+            state.isPaused = true
+            timerStates[id] = state
+        }
+    }
+    
+    private func resumeAllTimers(reason: PauseReason) {
+        for (id, var state) in timerStates {
+            state.pauseReasons.remove(reason)
+            state.isPaused = !state.pauseReasons.isEmpty
+            timerStates[id] = state
         }
     }
 
@@ -163,23 +234,33 @@ class TimerEngine: ObservableObject {
     }
 
     func pause() {
-        for (id, _) in timerStates {
-            timerStates[id]?.isPaused = true
+        for (id, var state) in timerStates {
+            state.pauseReasons.insert(.manual)
+            state.isPaused = true
+            timerStates[id] = state
         }
     }
 
     func resume() {
-        for (id, _) in timerStates {
-            timerStates[id]?.isPaused = false
+        for (id, var state) in timerStates {
+            state.pauseReasons.remove(.manual)
+            state.isPaused = !state.pauseReasons.isEmpty
+            timerStates[id] = state
         }
     }
     
     func pauseTimer(identifier: TimerIdentifier) {
-        timerStates[identifier]?.isPaused = true
+        guard var state = timerStates[identifier] else { return }
+        state.pauseReasons.insert(.manual)
+        state.isPaused = true
+        timerStates[identifier] = state
     }
     
     func resumeTimer(identifier: TimerIdentifier) {
-        timerStates[identifier]?.isPaused = false
+        guard var state = timerStates[identifier] else { return }
+        state.pauseReasons.remove(.manual)
+        state.isPaused = !state.pauseReasons.isEmpty
+        timerStates[identifier] = state
     }
 
     func skipNext(identifier: TimerIdentifier) {
@@ -285,7 +366,11 @@ class TimerEngine: ObservableObject {
     /// - Pauses all active timers
     func handleSystemSleep() {
         sleepStartTime = Date()
-        pause()
+        for (id, var state) in timerStates {
+            state.pauseReasons.insert(.system)
+            state.isPaused = true
+            timerStates[id] = state
+        }
     }
     
     /// Handles system wake event
@@ -305,11 +390,15 @@ class TimerEngine: ObservableObject {
         let elapsedSeconds = Int(Date().timeIntervalSince(sleepStart))
         
         guard elapsedSeconds >= 1 else {
-            resume()
+            for (id, var state) in timerStates {
+                state.pauseReasons.remove(.system)
+                state.isPaused = !state.pauseReasons.isEmpty
+                timerStates[id] = state
+            }
             return
         }
         
-        for (identifier, state) in timerStates where state.isActive && !state.isPaused {
+        for (identifier, state) in timerStates where state.isActive {
             var updatedState = state
             updatedState.remainingSeconds = max(0, state.remainingSeconds - elapsedSeconds)
             
@@ -317,9 +406,9 @@ class TimerEngine: ObservableObject {
                 updatedState.remainingSeconds = 1
             }
             
+            updatedState.pauseReasons.remove(.system)
+            updatedState.isPaused = !updatedState.pauseReasons.isEmpty
             timerStates[identifier] = updatedState
         }
-        
-        resume()
     }
 }

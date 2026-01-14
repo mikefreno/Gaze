@@ -54,11 +54,17 @@ struct SettingsWindowView: View {
                     Label("User Timers", systemImage: "plus.circle")
                 }
 
+                SmartModeSetupView(settingsManager: settingsManager)
+                    .tag(5)
+                    .tabItem {
+                        Label("Smart Mode", systemImage: "brain.fill")
+                    }
+
                 GeneralSetupView(
                     settingsManager: settingsManager,
                     isOnboarding: false
                 )
-                .tag(5)
+                .tag(6)
                 .tabItem {
                     Label("General", systemImage: "gearshape.fill")
                 }

@@ -20,11 +20,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
     
+    // Smart Mode services
+    private var fullscreenService: FullscreenDetectionService?
+    private var idleService: IdleMonitoringService?
+    private var usageTrackingService: UsageTrackingService?
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
         
         timerEngine = TimerEngine(settingsManager: settingsManager)
+        
+        // Initialize Smart Mode services
+        setupSmartModeServices()
         
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
@@ -39,6 +47,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
+    }
+    
+    private func setupSmartModeServices() {
+        fullscreenService = FullscreenDetectionService()
+        idleService = IdleMonitoringService(
+            idleThresholdMinutes: settingsManager.settings.smartMode.idleThresholdMinutes
+        )
+        usageTrackingService = UsageTrackingService(
+            resetThresholdMinutes: settingsManager.settings.smartMode.usageResetAfterMinutes
+        )
+        
+        // Connect idle service to usage tracking
+        if let idleService = idleService {
+            usageTrackingService?.setupIdleMonitoring(idleService)
+        }
+        
+        // Connect services to timer engine
+        timerEngine?.setupSmartMode(
+            fullscreenService: fullscreenService,
+            idleService: idleService
+        )
+        
+        // Observe smart mode settings changes
+        settingsManager.$settings
+            .map { $0.smartMode }
+            .removeDuplicates()
+            .sink { [weak self] smartMode in
+                self?.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
+                self?.usageTrackingService?.updateResetThreshold(minutes: smartMode.usageResetAfterMinutes)
+            }
+            .store(in: &cancellables)
     }
     
     func onboardingCompleted() {

@@ -11,9 +11,7 @@ import Foundation
 @MainActor
 class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
-
     @Published var settings: AppSettings
-
     private let userDefaults = UserDefaults.standard
     private let settingsKey = "gazeAppSettings"
     private var saveCancellable: AnyCancellable?
@@ -48,7 +46,7 @@ class SettingsManager: ObservableObject {
         guard let data = UserDefaults.standard.data(forKey: "gazeAppSettings") else {
             return .defaults
         }
-        
+
         do {
             let settings = try JSONDecoder().decode(AppSettings.self, from: data)
             return settings

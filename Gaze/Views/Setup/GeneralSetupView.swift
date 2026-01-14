@@ -228,7 +228,7 @@ struct GeneralSetupView: View {
                 try LaunchAtLoginManager.disable()
             }
         } catch {
-            // Failed to set launch at login - handled silently in production
+            //TODO: see what can be done here
         }
     }
 

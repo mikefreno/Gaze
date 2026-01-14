@@ -36,12 +36,12 @@ struct AppSettings: Codable, Equatable, Hashable {
     var lookAwayCountdownSeconds: Int
     var blinkTimer: TimerConfiguration
     var postureTimer: TimerConfiguration
+    var enforcementMode: Bool = false
 
     var userTimers: [UserTimer]
 
     var subtleReminderSize: ReminderSize
 
-    // App state and behavior
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
     var playSounds: Bool

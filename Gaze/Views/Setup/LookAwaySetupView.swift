@@ -15,6 +15,8 @@ import SwiftUI
 struct LookAwaySetupView: View {
     @ObservedObject var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
+    @ObservedObject var cameraAccess = CameraAccessService.shared
+    @State private var failedCameraAccess = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,34 +32,15 @@ struct LookAwaySetupView: View {
             .padding(.top, 20)
             .padding(.bottom, 30)
 
-            // Vertically centered content
             Spacer()
 
             VStack(spacing: 30) {
-                // InfoBox with link functionality
-                HStack(spacing: 12) {
-                    Button(action: {
-                        if let url = URL(
-                            string:
-                                "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
-                        ) {
-                            #if os(iOS)
-                                UIApplication.shared.open(url)
-                            #elseif os(macOS)
-                                NSWorkspace.shared.open(url)
-                            #endif
-                        }
-                    }) {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.white)
-                    }.buttonStyle(.plain)
-                    Text("Suggested: 20-20-20 rule")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                }
-                .padding()
-                .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+
+                InfoBox(
+                    text: "Suggested: 20-20-20 rule",
+                    url:
+                        "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
+                )
 
                 SliderSection(
                     intervalSettings: Binding(
@@ -68,7 +51,8 @@ struct LookAwaySetupView: View {
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.lookAwayTimer.intervalSeconds = (newValue.val ?? 20) * 60
+                            settingsManager.settings.lookAwayTimer.intervalSeconds =
+                                (newValue.val ?? 20) * 60
                         }
                     ),
                     countdownSettings: Binding(
@@ -89,8 +73,34 @@ struct LookAwaySetupView: View {
                     type: "Look away",
                     previewFunc: showPreviewWindow
                 )
-            }
+                Toggle(
+                    "Enable enforcement mode",
+                    isOn: Binding(
+                        get: { settingsManager.settings.enforcementMode },
+                        set: { settingsManager.settings.enforcementMode = $0 }
+                    )
+                )
+                .onChange(
+                    of: settingsManager.settings.enforcementMode,
+                ) { newMode in
+                    if newMode && !cameraAccess.isCameraAuthorized {
+                        Task {
+                            do {
+                                try await cameraAccess.requestCameraAccess()
+                            } catch {
+                                failedCameraAccess = true
+                                settingsManager.settings.enforcementMode = false
+                            }
+                        }
+                    }
 
+                }
+            }
+            #if failedCameraAccess
+                Text(
+                    "Camera access denied. Please enable camera access in System Settings if you want to use enforcement mode."
+                )
+            #endif
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

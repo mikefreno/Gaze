@@ -17,6 +17,8 @@ struct EnforceModeSetupView: View {
     @State private var isProcessingToggle = false
     @State private var isTestModeActive = false
     @State private var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
+    @State private var showDebugView = false
+    @State private var isViewActive = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -71,6 +73,18 @@ struct EnforceModeSetupView: View {
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
+                    #if DEBUG
+                    HStack {
+                        Button("Debug Info") {
+                            showDebugView.toggle()
+                        }
+                        .buttonStyle(.bordered)
+                        Spacer()
+                    }
+                    .padding()
+                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                    #endif
+
                     cameraStatusView
 
                     if enforceModeService.isEnforceModeEnabled {
@@ -82,6 +96,11 @@ struct EnforceModeSetupView: View {
                     } else {
                         if enforceModeService.isCameraActive && !isTestModeActive {
                             eyeTrackingStatusView
+                            #if DEBUG
+                            if showDebugView {
+                                debugEyeTrackingView
+                            }
+                            #endif
                         } else if enforceModeService.isEnforceModeEnabled {
                             cameraPendingView
                         }
@@ -96,6 +115,17 @@ struct EnforceModeSetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
         .background(.clear)
+        .onAppear {
+            isViewActive = true
+        }
+        .onDisappear {
+            isViewActive = false
+            // If the view disappeared and camera is still active, stop it
+            if enforceModeService.isCameraActive {
+                print("👁️ EnforceModeSetupView disappeared, stopping camera preview")
+                enforceModeService.stopCamera()
+            }
+        }
     }
 
     private var testModeButton: some View {
@@ -330,8 +360,44 @@ struct EnforceModeSetupView: View {
             } else {
                 print("🎛️ Disabling enforce mode...")
                 enforceModeService.disableEnforceMode()
+                // Clean up camera when disabling enforce mode
+                if enforceModeService.isCameraActive {
+                    print("👁️ Cleaning up camera on enforce mode disable")
+                    enforceModeService.stopCamera()
+                }
             }
         }
+    }
+
+    private var debugEyeTrackingView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Debug Eye Tracking Data")
+                .font(.headline)
+                .foregroundColor(.blue)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Face Detected: \(eyeTrackingService.faceDetected ? "Yes" : "No")")
+                    .font(.caption)
+                
+                Text("Looking at Screen: \(eyeTrackingService.userLookingAtScreen ? "Yes" : "No")")
+                    .font(.caption)
+                
+                Text("Eyes Closed: \(eyeTrackingService.isEyesClosed ? "Yes" : "No")")
+                    .font(.caption)
+                
+                if eyeTrackingService.faceDetected {
+                    Text("Yaw: 0.0")
+                        .font(.caption)
+                    
+                    Text("Roll: 0.0")
+                        .font(.caption)
+                }
+            }
+            .font(.caption)
+            .foregroundColor(.secondary)
+        }
+        .padding()
+        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
     }
 }
 

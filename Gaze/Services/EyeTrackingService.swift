@@ -114,31 +114,53 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
     
     private func processFaceObservations(_ observations: [VNFaceObservation]?) {
+        print("🔍 Processing face observations...")
         guard let observations = observations, !observations.isEmpty else {
+            print("❌ No faces detected")
             faceDetected = false
             userLookingAtScreen = false
             return
         }
         
         faceDetected = true
+        let face = observations.first!
         
-        guard let face = observations.first,
-              let landmarks = face.landmarks else {
+        print("✅ Face detected. Bounding box: \(face.boundingBox)")
+        
+        guard let landmarks = face.landmarks else {
+            print("❌ No face landmarks detected")
             return
         }
         
+        // Log eye landmarks
         if let leftEye = landmarks.leftEye,
            let rightEye = landmarks.rightEye {
+            print("👁️ Left eye landmarks: \(leftEye.pointCount) points")
+            print("👁️ Right eye landmarks: \(rightEye.pointCount) points")
+            
+            let leftEyeHeight = calculateEyeHeight(leftEye)
+            let rightEyeHeight = calculateEyeHeight(rightEye)
+            
+            print("👁️ Left eye height: \(leftEyeHeight)")
+            print("👁️ Right eye height: \(rightEyeHeight)")
+            
             let eyesClosed = detectEyesClosed(leftEye: leftEye, rightEye: rightEye)
             self.isEyesClosed = eyesClosed
+            print("👁️ Eyes closed: \(eyesClosed)")
         }
         
+        // Log gaze detection
         let lookingAway = detectLookingAway(face: face, landmarks: landmarks)
         userLookingAtScreen = !lookingAway
+        
+        print("📊 Gaze angle - Yaw: \(face.yaw?.doubleValue ?? 0.0), Roll: \(face.roll?.doubleValue ?? 0.0)")
+        print("🎯 Looking away: \(lookingAway)")
+        print("👀 User looking at screen: \(userLookingAtScreen)")
     }
     
     private func detectEyesClosed(leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D) -> Bool {
         guard leftEye.pointCount >= 2, rightEye.pointCount >= 2 else {
+            print("⚠️ Eye landmarks insufficient for eye closure detection")
             return false
         }
         
@@ -147,18 +169,26 @@ class EyeTrackingService: NSObject, ObservableObject {
         
         let closedThreshold: CGFloat = 0.02
         
-        return leftEyeHeight < closedThreshold && rightEyeHeight < closedThreshold
+        let isClosed = leftEyeHeight < closedThreshold && rightEyeHeight < closedThreshold
+        
+        print("👁️ Eye closure detection - Left: \(leftEyeHeight) < \(closedThreshold) = \(leftEyeHeight < closedThreshold), Right: \(rightEyeHeight) < \(closedThreshold) = \(rightEyeHeight < closedThreshold)")
+        
+        return isClosed
     }
     
     private func calculateEyeHeight(_ eye: VNFaceLandmarkRegion2D) -> CGFloat {
         let points = eye.normalizedPoints
+        print("📏 Eye points count: \(points.count)")
         guard points.count >= 2 else { return 0 }
         
         let yValues = points.map { $0.y }
         let maxY = yValues.max() ?? 0
         let minY = yValues.min() ?? 0
         
-        return abs(maxY - minY)
+        let height = abs(maxY - minY)
+        print("📏 Eye height calculation: max(\(maxY)) - min(\(minY)) = \(height)")
+        
+        return height
     }
     
     private func detectLookingAway(face: VNFaceObservation, landmarks: VNFaceLandmarks2D) -> Bool {
@@ -169,6 +199,10 @@ class EyeTrackingService: NSObject, ObservableObject {
         let rollThreshold = 0.4
         
         let isLookingAway = abs(yaw) > yawThreshold || abs(roll) > rollThreshold
+        
+        print("📊 Gaze detection - Yaw: \(yaw), Roll: \(roll)")
+        print("📉 Thresholds - Yaw: \(yawThreshold), Roll: \(rollThreshold)")
+        print("🎯 Looking away result: \(isLookingAway)")
         
         return isLookingAway
     }

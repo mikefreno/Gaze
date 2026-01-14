@@ -52,8 +52,9 @@ struct SmartModeSetupView: View {
                             "",
                             isOn: Binding(
                                 get: { settingsManager.settings.smartMode.autoPauseOnFullscreen },
-                                set: {
-                                    settingsManager.settings.smartMode.autoPauseOnFullscreen = $0
+                                set: { newValue in
+                                    print("🔧 Smart Mode - Auto-pause on fullscreen changed to: \(newValue)")
+                                    settingsManager.settings.smartMode.autoPauseOnFullscreen = newValue
                                 }
                             )
                         )
@@ -84,7 +85,10 @@ struct SmartModeSetupView: View {
                             "",
                             isOn: Binding(
                                 get: { settingsManager.settings.smartMode.autoPauseOnIdle },
-                                set: { settingsManager.settings.smartMode.autoPauseOnIdle = $0 }
+                                set: { newValue in
+                                    print("🔧 Smart Mode - Auto-pause on idle changed to: \(newValue)")
+                                    settingsManager.settings.smartMode.autoPauseOnIdle = newValue
+                                }
                             )
                         )
                         .labelsHidden()
@@ -109,9 +113,10 @@ struct SmartModeSetupView: View {
                                         Double(
                                             settingsManager.settings.smartMode.idleThresholdMinutes)
                                     },
-                                    set: {
+                                    set: { newValue in
+                                        print("🔧 Smart Mode - Idle threshold changed to: \(Int(newValue))")
                                         settingsManager.settings.smartMode.idleThresholdMinutes =
-                                            Int($0)
+                                            Int(newValue)
                                     }
                                 ),
                                 in: 1...30,
@@ -145,7 +150,10 @@ struct SmartModeSetupView: View {
                             "",
                             isOn: Binding(
                                 get: { settingsManager.settings.smartMode.trackUsage },
-                                set: { settingsManager.settings.smartMode.trackUsage = $0 }
+                                set: { newValue in
+                                    print("🔧 Smart Mode - Track usage changed to: \(newValue)")
+                                    settingsManager.settings.smartMode.trackUsage = newValue
+                                }
                             )
                         )
                         .labelsHidden()
@@ -171,9 +179,10 @@ struct SmartModeSetupView: View {
                                             settingsManager.settings.smartMode
                                                 .usageResetAfterMinutes)
                                     },
-                                    set: {
+                                    set: { newValue in
+                                        print("🔧 Smart Mode - Usage reset after changed to: \(Int(newValue))")
                                         settingsManager.settings.smartMode.usageResetAfterMinutes =
-                                            Int($0)
+                                            Int(newValue)
                                     }
                                 ),
                                 in: 15...240,

@@ -22,6 +22,9 @@ class EnforceModeService: ObservableObject {
     private var timerEngine: TimerEngine?
     
     private var cancellables = Set<AnyCancellable>()
+    private var faceDetectionTimer: Timer?
+    private var lastFaceDetectionTime: Date = Date.distantPast
+    private let faceDetectionTimeout: TimeInterval = 5.0 // 5 seconds to consider person lost
     
     private init() {
         self.settingsManager = SettingsManager.shared
@@ -34,6 +37,13 @@ class EnforceModeService: ObservableObject {
         eyeTrackingService.$userLookingAtScreen
             .sink { [weak self] lookingAtScreen in
                 self?.handleGazeChange(lookingAtScreen: lookingAtScreen)
+            }
+            .store(in: &cancellables)
+        
+        // Observe face detection changes to track person presence
+        eyeTrackingService.$faceDetected
+            .sink { [weak self] faceDetected in
+                self?.handleFaceDetectionChange(faceDetected: faceDetected)
             }
             .store(in: &cancellables)
     }
@@ -126,6 +136,10 @@ class EnforceModeService: ObservableObject {
         eyeTrackingService.stopEyeTracking()
         isCameraActive = false
         userCompliedWithBreak = false
+        
+        // Invalidate the face detection timer when stopping camera
+        faceDetectionTimer?.invalidate()
+        faceDetectionTimer = nil
     }
     
     func checkUserCompliance() {
@@ -144,8 +158,42 @@ class EnforceModeService: ObservableObject {
         checkUserCompliance()
     }
     
+    private func handleFaceDetectionChange(faceDetected: Bool) {
+        // Update the last face detection time
+        if faceDetected {
+            lastFaceDetectionTime = Date()
+        }
+        
+        // If we are in enforce mode and camera is active, start checking for person presence
+        if isEnforceModeEnabled && isCameraActive {
+            // Cancel any existing timer and restart it
+            faceDetectionTimer?.invalidate()
+            
+            // Create a new timer to check for extended periods without face detection
+            faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                
+                // Dispatch to main actor to safely access main actor-isolated properties and methods
+                Task { @MainActor in
+                    let timeSinceLastDetection = Date().timeIntervalSince(self.lastFaceDetectionTime)
+                    
+                    // If person has not been detected for too long, temporarily disable enforce mode
+                    if timeSinceLastDetection > self.faceDetectionTimeout {
+                        print("⏰ Person not detected for \(self.faceDetectionTimeout)s. Temporarily disabling enforce mode.")
+                        self.isEnforceModeEnabled = false
+                        self.stopCamera()
+                    }
+                }
+            }
+        }
+    }
+    
     func handleReminderDismissed() {
-        stopCamera()
+        // Stop camera when reminder is dismissed, but also check if we should disable enforce mode entirely
+        // This helps in case a user closes settings window while a reminder is active
+        if isCameraActive {
+            stopCamera()
+        }
     }
     
     func startTestMode() async {

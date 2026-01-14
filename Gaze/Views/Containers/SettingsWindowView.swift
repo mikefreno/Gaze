@@ -84,7 +84,7 @@ struct SettingsWindowView: View {
                 }
                 .tabViewStyle(.sidebarAdaptable)
             } else {
-                // Fallback for macOS 14 and earlier
+                // Fallback for macOS 14 and earlier - use a consistent sidebar approach without collapse button
                 NavigationSplitView {
                     List(SettingsSection.allCases, selection: $selectedSection) { section in
                         NavigationLink(value: section) {
@@ -96,6 +96,8 @@ struct SettingsWindowView: View {
                 } detail: {
                     detailView(for: selectedSection)
                 }
+                // Disable the ability to collapse the sidebar by explicitly setting a fixed width
+                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
             }
 
             Divider()

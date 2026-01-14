@@ -16,9 +16,17 @@ class TimerEngine: ObservableObject {
     private var timerSubscription: AnyCancellable?
     private let settingsManager: SettingsManager
     private var sleepStartTime: Date?
+    
+    // For enforce mode integration
+    private var enforceModeService: EnforceModeService?
 
     init(settingsManager: SettingsManager) {
         self.settingsManager = settingsManager
+        self.enforceModeService = EnforceModeService.shared
+        
+        Task { @MainActor in
+            self.enforceModeService?.setTimerEngine(self)
+        }
     }
 
     func start() {
@@ -68,6 +76,14 @@ class TimerEngine: ObservableObject {
                     self?.handleTick()
                 }
             }
+    }
+    
+    /// Check if enforce mode is active and should affect timer behavior
+    func checkEnforceMode() {
+        guard let enforceService = enforceModeService else { return }
+        guard enforceService.isEnforceModeActive else { return }
+        
+        enforceService.startEnforcementForActiveReminder()
     }
     
     private func updateConfigurations() {
@@ -201,21 +217,13 @@ class TimerEngine: ObservableObject {
     }
 
     private func handleTick() {
-        // Handle all timers uniformly - only skip the timer that has an active reminder
         for (identifier, state) in timerStates {
-            guard state.isActive && !state.isPaused else { continue }
+            guard !state.isPaused else { continue }
+            guard state.isActive else { continue }
             
-            // Skip the timer that triggered the current reminder
-            if let activeReminder = activeReminder, activeReminder.identifier == identifier {
-                continue
-            }
-            
-            // prevent overshoot - in case user closes laptop while timer is running, we don't want to
-            // trigger on open
-            if state.targetDate < Date() - 3.0 {  // slight grace
-                // Reset the timer when it has overshot its interval
+            if state.targetDate < Date() - 3.0 {
                 skipNext(identifier: identifier)
-                continue  // Skip normal countdown logic after reset
+                continue
             }
 
             timerStates[identifier]?.remainingSeconds -= 1
@@ -225,6 +233,8 @@ class TimerEngine: ObservableObject {
                 break
             }
         }
+        
+        checkEnforceMode()
     }
 
     func triggerReminder(for identifier: TimerIdentifier) {

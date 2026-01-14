@@ -20,20 +20,28 @@ class CameraAccessService: ObservableObject {
     }
 
     func requestCameraAccess() async throws {
+        print("🎥 Requesting camera access...")
+        
         guard #available(macOS 12.0, *) else {
+            print("⚠️ macOS version too old")
             throw CameraAccessError.unsupportedOS
         }
 
         if isCameraAuthorized {
+            print("✓ Camera already authorized")
             return
         }
 
+        print("🎥 Calling AVCaptureDevice.requestAccess...")
         let status = await AVCaptureDevice.requestAccess(for: .video)
+        print("🎥 Permission result: \(status)")
+        
         if !status {
             throw CameraAccessError.accessDenied
         }
 
         checkCameraAuthorizationStatus()
+        print("✓ Camera access granted")
     }
 
     func checkCameraAuthorizationStatus() {
@@ -58,6 +66,13 @@ class CameraAccessService: ObservableObject {
             isCameraAuthorized = false
             cameraError = CameraAccessError.unknown
         }
+    }
+    
+    // New method to check if face detection is supported and available
+    func isFaceDetectionAvailable() -> Bool {
+        // On macOS, face detection requires specific Vision framework support
+        // For now we'll assume it's available if camera is authorized
+        return isCameraAuthorized
     }
 }
 

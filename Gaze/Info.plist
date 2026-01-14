@@ -32,5 +32,7 @@
 	<integer>86400</integer>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Gaze needs camera access to detect when you look away from your screen during enforce mode. All processing happens on-device and no images are stored or transmitted.</string>
 </dict>
 </plist>

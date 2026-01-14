@@ -37,13 +37,19 @@ struct SettingsWindowView: View {
                         Label("Posture", systemImage: "figure.stand")
                     }
 
+                EnforceModeSetupView(settingsManager: settingsManager)
+                    .tag(3)
+                    .tabItem {
+                        Label("Enforce Mode", systemImage: "video.fill")
+                    }
+
                 UserTimersView(
                     userTimers: Binding(
                         get: { settingsManager.settings.userTimers },
                         set: { settingsManager.settings.userTimers = $0 }
                     )
                 )
-                .tag(3)
+                .tag(4)
                 .tabItem {
                     Label("User Timers", systemImage: "plus.circle")
                 }
@@ -52,7 +58,7 @@ struct SettingsWindowView: View {
                     settingsManager: settingsManager,
                     isOnboarding: false
                 )
-                .tag(4)
+                .tag(5)
                 .tabItem {
                     Label("General", systemImage: "gearshape.fill")
                 }

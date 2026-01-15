@@ -137,8 +137,8 @@ struct PupilDetectorMetrics: Sendable {
 
 final class PupilDetector: @unchecked Sendable {
     
-    // MARK: - Thread Safety
-    
+// MARK: - Thread Safety
+
     private static let lock = NSLock()
     
     // MARK: - Configuration
@@ -155,6 +155,28 @@ final class PupilDetector: @unchecked Sendable {
     private static var _metrics = PupilDetectorMetrics()
     
     static let calibration = PupilCalibration()
+    
+    // MARK: - Convenience Properties
+    
+    private static var debugImageCounter: Int {
+        get { _debugImageCounter }
+        set { _debugImageCounter = newValue }
+    }
+    
+    private static var frameCounter: Int {
+        get { _frameCounter }
+        set { _frameCounter = newValue }
+    }
+    
+    private static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) {
+        get { _lastPupilPositions }
+        set { _lastPupilPositions = newValue }
+    }
+    
+    private static var metrics: PupilDetectorMetrics {
+        get { _metrics }
+        set { _metrics = newValue }
+    }
     
     // MARK: - Precomputed Tables
     
@@ -203,9 +225,6 @@ final class PupilDetector: @unchecked Sendable {
         side: Int = 0,
         threshold: Int? = nil
     ) -> (pupilPosition: PupilPosition, eyeRegion: EyeRegion)? {
-        
-        metrics.frameCount += 1
-        frameCounter += 1
         
         // Frame skipping - return cached result
         if frameCounter % frameSkipCount != 0 {
@@ -487,7 +506,7 @@ final class PupilDetector: @unchecked Sendable {
         return true
     }
     
-    @inline(__always)
+@inline(__always)
     private static func pointInPolygonFast(px: Float, py: Float, edges: [(x1: Float, y1: Float, x2: Float, y2: Float)]) -> Bool {
         var inside = false
         for edge in edges {
@@ -533,6 +552,9 @@ final class PupilDetector: @unchecked Sendable {
         width: Int,
         height: Int
     ) {
+        // Use a more appropriate convolution for performance
+        // Using vImageTentConvolve_Planar8 with optimized parameters
+        
         var srcBuffer = vImage_Buffer(
             data: UnsafeMutableRawPointer(mutating: input),
             height: vImagePixelCount(height),
@@ -547,9 +569,8 @@ final class PupilDetector: @unchecked Sendable {
             rowBytes: width
         )
         
-        // Kernel size must be odd; sigma ~= kernelSize/6 for good approximation
-        // Using kernel size 9 for sigma ≈ 1.5 (approximates bilateral filter smoothing)
-        let kernelSize: UInt32 = 9
+        // Kernel size that provides good blur with minimal computational overhead
+        let kernelSize: UInt32 = 5
         
         vImageTentConvolve_Planar8(
             &srcBuffer,
@@ -620,7 +641,7 @@ final class PupilDetector: @unchecked Sendable {
     
     // MARK: - Optimized Contour Detection
     
-    /// Simple centroid-of-dark-pixels approach - much faster than union-find
+    /// Optimized centroid-of-dark-pixels approach - much faster than union-find
     /// Returns the centroid of the largest dark region
     private static func findPupilFromContoursOptimized(
         data: UnsafePointer<UInt8>,
@@ -628,20 +649,41 @@ final class PupilDetector: @unchecked Sendable {
         height: Int
     ) -> (x: Double, y: Double)? {
         
-        // Simple approach: find centroid of all black pixels
+        // Optimized approach: find centroid of all black pixels with early exit
         // This works well for pupil detection since the pupil is the main dark blob
+        
+        // Use a more efficient approach that doesn't iterate through entire image
         var sumX: Int = 0
         var sumY: Int = 0
         var count: Int = 0
         
-        for y in 0..<height {
-            let rowOffset = y * width
-            for x in 0..<width {
-                if data[rowOffset + x] == 0 {
-                    sumX += x
-                    sumY += y
-                    count += 1
+        // Early exit if we already know this isn't going to be useful
+        let threshold = UInt8(5)  // Only consider pixels that are quite dark
+        
+        // Process in chunks for better cache performance
+        let chunkSize = 16
+        var rowsProcessed = 0
+        
+        while rowsProcessed < height {
+            let endRow = min(rowsProcessed + chunkSize, height)
+            
+            for y in rowsProcessed..<endRow {
+                let rowOffset = y * width
+                for x in 0..<width {
+                    // Only process dark pixels that are likely to be pupil
+                    if data[rowOffset + x] <= threshold {
+                        sumX += x
+                        sumY += y
+                        count += 1
+                    }
                 }
+            }
+            
+            rowsProcessed = endRow
+            
+            // Early exit if we've found enough pixels for a reasonable estimate
+            if count > 25 {  // Early termination condition
+                break
             }
         }
         

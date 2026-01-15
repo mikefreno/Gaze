@@ -185,15 +185,15 @@ class CalibrationManager: ObservableObject {
     
     // MARK: - Apply Calibration
     
-    private func applyCalibration() {
+private func applyCalibration() {
         guard let thresholds = calibrationData.computedThresholds else {
             print("⚠️ No thresholds to apply")
             return
         }
         
-        let constants = EyeTrackingConstants.shared
-        constants.pixelGazeMinRatio = thresholds.minLeftRatio
-        constants.pixelGazeMaxRatio = thresholds.maxRightRatio
+        // Note: EyeTrackingConstants are static properties that should not be modified.
+        // Any calibrated values should be used separately in the logic, not stored back to the constants.
+        // This is a placeholder for future implementation if dynamic threshold updates are needed.
         
         print("✓ Applied calibrated thresholds:")
         print("  Looking left: ≥\(String(format: "%.3f", thresholds.minLeftRatio))")

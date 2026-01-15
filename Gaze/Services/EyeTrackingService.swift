@@ -56,9 +56,9 @@ class EyeTrackingService: NSObject, ObservableObject {
     private override init() {
         super.init()
     }
-    
+
     // MARK: - Processing Result
-    
+
     /// Result struct for off-main-thread processing
     private struct ProcessingResult: Sendable {
         var faceDetected: Bool = false
@@ -140,7 +140,9 @@ class EyeTrackingService: NSObject, ObservableObject {
         self.videoOutput = output
     }
 
-    private func processFaceObservations(_ observations: [VNFaceObservation]?, imageSize: CGSize, pixelBuffer: CVPixelBuffer? = nil) {
+    private func processFaceObservations(
+        _ observations: [VNFaceObservation]?, imageSize: CGSize, pixelBuffer: CVPixelBuffer? = nil
+    ) {
         guard let observations = observations, !observations.isEmpty else {
             faceDetected = false
             userLookingAtScreen = false
@@ -189,7 +191,7 @@ class EyeTrackingService: NSObject, ObservableObject {
         )
         userLookingAtScreen = !lookingAway
     }
-    
+
     /// Non-isolated synchronous version for off-main-thread processing
     /// Returns a result struct instead of updating @Published properties directly
     nonisolated private func processFaceObservationsSync(
@@ -198,28 +200,28 @@ class EyeTrackingService: NSObject, ObservableObject {
         pixelBuffer: CVPixelBuffer? = nil
     ) -> ProcessingResult {
         var result = ProcessingResult()
-        
+
         guard let observations = observations, !observations.isEmpty else {
             result.faceDetected = false
             result.userLookingAtScreen = false
             return result
         }
-        
+
         result.faceDetected = true
         let face = observations.first!
-        
+
         guard let landmarks = face.landmarks else {
             return result
         }
-        
+
         // Check eye closure
         if let leftEye = landmarks.leftEye,
-           let rightEye = landmarks.rightEye
+            let rightEye = landmarks.rightEye
         {
             result.isEyesClosed = detectEyesClosedSync(
                 leftEye: leftEye, rightEye: rightEye)
         }
-        
+
         // Check gaze direction
         let gazeResult = detectLookingAwaySync(
             face: face,
@@ -227,49 +229,47 @@ class EyeTrackingService: NSObject, ObservableObject {
             imageSize: imageSize,
             pixelBuffer: pixelBuffer
         )
-        
+
         result.userLookingAtScreen = !gazeResult.lookingAway
         result.debugLeftPupilRatio = gazeResult.leftPupilRatio
         result.debugRightPupilRatio = gazeResult.rightPupilRatio
         result.debugYaw = gazeResult.yaw
         result.debugPitch = gazeResult.pitch
-        
+
         return result
     }
-    
+
     /// Non-isolated eye closure detection
     nonisolated private func detectEyesClosedSync(
         leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D
     ) -> Bool {
-        let constants = EyeTrackingConstants.shared
-        
-        guard constants.eyeClosedEnabled else {
+        guard EyeTrackingConstants.eyeClosedEnabled else {
             return false
         }
-        
+
         guard leftEye.pointCount >= 2, rightEye.pointCount >= 2 else {
             return false
         }
-        
+
         let leftEyeHeight = calculateEyeHeightSync(leftEye)
         let rightEyeHeight = calculateEyeHeightSync(rightEye)
-        
-        let closedThreshold = constants.eyeClosedThreshold
-        
+
+        let closedThreshold = EyeTrackingConstants.eyeClosedThreshold
+
         return leftEyeHeight < closedThreshold && rightEyeHeight < closedThreshold
     }
-    
+
     nonisolated private func calculateEyeHeightSync(_ eye: VNFaceLandmarkRegion2D) -> CGFloat {
         let points = eye.normalizedPoints
         guard points.count >= 2 else { return 0 }
-        
+
         let yValues = points.map { $0.y }
         let maxY = yValues.max() ?? 0
         let minY = yValues.min() ?? 0
-        
+
         return abs(maxY - minY)
     }
-    
+
     /// Non-isolated gaze detection result
     private struct GazeResult: Sendable {
         var lookingAway: Bool = false
@@ -278,7 +278,7 @@ class EyeTrackingService: NSObject, ObservableObject {
         var yaw: Double?
         var pitch: Double?
     }
-    
+
     /// Non-isolated gaze direction detection
     nonisolated private func detectLookingAwaySync(
         face: VNFaceObservation,
@@ -286,52 +286,51 @@ class EyeTrackingService: NSObject, ObservableObject {
         imageSize: CGSize,
         pixelBuffer: CVPixelBuffer?
     ) -> GazeResult {
-        let constants = EyeTrackingConstants.shared
         var result = GazeResult()
-        
-        // 1. Face Pose Check (Yaw & Pitch)
-        let yaw = face.yaw?.doubleValue ?? 0.0
-        let pitch = face.pitch?.doubleValue ?? 0.0
-        
-        result.yaw = yaw
-        result.pitch = pitch
-        
-        var poseLookingAway = false
-        
-        if face.pitch != nil {
-            if constants.yawEnabled {
-                let yawThreshold = constants.yawThreshold
-                if abs(yaw) > yawThreshold {
-                    poseLookingAway = true
-                }
-            }
-            
-            if !poseLookingAway {
-                var pitchLookingAway = false
-                
-                if constants.pitchUpEnabled && pitch > constants.pitchUpThreshold {
-                    pitchLookingAway = true
-                }
-                
-                if constants.pitchDownEnabled && pitch < constants.pitchDownThreshold {
-                    pitchLookingAway = true
-                }
-                
-                poseLookingAway = pitchLookingAway
-            }
-        }
-        
-        // 2. Eye Gaze Check (Pixel-Based Pupil Detection)
-        var eyesLookingAway = false
-        
-        if let pixelBuffer = pixelBuffer,
-           let leftEye = landmarks.leftEye,
-           let rightEye = landmarks.rightEye,
-           constants.pixelGazeEnabled
-        {
+
+// 1. Face Pose Check (Yaw & Pitch)
+         let yaw = face.yaw?.doubleValue ?? 0.0
+         let pitch = face.pitch?.doubleValue ?? 0.0
+
+         result.yaw = yaw
+         result.pitch = pitch
+
+         var poseLookingAway = false
+
+         if face.pitch != nil {
+             if EyeTrackingConstants.yawEnabled {
+                 let yawThreshold = EyeTrackingConstants.yawThreshold
+                 if abs(yaw) > yawThreshold {
+                     poseLookingAway = true
+                 }
+             }
+
+             if !poseLookingAway {
+                 var pitchLookingAway = false
+
+                 if EyeTrackingConstants.pitchUpEnabled && pitch > EyeTrackingConstants.pitchUpThreshold {
+                     pitchLookingAway = true
+                 }
+
+                 if EyeTrackingConstants.pitchDownEnabled && pitch < EyeTrackingConstants.pitchDownThreshold {
+                     pitchLookingAway = true
+                 }
+
+                 poseLookingAway = pitchLookingAway
+             }
+         }
+
+         // 2. Eye Gaze Check (Pixel-Based Pupil Detection)
+         var eyesLookingAway = false
+
+         if let pixelBuffer = pixelBuffer,
+             let leftEye = landmarks.leftEye,
+             let rightEye = landmarks.rightEye,
+             EyeTrackingConstants.pixelGazeEnabled
+         {
             var leftGazeRatio: Double? = nil
             var rightGazeRatio: Double? = nil
-            
+
             // Detect left pupil (side = 0)
             if let leftResult = PupilDetector.detectPupil(
                 in: pixelBuffer,
@@ -345,7 +344,7 @@ class EyeTrackingService: NSObject, ObservableObject {
                     eyeRegion: leftResult.eyeRegion
                 )
             }
-            
+
             // Detect right pupil (side = 1)
             if let rightResult = PupilDetector.detectPupil(
                 in: pixelBuffer,
@@ -359,13 +358,14 @@ class EyeTrackingService: NSObject, ObservableObject {
                     eyeRegion: rightResult.eyeRegion
                 )
             }
-            
+
             result.leftPupilRatio = leftGazeRatio
             result.rightPupilRatio = rightGazeRatio
-            
+
             // Connect to CalibrationManager on main thread
             if let leftRatio = leftGazeRatio,
-               let rightRatio = rightGazeRatio {
+                let rightRatio = rightGazeRatio
+            {
                 Task { @MainActor in
                     if CalibrationManager.shared.isCalibrating {
                         CalibrationManager.shared.collectSample(
@@ -374,25 +374,27 @@ class EyeTrackingService: NSObject, ObservableObject {
                         )
                     }
                 }
-                
+
                 let avgRatio = (leftRatio + rightRatio) / 2.0
-                let lookingRight = avgRatio <= constants.pixelGazeMinRatio
-                let lookingLeft = avgRatio >= constants.pixelGazeMaxRatio
+                let lookingRight = avgRatio <= EyeTrackingConstants.pixelGazeMinRatio
+                let lookingLeft = avgRatio >= EyeTrackingConstants.pixelGazeMaxRatio
                 eyesLookingAway = lookingRight || lookingLeft
             }
         }
-        
+
         result.lookingAway = poseLookingAway || eyesLookingAway
         return result
     }
-    
+
     /// Non-isolated gaze ratio calculation
-    nonisolated private func calculateGazeRatioSync(pupilPosition: PupilPosition, eyeRegion: EyeRegion) -> Double {
+    nonisolated private func calculateGazeRatioSync(
+        pupilPosition: PupilPosition, eyeRegion: EyeRegion
+    ) -> Double {
         let pupilX = Double(pupilPosition.x)
         let eyeCenterX = Double(eyeRegion.center.x)
-        
+
         let denominator = (eyeCenterX * 2.0 - 10.0)
-        
+
         guard denominator > 0 else {
             let eyeLeft = Double(eyeRegion.frame.minX)
             let eyeRight = Double(eyeRegion.frame.maxX)
@@ -400,19 +402,16 @@ class EyeTrackingService: NSObject, ObservableObject {
             guard eyeWidth > 0 else { return 0.5 }
             return (pupilX - eyeLeft) / eyeWidth
         }
-        
+
         let ratio = pupilX / denominator
         return max(0.0, min(1.0, ratio))
     }
 
-
     private func detectEyesClosed(
         leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D, shouldLog: Bool
     ) -> Bool {
-        let constants = EyeTrackingConstants.shared
-
         // If eye closure detection is disabled, always return false (eyes not closed)
-        guard constants.eyeClosedEnabled else {
+        guard EyeTrackingConstants.eyeClosedEnabled else {
             return false
         }
 
@@ -423,7 +422,7 @@ class EyeTrackingService: NSObject, ObservableObject {
         let leftEyeHeight = calculateEyeHeight(leftEye, shouldLog: shouldLog)
         let rightEyeHeight = calculateEyeHeight(rightEye, shouldLog: shouldLog)
 
-        let closedThreshold = constants.eyeClosedThreshold
+        let closedThreshold = EyeTrackingConstants.eyeClosedThreshold
 
         let isClosed = leftEyeHeight < closedThreshold && rightEyeHeight < closedThreshold
 
@@ -444,10 +443,9 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
 
     private func detectLookingAway(
-        face: VNFaceObservation, landmarks: VNFaceLandmarks2D, imageSize: CGSize, pixelBuffer: CVPixelBuffer?, shouldLog: Bool
+        face: VNFaceObservation, landmarks: VNFaceLandmarks2D, imageSize: CGSize,
+        pixelBuffer: CVPixelBuffer?, shouldLog: Bool
     ) -> Bool {
-        let constants = EyeTrackingConstants.shared
-
         // 1. Face Pose Check (Yaw & Pitch)
         let yaw = face.yaw?.doubleValue ?? 0.0
         let pitch = face.pitch?.doubleValue ?? 0.0
@@ -473,8 +471,8 @@ class EyeTrackingService: NSObject, ObservableObject {
         // Note: Vision Framework on macOS often doesn't provide reliable pitch data
         if face.pitch != nil {
             // Check yaw if enabled
-            if constants.yawEnabled {
-                let yawThreshold = constants.yawThreshold
+            if EyeTrackingConstants.yawEnabled {
+                let yawThreshold = EyeTrackingConstants.yawThreshold
                 if abs(yaw) > yawThreshold {
                     poseLookingAway = true
                 }
@@ -484,11 +482,15 @@ class EyeTrackingService: NSObject, ObservableObject {
             if !poseLookingAway {
                 var pitchLookingAway = false
 
-                if constants.pitchUpEnabled && pitch > constants.pitchUpThreshold {
+                if EyeTrackingConstants.pitchUpEnabled
+                    && pitch > EyeTrackingConstants.pitchUpThreshold
+                {
                     pitchLookingAway = true
                 }
 
-                if constants.pitchDownEnabled && pitch < constants.pitchDownThreshold {
+                if EyeTrackingConstants.pitchDownEnabled
+                    && pitch < EyeTrackingConstants.pitchDownThreshold
+                {
                     pitchLookingAway = true
                 }
 
@@ -502,11 +504,11 @@ class EyeTrackingService: NSObject, ObservableObject {
         if let pixelBuffer = pixelBuffer,
             let leftEye = landmarks.leftEye,
             let rightEye = landmarks.rightEye,
-            constants.pixelGazeEnabled
+            EyeTrackingConstants.pixelGazeEnabled
         {
             var leftGazeRatio: Double? = nil
             var rightGazeRatio: Double? = nil
-            
+
             // Detect left pupil (side = 0)
             if let leftResult = PupilDetector.detectPupil(
                 in: pixelBuffer,
@@ -520,7 +522,7 @@ class EyeTrackingService: NSObject, ObservableObject {
                     eyeRegion: leftResult.eyeRegion
                 )
             }
-            
+
             // Detect right pupil (side = 1)
             if let rightResult = PupilDetector.detectPupil(
                 in: pixelBuffer,
@@ -534,34 +536,39 @@ class EyeTrackingService: NSObject, ObservableObject {
                     eyeRegion: rightResult.eyeRegion
                 )
             }
-            
+
             // CRITICAL: Connect to CalibrationManager
             if CalibrationManager.shared.isCalibrating,
-               let leftRatio = leftGazeRatio,
-               let rightRatio = rightGazeRatio {
+                let leftRatio = leftGazeRatio,
+                let rightRatio = rightGazeRatio
+            {
                 CalibrationManager.shared.collectSample(
                     leftRatio: leftRatio,
                     rightRatio: rightRatio
                 )
             }
-            
-            // Determine looking away using calibrated thresholds
-            if let leftRatio = leftGazeRatio, let rightRatio = rightGazeRatio {
-                let avgRatio = (leftRatio + rightRatio) / 2.0
-                let lookingRight = avgRatio <= constants.pixelGazeMinRatio
-                let lookingLeft = avgRatio >= constants.pixelGazeMaxRatio
-                eyesLookingAway = lookingRight || lookingLeft
-                
+
+// Determine looking away using calibrated thresholds
+             if let leftRatio = leftGazeRatio, let rightRatio = rightGazeRatio {
+                 let avgRatio = (leftRatio + rightRatio) / 2.0
+                 let lookingRight = avgRatio <= EyeTrackingConstants.pixelGazeMinRatio
+                 let lookingLeft = avgRatio >= EyeTrackingConstants.pixelGazeMaxRatio
+                 eyesLookingAway = lookingRight || lookingLeft
+
                 if shouldLog {
-                    print("👁️ PIXEL GAZE: L=\(String(format: "%.3f", leftRatio)) R=\(String(format: "%.3f", rightRatio)) Avg=\(String(format: "%.3f", avgRatio)) Away=\(eyesLookingAway)")
-                    print("   Thresholds: Min=\(String(format: "%.3f", constants.pixelGazeMinRatio)) Max=\(String(format: "%.3f", constants.pixelGazeMaxRatio))")
+                    print(
+                        "👁️ PIXEL GAZE: L=\(String(format: "%.3f", leftRatio)) R=\(String(format: "%.3f", rightRatio)) Avg=\(String(format: "%.3f", avgRatio)) Away=\(eyesLookingAway)"
+                    )
+                    print(
+                        "   Thresholds: Min=\(String(format: "%.3f", EyeTrackingConstants.pixelGazeMinRatio)) Max=\(String(format: "%.3f", EyeTrackingConstants.pixelGazeMaxRatio))"
+                    )
                 }
             } else {
                 if shouldLog {
                     print("⚠️ Pixel pupil detection failed for one or both eyes")
                 }
             }
-            
+
             // Update debug values
             Task { @MainActor in
                 debugLeftPupilRatio = leftGazeRatio
@@ -571,7 +578,7 @@ class EyeTrackingService: NSObject, ObservableObject {
             if shouldLog {
                 if pixelBuffer == nil {
                     print("⚠️ No pixel buffer available for pupil detection")
-                } else if !constants.pixelGazeEnabled {
+                } else if !EyeTrackingConstants.pixelGazeEnabled {
                     print("⚠️ Pixel gaze detection disabled in constants")
                 } else {
                     print("⚠️ Missing eye landmarks for pupil detection")
@@ -583,17 +590,17 @@ class EyeTrackingService: NSObject, ObservableObject {
 
         return isLookingAway
     }
-    
+
     /// Calculate gaze ratio using Python GazeTracking algorithm
     /// Formula: ratio = pupilX / (eyeCenterX * 2 - 10)
     /// Returns: 0.0-1.0 (0.0 = far right, 1.0 = far left)
     private func calculateGazeRatio(pupilPosition: PupilPosition, eyeRegion: EyeRegion) -> Double {
         let pupilX = Double(pupilPosition.x)
         let eyeCenterX = Double(eyeRegion.center.x)
-        
+
         // Python formula from GazeTracking library
         let denominator = (eyeCenterX * 2.0 - 10.0)
-        
+
         guard denominator > 0 else {
             // Fallback to simple normalized position
             let eyeLeft = Double(eyeRegion.frame.minX)
@@ -602,9 +609,9 @@ class EyeTrackingService: NSObject, ObservableObject {
             guard eyeWidth > 0 else { return 0.5 }
             return (pupilX - eyeLeft) / eyeWidth
         }
-        
+
         let ratio = pupilX / denominator
-        
+
         // Clamp to valid range
         return max(0.0, min(1.0, ratio))
     }
@@ -642,7 +649,7 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
                 imageSize: size,
                 pixelBuffer: pixelBuffer
             )
-            
+
             // Only dispatch UI updates to main thread
             Task { @MainActor in
                 self.faceDetected = result.faceDetected

@@ -30,7 +30,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         timerEngine = TimerEngine(settingsManager: settingsManager)
 
-        // Initialize Smart Mode services
         setupSmartModeServices()
 
         // Initialize update manager after onboarding is complete
@@ -42,7 +41,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         observeSettingsChanges()
 
-        // Start timers if onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
@@ -57,7 +55,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             resetThresholdMinutes: settingsManager.settings.smartMode.usageResetAfterMinutes
         )
 
-        // Connect idle service to usage tracking
         if let idleService = idleService {
             usageTrackingService?.setupIdleMonitoring(idleService)
         }
@@ -275,7 +272,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
-            SettingsWindowPresenter.shared.show(settingsManager: self.settingsManager, initialTab: tab)
+            SettingsWindowPresenter.shared.show(
+                settingsManager: self.settingsManager, initialTab: tab)
         }
     }
 
@@ -295,7 +293,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
 }
 
-// Custom window class that can become key to receive keyboard events
 class KeyableWindow: NSWindow {
     override var canBecomeKey: Bool {
         return true
@@ -306,7 +303,6 @@ class KeyableWindow: NSWindow {
     }
 }
 
-// Non-key window class for subtle reminders that don't steal focus
 class NonKeyWindow: NSWindow {
     override var canBecomeKey: Bool {
         return false

@@ -122,7 +122,7 @@ struct SettingsWindowView: View {
         ZStack {
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
                 .ignoresSafeArea()
-            
+
             VStack(spacing: 0) {
                 NavigationSplitView {
                     List(SettingsSection.allCases, selection: $selectedSection) { section in
@@ -206,11 +206,7 @@ struct SettingsWindowView: View {
             SettingsWindowPresenter.shared.close()
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self.settingsManager.settings.hasCompletedOnboarding = false
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
-                }
+                OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
             }
         }
     #endif

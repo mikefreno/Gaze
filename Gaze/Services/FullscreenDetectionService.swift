@@ -71,6 +71,7 @@ final class FullscreenDetectionService: ObservableObject {
     private let permissionManager: ScreenCapturePermissionManaging
     private let environmentProvider: FullscreenEnvironmentProviding
 
+    // This initializer is only for use within main actor contexts
     init(
         permissionManager: ScreenCapturePermissionManaging = ScreenCapturePermissionManager.shared,
         environmentProvider: FullscreenEnvironmentProviding = SystemFullscreenEnvironmentProvider()
@@ -78,6 +79,19 @@ final class FullscreenDetectionService: ObservableObject {
         self.permissionManager = permissionManager
         self.environmentProvider = environmentProvider
         setupObservers()
+    }
+    
+    // Factory method to safely create instances from non-main actor contexts
+    static func create(
+        permissionManager: ScreenCapturePermissionManaging = ScreenCapturePermissionManager.shared,
+        environmentProvider: FullscreenEnvironmentProviding = SystemFullscreenEnvironmentProvider()
+    ) async -> FullscreenDetectionService {
+        await MainActor.run {
+            return FullscreenDetectionService(
+                permissionManager: permissionManager,
+                environmentProvider: environmentProvider
+            )
+        }
     }
 
     deinit {

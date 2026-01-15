@@ -73,24 +73,26 @@ final class ServiceContainer {
     func setupSmartModeServices() {
         let settings = settingsManager.settings
         
-        fullscreenService = FullscreenDetectionService()
-        idleService = IdleMonitoringService(
-            idleThresholdMinutes: settings.smartMode.idleThresholdMinutes
-        )
-        usageTrackingService = UsageTrackingService(
-            resetThresholdMinutes: settings.smartMode.usageResetAfterMinutes
-        )
-        
-        // Connect idle service to usage tracking
-        if let idleService = idleService {
-            usageTrackingService?.setupIdleMonitoring(idleService)
+        Task { @MainActor in
+            fullscreenService = await FullscreenDetectionService.create()
+            idleService = IdleMonitoringService(
+                idleThresholdMinutes: settings.smartMode.idleThresholdMinutes
+            )
+            usageTrackingService = UsageTrackingService(
+                resetThresholdMinutes: settings.smartMode.usageResetAfterMinutes
+            )
+            
+            // Connect idle service to usage tracking
+            if let idleService = idleService {
+                usageTrackingService?.setupIdleMonitoring(idleService)
+            }
+            
+            // Connect services to timer engine
+            timerEngine.setupSmartMode(
+                fullscreenService: fullscreenService,
+                idleService: idleService
+            )
         }
-        
-        // Connect services to timer engine
-        timerEngine.setupSmartMode(
-            fullscreenService: fullscreenService,
-            idleService: idleService
-        )
     }
     
     /// Resets the container for testing purposes

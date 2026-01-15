@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct TimerConfiguration: Codable, Equatable, Hashable {
+struct TimerConfiguration: Codable, Equatable, Hashable, Sendable {
     var enabled: Bool
     var intervalSeconds: Int
     

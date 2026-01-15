@@ -20,28 +20,33 @@ import Accelerate
 import ImageIO
 import UniformTypeIdentifiers
 
-struct PupilPosition: Equatable {
+struct PupilPosition: Equatable, Sendable {
     let x: CGFloat
     let y: CGFloat
 }
 
-struct EyeRegion {
+struct EyeRegion: Sendable {
     let frame: CGRect
     let center: CGPoint
     let origin: CGPoint
 }
 
 /// Calibration state for adaptive thresholding (matches Python Calibration class)
-final class PupilCalibration {
+final class PupilCalibration: @unchecked Sendable {
+    private let lock = NSLock()
     private let targetFrames = 20
     private var thresholdsLeft: [Int] = []
     private var thresholdsRight: [Int] = []
     
     var isComplete: Bool {
-        thresholdsLeft.count >= targetFrames && thresholdsRight.count >= targetFrames
+        lock.lock()
+        defer { lock.unlock() }
+        return thresholdsLeft.count >= targetFrames && thresholdsRight.count >= targetFrames
     }
     
     func threshold(forSide side: Int) -> Int {
+        lock.lock()
+        defer { lock.unlock() }
         let thresholds = side == 0 ? thresholdsLeft : thresholdsRight
         guard !thresholds.isEmpty else { return 50 }
         return thresholds.reduce(0, +) / thresholds.count
@@ -49,6 +54,8 @@ final class PupilCalibration {
     
     func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
         let bestThreshold = findBestThreshold(eyeData: eyeData, width: width, height: height)
+        lock.lock()
+        defer { lock.unlock() }
         if side == 0 {
             thresholdsLeft.append(bestThreshold)
         } else {
@@ -106,13 +113,15 @@ final class PupilCalibration {
     }
     
     func reset() {
+        lock.lock()
+        defer { lock.unlock() }
         thresholdsLeft.removeAll()
         thresholdsRight.removeAll()
     }
 }
 
 /// Performance metrics for pupil detection
-struct PupilDetectorMetrics {
+struct PupilDetectorMetrics: Sendable {
     var lastProcessingTimeMs: Double = 0
     var averageProcessingTimeMs: Double = 0
     var frameCount: Int = 0
@@ -126,7 +135,11 @@ struct PupilDetectorMetrics {
     }
 }
 
-final class PupilDetector {
+final class PupilDetector: @unchecked Sendable {
+    
+    // MARK: - Thread Safety
+    
+    private static let lock = NSLock()
     
     // MARK: - Configuration
     
@@ -134,14 +147,14 @@ final class PupilDetector {
     static var enablePerformanceLogging = false
     static var frameSkipCount = 10  // Process every Nth frame
     
-    // MARK: - State
+    // MARK: - State (protected by lock)
     
-    private static var debugImageCounter = 0
-    private static var frameCounter = 0
-    private static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) = (nil, nil)
+    private static var _debugImageCounter = 0
+    private static var _frameCounter = 0
+    private static var _lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) = (nil, nil)
+    private static var _metrics = PupilDetectorMetrics()
     
     static let calibration = PupilCalibration()
-    static var metrics = PupilDetectorMetrics()
     
     // MARK: - Precomputed Tables
     
@@ -182,7 +195,7 @@ final class PupilDetector {
     
     /// Detects pupil position with frame skipping for performance
     /// Returns cached result on skipped frames
-    static func detectPupil(
+    nonisolated static func detectPupil(
         in pixelBuffer: CVPixelBuffer,
         eyeLandmarks: VNFaceLandmarkRegion2D,
         faceBoundingBox: CGRect,

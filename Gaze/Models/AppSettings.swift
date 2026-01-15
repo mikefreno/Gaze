@@ -9,7 +9,7 @@ import Foundation
 
 // MARK: - Reminder Size
 
-enum ReminderSize: String, Codable, CaseIterable {
+enum ReminderSize: String, Codable, CaseIterable, Sendable {
     case small
     case medium
     case large
@@ -31,7 +31,7 @@ enum ReminderSize: String, Codable, CaseIterable {
     }
 }
 
-struct AppSettings: Codable, Equatable, Hashable {
+struct AppSettings: Codable, Equatable, Hashable, Sendable {
     var lookAwayTimer: TimerConfiguration
     var lookAwayCountdownSeconds: Int
     var blinkTimer: TimerConfiguration

@@ -83,13 +83,13 @@ final class FullscreenDetectionService: ObservableObject {
     
     // Factory method to safely create instances from non-main actor contexts
     static func create(
-        permissionManager: ScreenCapturePermissionManaging = ScreenCapturePermissionManager.shared,
-        environmentProvider: FullscreenEnvironmentProviding = SystemFullscreenEnvironmentProvider()
+        permissionManager: ScreenCapturePermissionManaging? = nil,
+        environmentProvider: FullscreenEnvironmentProviding? = nil
     ) async -> FullscreenDetectionService {
         await MainActor.run {
             return FullscreenDetectionService(
-                permissionManager: permissionManager,
-                environmentProvider: environmentProvider
+                permissionManager: permissionManager ?? ScreenCapturePermissionManager.shared,
+                environmentProvider: environmentProvider ?? SystemFullscreenEnvironmentProvider()
             )
         }
     }

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 /// Represents a user-defined timer with customizable properties
-struct UserTimer: Codable, Equatable, Identifiable, Hashable {
+struct UserTimer: Codable, Equatable, Identifiable, Hashable, Sendable {
     let id: String
     var title: String
     var type: UserTimerType
@@ -100,7 +100,7 @@ extension Color {
 }
 
 /// Type of user timer - subtle or overlay
-enum UserTimerType: String, Codable, CaseIterable, Identifiable {
+enum UserTimerType: String, Codable, CaseIterable, Identifiable, Sendable {
     case subtle
     case overlay
 

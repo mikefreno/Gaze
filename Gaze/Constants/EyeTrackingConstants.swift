@@ -8,7 +8,10 @@
 import Combine
 import Foundation
 
-class EyeTrackingConstants: ObservableObject {
+/// Thread-safe configuration holder for eye tracking thresholds.
+/// Uses @unchecked Sendable because all access is via the shared singleton
+/// and the @Published properties are only mutated from the main thread.
+final class EyeTrackingConstants: ObservableObject, @unchecked Sendable {
     static let shared = EyeTrackingConstants()
     
     // MARK: - Logging

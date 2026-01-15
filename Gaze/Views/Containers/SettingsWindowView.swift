@@ -62,7 +62,7 @@ final class SettingsWindowPresenter {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.toolbarStyle = .unified
-        window.toolbar = NSToolbar()
+        window.showsToolbarButton = false
         window.center()
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
@@ -103,8 +103,10 @@ final class SettingsWindowPresenter {
     }
 
     deinit {
-        Task { @MainActor in
-            removeCloseObserver()
+        // Capture observer locally to avoid actor isolation issues
+        // NotificationCenter.removeObserver is thread-safe
+        if let observer = closeObserver {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 }
@@ -133,6 +135,15 @@ struct SettingsWindowView: View {
                     .listStyle(.sidebar)
                 } detail: {
                     detailView(for: selectedSection)
+                }.onReceive(
+                    NotificationCenter.default.publisher(
+                        for: Notification.Name("SwitchToSettingsTab"))
+                ) { notification in
+                    if let tab = notification.object as? Int,
+                        let section = SettingsSection(rawValue: tab)
+                    {
+                        selectedSection = section
+                    }
                 }
 
                 #if DEBUG
@@ -161,15 +172,6 @@ struct SettingsWindowView: View {
                 minHeight: 900
             )
         #endif
-        .onReceive(
-            NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))
-        ) { notification in
-            if let tab = notification.object as? Int,
-                let section = SettingsSection(rawValue: tab)
-            {
-                selectedSection = section
-            }
-        }
     }
 
     @ViewBuilder

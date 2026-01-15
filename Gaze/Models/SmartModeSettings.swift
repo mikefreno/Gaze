@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SmartModeSettings: Codable, Equatable, Hashable {
+struct SmartModeSettings: Codable, Equatable, Hashable, Sendable {
     var autoPauseOnFullscreen: Bool
     var autoPauseOnIdle: Bool
     var trackUsage: Bool

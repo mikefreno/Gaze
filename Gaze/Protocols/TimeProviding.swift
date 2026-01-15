@@ -8,7 +8,7 @@
 import Foundation
 
 /// Protocol for providing current time, enabling deterministic tests.
-protocol TimeProviding {
+protocol TimeProviding: Sendable {
     /// Returns the current date/time
     func now() -> Date
 }
@@ -21,7 +21,7 @@ struct SystemTimeProvider: TimeProviding {
 }
 
 /// Test implementation that allows manual time control
-final class MockTimeProvider: TimeProviding {
+final class MockTimeProvider: TimeProviding, @unchecked Sendable {
     private var currentTime: Date
     
     init(startTime: Date = Date()) {

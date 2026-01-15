@@ -98,7 +98,7 @@ if [ "$ACTION" = "build" ]; then
     
 elif [ "$ACTION" = "test" ]; then
     echo "Running unit tests..."
-    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme GazeTests -configuration Debug test"
+    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug test"
     
     if [ $? -eq 0 ]; then
         echo "✅ Tests passed!"

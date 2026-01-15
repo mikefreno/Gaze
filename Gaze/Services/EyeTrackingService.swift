@@ -60,7 +60,7 @@ class EyeTrackingService: NSObject, ObservableObject {
     // MARK: - Processing Result
     
     /// Result struct for off-main-thread processing
-    private struct ProcessingResult {
+    private struct ProcessingResult: Sendable {
         var faceDetected: Bool = false
         var isEyesClosed: Bool = false
         var userLookingAtScreen: Bool = true
@@ -271,7 +271,7 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
     
     /// Non-isolated gaze detection result
-    private struct GazeResult {
+    private struct GazeResult: Sendable {
         var lookingAway: Bool = false
         var leftPupilRatio: Double?
         var rightPupilRatio: Double?

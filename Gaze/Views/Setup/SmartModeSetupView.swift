@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SmartModeSetupView: View {
     @ObservedObject var settingsManager: SettingsManager
+    @StateObject private var permissionManager = ScreenCapturePermissionManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,10 +56,50 @@ struct SmartModeSetupView: View {
                                 set: { newValue in
                                     print("🔧 Smart Mode - Auto-pause on fullscreen changed to: \(newValue)")
                                     settingsManager.settings.smartMode.autoPauseOnFullscreen = newValue
+
+                                    if newValue {
+                                        permissionManager.requestAuthorizationIfNeeded()
+                                    }
                                 }
                             )
                         )
                         .labelsHidden()
+                    }
+
+                    if settingsManager.settings.smartMode.autoPauseOnFullscreen,
+                       permissionManager.authorizationStatus != .authorized
+                    {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Label(
+                                permissionManager.authorizationStatus == .denied
+                                    ? "Screen Recording permission required"
+                                    : "Grant Screen Recording access",
+                                systemImage: "exclamationmark.shield"
+                            )
+                            .foregroundStyle(.orange)
+
+                            Text(
+                                "macOS requires Screen Recording permission to detect other apps in fullscreen."
+                            )
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                            HStack {
+                                Button("Grant Access") {
+                                    permissionManager.requestAuthorizationIfNeeded()
+                                    permissionManager.openSystemSettings()
+                                }
+                                .buttonStyle(.bordered)
+
+                                Button("Open Settings") {
+                                    permissionManager.openSystemSettings()
+                                }
+                                .buttonStyle(.borderless)
+                            }
+                            .font(.caption)
+                            .padding(.top, 4)
+                        }
+                        .padding(.top, 8)
                     }
                 }
                 .padding()

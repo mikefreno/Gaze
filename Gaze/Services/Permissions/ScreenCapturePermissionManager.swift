@@ -1,0 +1,80 @@
+//
+//  ScreenCapturePermissionManager.swift
+//  Gaze
+//
+//  Created by ChatGPT on 1/14/26.
+//
+
+import AppKit
+import Combine
+import CoreGraphics
+import Foundation
+
+public enum ScreenCaptureAuthorizationStatus: Equatable {
+    case authorized
+    case denied
+    case notDetermined
+
+    var isAuthorized: Bool {
+        if case .authorized = self { return true }
+        return false
+    }
+}
+
+@MainActor
+public protocol ScreenCapturePermissionManaging: AnyObject {
+    var authorizationStatus: ScreenCaptureAuthorizationStatus { get }
+    var authorizationStatusPublisher: AnyPublisher<ScreenCaptureAuthorizationStatus, Never> { get }
+
+    func refreshStatus()
+    func requestAuthorizationIfNeeded()
+    func openSystemSettings()
+}
+
+@MainActor
+final class ScreenCapturePermissionManager: ObservableObject, ScreenCapturePermissionManaging {
+    static let shared = ScreenCapturePermissionManager()
+
+    @Published private(set) var authorizationStatus: ScreenCaptureAuthorizationStatus = .notDetermined
+
+    var authorizationStatusPublisher: AnyPublisher<ScreenCaptureAuthorizationStatus, Never> {
+        $authorizationStatus.eraseToAnyPublisher()
+    }
+
+    private let userDefaults: UserDefaults
+    private let requestedKey = "gazeScreenCapturePermissionRequested"
+
+    init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+        refreshStatus()
+    }
+
+    func refreshStatus() {
+        if CGPreflightScreenCaptureAccess() {
+            authorizationStatus = .authorized
+        } else if userDefaults.bool(forKey: requestedKey) {
+            authorizationStatus = .denied
+        } else {
+            authorizationStatus = .notDetermined
+        }
+    }
+
+    func requestAuthorizationIfNeeded() {
+        refreshStatus()
+
+        guard authorizationStatus == .notDetermined else { return }
+
+        userDefaults.set(true, forKey: requestedKey)
+        let granted = CGRequestScreenCaptureAccess()
+        authorizationStatus = granted ? .authorized : .denied
+    }
+
+    func openSystemSettings() {
+        guard let url = URL(
+            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording"
+        ) else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+}

@@ -13,7 +13,7 @@ import os.log
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var timerEngine: TimerEngine?
-    private let settingsManager: SettingsManager = .shared
+    private let serviceContainer: ServiceContainer
     private let windowManager: WindowManaging
     private var updateManager: UpdateManager?
     private var cancellables = Set<AnyCancellable>()
@@ -21,19 +21,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     
     // Logging manager
     private let logger = LoggingManager.shared
-
-    // Smart Mode services
-    private var fullscreenService: FullscreenDetectionService?
-    private var idleService: IdleMonitoringService?
-    private var usageTrackingService: UsageTrackingService?
+    
+    // Convenience accessor for settings
+    private var settingsManager: any SettingsProviding {
+        serviceContainer.settingsManager
+    }
 
     override init() {
+        self.serviceContainer = ServiceContainer.shared
         self.windowManager = WindowManager.shared
         super.init()
     }
     
     /// Initializer for testing with injectable dependencies
-    init(windowManager: WindowManaging) {
+    init(serviceContainer: ServiceContainer, windowManager: WindowManaging) {
+        self.serviceContainer = serviceContainer
         self.windowManager = windowManager
         super.init()
     }
@@ -46,9 +48,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         logger.configureLogging()
         logger.appLogger.info("🚀 Application did finish launching")
 
-        timerEngine = TimerEngine(settingsManager: settingsManager)
+        // Get timer engine from service container
+        timerEngine = serviceContainer.timerEngine
 
-        setupSmartModeServices()
+        // Setup smart mode services through container
+        serviceContainer.setupSmartModeServices()
 
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
@@ -64,37 +68,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
 
-    private func setupSmartModeServices() {
-        fullscreenService = FullscreenDetectionService()
-        idleService = IdleMonitoringService(
-            idleThresholdMinutes: settingsManager.settings.smartMode.idleThresholdMinutes
-        )
-        usageTrackingService = UsageTrackingService(
-            resetThresholdMinutes: settingsManager.settings.smartMode.usageResetAfterMinutes
-        )
-
-        if let idleService = idleService {
-            usageTrackingService?.setupIdleMonitoring(idleService)
-        }
-
-        // Connect services to timer engine
-        timerEngine?.setupSmartMode(
-            fullscreenService: fullscreenService,
-            idleService: idleService
-        )
-
-        // Observe smart mode settings changes
-        settingsManager.$settings
+    // Note: Smart mode setup is now handled by ServiceContainer
+    // Keeping this method for settings change observation
+    private func observeSmartModeSettings() {
+        settingsManager.settingsPublisher
             .map { $0.smartMode }
             .removeDuplicates()
             .sink { [weak self] smartMode in
-                self?.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
-                self?.usageTrackingService?.updateResetThreshold(
+                guard let self = self else { return }
+                self.serviceContainer.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
+                self.serviceContainer.usageTrackingService?.updateResetThreshold(
                     minutes: smartMode.usageResetAfterMinutes)
 
                 // Force state check when settings change to apply immediately
-                self?.fullscreenService?.forceUpdate()
-                self?.idleService?.forceUpdate()
+                self.serviceContainer.fullscreenService?.forceUpdate()
+                self.serviceContainer.idleService?.forceUpdate()
             }
             .store(in: &cancellables)
     }
@@ -117,7 +105,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func observeSettingsChanges() {
-        settingsManager.$settings
+        settingsManager.settingsPublisher
             .sink { [weak self] settings in
                 if settings.hasCompletedOnboarding && self?.hasStartedTimers == false {
                     self?.startTimers()
@@ -129,6 +117,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        
+        // Also observe smart mode settings
+        observeSmartModeSettings()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

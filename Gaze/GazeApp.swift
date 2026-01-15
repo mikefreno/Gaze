@@ -10,6 +10,8 @@ import SwiftUI
 @main
 struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    // Note: SettingsManager.shared is used directly here for SwiftUI view updates
+    // AppDelegate uses ServiceContainer for dependency injection
     @StateObject private var settingsManager = SettingsManager.shared
 
     init() {

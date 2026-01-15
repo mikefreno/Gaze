@@ -2,16 +2,16 @@
 //  LoggingManager.swift
 //  Gaze
 //
-//  Created by [Your Name] on [Date].
+//  Created by Mike Freno on 1/15/26.
 //
 
 import Foundation
 import os.log
 
 #if DEBUG
-let isLoggingEnabled = true
+    let isLoggingEnabled = true
 #else
-let isLoggingEnabled = false
+    let isLoggingEnabled = false
 #endif
 
 /// A centralized logging manager that provides structured, subsystem-aware logging
@@ -86,3 +86,33 @@ final class LoggingManager {
     }
 }
 
+// MARK: - Global Convenience Functions
+
+/// Log an info message using the shared LoggingManager
+public func logInfo(_ message: String, category: String = "General") {
+    LoggingManager.shared.info(message, category: category)
+}
+
+/// Log a debug message using the shared LoggingManager
+public func logDebug(_ message: String, category: String = "General") {
+    LoggingManager.shared.debug(message, category: category)
+}
+
+/// Log an error message using the shared LoggingManager
+public func logError(_ message: String, category: String = "General") {
+    LoggingManager.shared.error(message, category: category)
+}
+
+/// Log a warning message using the shared LoggingManager
+public func logWarning(_ message: String, category: String = "General") {
+    LoggingManager.shared.warning(message, category: category)
+}
+
+// MARK: - Additional Helper Functions
+
+/// Log a verbose message (only enabled in DEBUG builds)
+public func logVerbose(_ message: String, category: String = "General") {
+    #if DEBUG
+        LoggingManager.shared.debug(message, category: category)
+    #endif
+}

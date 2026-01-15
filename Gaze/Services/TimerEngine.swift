@@ -17,6 +17,9 @@ class TimerEngine: ObservableObject {
     private let settingsProvider: any SettingsProviding
     private var sleepStartTime: Date?
     
+    /// Time provider for deterministic testing (defaults to system time)
+    private let timeProvider: TimeProviding
+    
     // For enforce mode integration
     private var enforceModeService: EnforceModeService?
     
@@ -25,9 +28,14 @@ class TimerEngine: ObservableObject {
     private var idleService: IdleMonitoringService?
     private var cancellables = Set<AnyCancellable>()
 
-    init(settingsManager: any SettingsProviding, enforceModeService: EnforceModeService? = nil) {
+    init(
+        settingsManager: any SettingsProviding,
+        enforceModeService: EnforceModeService? = nil,
+        timeProvider: TimeProviding = SystemTimeProvider()
+    ) {
         self.settingsProvider = settingsManager
         self.enforceModeService = enforceModeService ?? EnforceModeService.shared
+        self.timeProvider = timeProvider
         
         Task { @MainActor in
             self.enforceModeService?.setTimerEngine(self)
@@ -300,7 +308,7 @@ class TimerEngine: ObservableObject {
             guard !state.isPaused else { continue }
             guard state.isActive else { continue }
             
-            if state.targetDate < Date() - 3.0 {
+            if state.targetDate < timeProvider.now() - 3.0 {
                 skipNext(identifier: identifier)
                 continue
             }
@@ -365,7 +373,7 @@ class TimerEngine: ObservableObject {
     /// - Saves current time for elapsed calculation
     /// - Pauses all active timers
     func handleSystemSleep() {
-        sleepStartTime = Date()
+        sleepStartTime = timeProvider.now()
         for (id, var state) in timerStates {
             state.pauseReasons.insert(.system)
             state.isPaused = true
@@ -387,7 +395,7 @@ class TimerEngine: ObservableObject {
             sleepStartTime = nil
         }
         
-        let elapsedSeconds = Int(Date().timeIntervalSince(sleepStart))
+        let elapsedSeconds = Int(timeProvider.now().timeIntervalSince(sleepStart))
         
         guard elapsedSeconds >= 1 else {
             for (id, var state) in timerStates {

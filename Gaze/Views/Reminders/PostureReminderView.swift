@@ -28,6 +28,7 @@ struct PostureReminderView: View {
         .offset(y: yOffset)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.top, screenHeight * 0.075)
+        .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.postureView)
         .onAppear {
             startAnimation()
         }

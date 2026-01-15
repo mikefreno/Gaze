@@ -30,10 +30,16 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
     var saveCallCount = 0
     var loadCallCount = 0
     var resetToDefaultsCallCount = 0
+    var saveImmediatelyCallCount = 0
+    
+    /// Track timer configuration updates for verification
+    var timerConfigurationUpdates: [(TimerType, TimerConfiguration)] = []
     
     init(settings: AppSettings = .defaults) {
         self.settings = settings
     }
+    
+    // MARK: - SettingsProviding conformance
     
     func timerConfiguration(for type: TimerType) -> TimerConfiguration {
         guard let keyPath = timerConfigKeyPaths[type] else {
@@ -47,6 +53,7 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
             preconditionFailure("Unknown timer type: \(type)")
         }
         settings[keyPath: keyPath] = configuration
+        timerConfigurationUpdates.append((type, configuration))
     }
     
     func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
@@ -62,7 +69,7 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
     }
     
     func saveImmediately() {
-        saveCallCount += 1
+        saveImmediatelyCallCount += 1
     }
     
     func load() {
@@ -72,5 +79,82 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
     func resetToDefaults() {
         resetToDefaultsCallCount += 1
         settings = .defaults
+    }
+    
+    // MARK: - Test helper methods
+    
+    /// Resets all call tracking counters
+    func resetCallTracking() {
+        saveCallCount = 0
+        loadCallCount = 0
+        resetToDefaultsCallCount = 0
+        saveImmediatelyCallCount = 0
+        timerConfigurationUpdates = []
+    }
+    
+    /// Creates settings with all timers enabled
+    static func withAllTimersEnabled() -> MockSettingsManager {
+        var settings = AppSettings.defaults
+        settings.lookAwayTimer.enabled = true
+        settings.blinkTimer.enabled = true
+        settings.postureTimer.enabled = true
+        return MockSettingsManager(settings: settings)
+    }
+    
+    /// Creates settings with all timers disabled
+    static func withAllTimersDisabled() -> MockSettingsManager {
+        var settings = AppSettings.defaults
+        settings.lookAwayTimer.enabled = false
+        settings.blinkTimer.enabled = false
+        settings.postureTimer.enabled = false
+        return MockSettingsManager(settings: settings)
+    }
+    
+    /// Creates settings with onboarding completed
+    static func withOnboardingCompleted() -> MockSettingsManager {
+        var settings = AppSettings.defaults
+        settings.hasCompletedOnboarding = true
+        return MockSettingsManager(settings: settings)
+    }
+    
+    /// Creates settings with custom timer intervals (in seconds)
+    static func withTimerIntervals(
+        lookAway: Int = 20 * 60,
+        blink: Int = 7 * 60,
+        posture: Int = 30 * 60
+    ) -> MockSettingsManager {
+        var settings = AppSettings.defaults
+        settings.lookAwayTimer.intervalSeconds = lookAway
+        settings.blinkTimer.intervalSeconds = blink
+        settings.postureTimer.intervalSeconds = posture
+        return MockSettingsManager(settings: settings)
+    }
+    
+    /// Enables a specific timer
+    func enableTimer(_ type: TimerType) {
+        guard let keyPath = timerConfigKeyPaths[type] else { return }
+        settings[keyPath: keyPath].enabled = true
+    }
+    
+    /// Disables a specific timer
+    func disableTimer(_ type: TimerType) {
+        guard let keyPath = timerConfigKeyPaths[type] else { return }
+        settings[keyPath: keyPath].enabled = false
+    }
+    
+    /// Sets a specific timer's interval
+    func setTimerInterval(_ type: TimerType, seconds: Int) {
+        guard let keyPath = timerConfigKeyPaths[type] else { return }
+        settings[keyPath: keyPath].intervalSeconds = seconds
+    }
+    
+    /// Adds a user timer
+    func addUserTimer(_ timer: UserTimer) {
+        settings.userTimers.append(timer)
+    }
+    
+    /// Removes all user timers
+    func clearUserTimers() {
+        settings.userTimers = []
     }
 }

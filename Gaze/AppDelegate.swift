@@ -13,9 +13,8 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     @Published var timerEngine: TimerEngine?
     private let settingsManager: SettingsManager = .shared
+    private let windowManager: WindowManaging
     private var updateManager: UpdateManager?
-    private var overlayReminderWindowController: NSWindowController?
-    private var subtleReminderWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
 
@@ -23,6 +22,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var fullscreenService: FullscreenDetectionService?
     private var idleService: IdleMonitoringService?
     private var usageTrackingService: UsageTrackingService?
+
+    override init() {
+        self.windowManager = WindowManager.shared
+        super.init()
+    }
+    
+    /// Initializer for testing with injectable dependencies
+    init(windowManager: WindowManaging) {
+        self.windowManager = windowManager
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
@@ -146,7 +156,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         timerEngine?.$activeReminder
             .sink { [weak self] reminder in
                 guard let reminder = reminder else {
-                    self?.dismissOverlayReminder()
+                    self?.windowManager.dismissOverlayReminder()
                     return
                 }
                 self?.showReminder(reminder)
@@ -155,116 +165,41 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     private func showReminder(_ event: ReminderEvent) {
-        let contentView: AnyView
-        let requiresFocus: Bool
-
         switch event {
         case .lookAwayTriggered(let countdownSeconds):
-            contentView = AnyView(
-                LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak self] in
-                    self?.timerEngine?.dismissReminder()
-                }
-            )
-            requiresFocus = true
+            let view = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak self] in
+                self?.timerEngine?.dismissReminder()
+            }
+            windowManager.showReminderWindow(view, windowType: .overlay)
+            
         case .blinkTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
-            contentView = AnyView(
-                BlinkReminderView(sizePercentage: sizePercentage) { [weak self] in
-                    self?.timerEngine?.dismissReminder()
-                }
-            )
-            requiresFocus = false
+            let view = BlinkReminderView(sizePercentage: sizePercentage) { [weak self] in
+                self?.timerEngine?.dismissReminder()
+            }
+            windowManager.showReminderWindow(view, windowType: .subtle)
+            
         case .postureTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
-            contentView = AnyView(
-                PostureReminderView(sizePercentage: sizePercentage) { [weak self] in
-                    self?.timerEngine?.dismissReminder()
-                }
-            )
-            requiresFocus = false
+            let view = PostureReminderView(sizePercentage: sizePercentage) { [weak self] in
+                self?.timerEngine?.dismissReminder()
+            }
+            windowManager.showReminderWindow(view, windowType: .subtle)
+            
         case .userTimerTriggered(let timer):
             if timer.type == .overlay {
-                contentView = AnyView(
-                    UserTimerOverlayReminderView(timer: timer) { [weak self] in
-                        self?.timerEngine?.dismissReminder()
-                    }
-                )
-                requiresFocus = true
+                let view = UserTimerOverlayReminderView(timer: timer) { [weak self] in
+                    self?.timerEngine?.dismissReminder()
+                }
+                windowManager.showReminderWindow(view, windowType: .overlay)
             } else {
                 let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
-                contentView = AnyView(
-                    UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) {
-                        [weak self] in
-                        self?.timerEngine?.dismissReminder()
-                    }
-                )
-                requiresFocus = false
+                let view = UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) { [weak self] in
+                    self?.timerEngine?.dismissReminder()
+                }
+                windowManager.showReminderWindow(view, windowType: .subtle)
             }
         }
-
-        showReminderWindow(contentView, requiresFocus: requiresFocus, isOverlay: requiresFocus)
-    }
-
-    private func showReminderWindow(_ content: AnyView, requiresFocus: Bool, isOverlay: Bool) {
-        guard let screen = NSScreen.main else { return }
-
-        let window: NSWindow
-        if requiresFocus {
-            window = KeyableWindow(
-                contentRect: screen.frame,
-                styleMask: [.borderless, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-        } else {
-            window = NonKeyWindow(
-                contentRect: screen.frame,
-                styleMask: [.borderless, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-        }
-
-        window.identifier = WindowIdentifiers.reminder
-        window.level = .floating
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.contentView = NSHostingView(rootView: content)
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-
-        // Allow mouse events only for overlay reminders (they need dismiss button)
-        // Subtle reminders should be completely transparent to mouse input
-        window.acceptsMouseMovedEvents = requiresFocus
-        window.ignoresMouseEvents = !requiresFocus
-
-        let windowController = NSWindowController(window: window)
-        windowController.showWindow(nil)
-
-        if requiresFocus {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-        } else {
-            window.orderFront(nil)
-        }
-
-        // Track overlay and subtle reminders separately
-        if isOverlay {
-            overlayReminderWindowController?.close()
-            overlayReminderWindowController = windowController
-        } else {
-            subtleReminderWindowController?.close()
-            subtleReminderWindowController = windowController
-        }
-    }
-
-    private func dismissOverlayReminder() {
-        overlayReminderWindowController?.close()
-        overlayReminderWindowController = nil
-    }
-
-    private func dismissSubtleReminder() {
-        subtleReminderWindowController?.close()
-        subtleReminderWindowController = nil
     }
 
     func openSettings(tab: Int = 0) {
@@ -272,8 +207,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
-            SettingsWindowPresenter.shared.show(
-                settingsManager: self.settingsManager, initialTab: tab)
+            windowManager.showSettings(settingsManager: self.settingsManager, initialTab: tab)
         }
     }
 
@@ -282,33 +216,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self else { return }
-            OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
+            windowManager.showOnboarding(settingsManager: self.settingsManager)
         }
     }
 
     private func handleMenuDismissal() {
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
-        dismissOverlayReminder()
+        windowManager.dismissOverlayReminder()
     }
 
-}
-
-class KeyableWindow: NSWindow {
-    override var canBecomeKey: Bool {
-        return true
-    }
-
-    override var canBecomeMain: Bool {
-        return true
-    }
-}
-
-class NonKeyWindow: NSWindow {
-    override var canBecomeKey: Bool {
-        return false
-    }
-
-    override var canBecomeMain: Bool {
-        return false
-    }
 }

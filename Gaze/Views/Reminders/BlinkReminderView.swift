@@ -46,6 +46,7 @@ struct BlinkReminderView: View {
         .opacity(opacity)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.top, screenHeight * 0.05)
+        .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.blinkView)
         .onAppear {
             startAnimation()
         }

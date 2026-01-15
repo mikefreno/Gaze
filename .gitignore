@@ -1,4 +1,5 @@
 tasks
+python_impl
 AGENTS.md
 *.log
 *.app

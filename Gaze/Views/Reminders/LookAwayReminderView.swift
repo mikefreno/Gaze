@@ -64,6 +64,7 @@ struct LookAwayReminderView: View {
                         .font(.system(size: 48, weight: .bold))
                         .foregroundColor(.white)
                         .monospacedDigit()
+                        .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.countdownLabel)
                 }
 
                 Text("Press ESC or Space to skip")
@@ -81,11 +82,13 @@ struct LookAwayReminderView: View {
                             .foregroundColor(.white.opacity(0.7))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.dismissButton)
                     .padding(30)
                 }
                 Spacer()
             }
         }
+        .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.lookAwayView)
         .onAppear {
             startCountdown()
             setupKeyMonitor()

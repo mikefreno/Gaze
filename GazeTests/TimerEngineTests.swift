@@ -12,25 +12,23 @@ import XCTest
 final class TimerEngineTests: XCTestCase {
     
     var timerEngine: TimerEngine!
-    var settingsManager: SettingsManager!
+    var mockSettings: MockSettingsManager!
     
     override func setUp() async throws {
         try await super.setUp()
-        settingsManager = SettingsManager.shared
-        UserDefaults.standard.removeObject(forKey: "gazeAppSettings")
-        settingsManager.load()
-        timerEngine = TimerEngine(settingsManager: settingsManager)
+        mockSettings = MockSettingsManager()
+        timerEngine = TimerEngine(settingsManager: mockSettings, enforceModeService: nil)
     }
     
     override func tearDown() async throws {
         timerEngine.stop()
-        UserDefaults.standard.removeObject(forKey: "gazeAppSettings")
+        mockSettings = nil
         try await super.tearDown()
     }
     
     func testTimerInitialization() {
         // Enable all timers for this test (blink is disabled by default)
-        settingsManager.settings.blinkTimer.enabled = true
+        mockSettings.enableTimer(.blink)
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 3)
@@ -60,7 +58,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testPauseAllTimers() {
-        settingsManager.settings.blinkTimer.enabled = true
+        mockSettings.enableTimer(.blink)
         timerEngine.start()
         timerEngine.pause()
         
@@ -70,7 +68,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testResumeAllTimers() {
-        settingsManager.settings.blinkTimer.enabled = true
+        mockSettings.enableTimer(.blink)
         timerEngine.start()
         timerEngine.pause()
         timerEngine.resume()
@@ -81,7 +79,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testSkipNext() {
-        settingsManager.settings.lookAwayTimer.intervalSeconds = 60
+        mockSettings.setTimerInterval(.lookAway, seconds: 60)
         timerEngine.start()
         
         timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 10
@@ -123,8 +121,8 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testDismissReminderResetsTimer() {
-        settingsManager.settings.blinkTimer.enabled = true
-        settingsManager.settings.blinkTimer.intervalSeconds = 7 * 60
+        mockSettings.enableTimer(.blink)
+        mockSettings.setTimerInterval(.blink, seconds: 7 * 60)
         timerEngine.start()
         timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds = 0
         timerEngine.activeReminder = .blinkTriggered
@@ -156,7 +154,7 @@ final class TimerEngineTests: XCTestCase {
         
         XCTAssertNotNil(timerEngine.activeReminder)
         if case .lookAwayTriggered(let countdown) = timerEngine.activeReminder {
-            XCTAssertEqual(countdown, settingsManager.settings.lookAwayCountdownSeconds)
+            XCTAssertEqual(countdown, mockSettings.settings.lookAwayCountdownSeconds)
         } else {
             XCTFail("Expected lookAwayTriggered reminder")
         }
@@ -166,7 +164,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testTriggerReminderForBlink() {
-        settingsManager.settings.blinkTimer.enabled = true
+        mockSettings.enableTimer(.blink)
         timerEngine.start()
         
         timerEngine.triggerReminder(for: .builtIn(.blink))
@@ -260,7 +258,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testDismissBlinkReminderResumesTimer() {
-        settingsManager.settings.blinkTimer.enabled = true
+        mockSettings.enableTimer(.blink)
         timerEngine.start()
         timerEngine.triggerReminder(for: .builtIn(.blink))
         
@@ -281,9 +279,9 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testAllTimersStartWhenEnabled() {
-        settingsManager.settings.lookAwayTimer.enabled = true
-        settingsManager.settings.blinkTimer.enabled = true
-        settingsManager.settings.postureTimer.enabled = true
+        mockSettings.enableTimer(.lookAway)
+        mockSettings.enableTimer(.blink)
+        mockSettings.enableTimer(.posture)
         
         timerEngine.start()
         
@@ -294,9 +292,9 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testAllTimersDisabled() {
-        settingsManager.settings.lookAwayTimer.enabled = false
-        settingsManager.settings.blinkTimer.enabled = false
-        settingsManager.settings.postureTimer.enabled = false
+        mockSettings.disableTimer(.lookAway)
+        mockSettings.disableTimer(.blink)
+        mockSettings.disableTimer(.posture)
         
         timerEngine.start()
         
@@ -304,9 +302,9 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testPartialTimersEnabled() {
-        settingsManager.settings.lookAwayTimer.enabled = true
-        settingsManager.settings.blinkTimer.enabled = false
-        settingsManager.settings.postureTimer.enabled = true
+        mockSettings.enableTimer(.lookAway)
+        mockSettings.disableTimer(.blink)
+        mockSettings.enableTimer(.posture)
         
         timerEngine.start()
         
@@ -325,7 +323,7 @@ final class TimerEngineTests: XCTestCase {
             intervalMinutes: 1,
             message: "Drink water"
         )
-        settingsManager.settings.userTimers = [overlayTimer]
+        mockSettings.addUserTimer(overlayTimer)
         
         timerEngine.start()
         
@@ -345,7 +343,6 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
         
         // Now trigger a subtle reminder (blink) while overlay is still active
-        let previousActiveReminder = timerEngine.activeReminder
         timerEngine.triggerReminder(for: .builtIn(.blink))
         
         // The activeReminder should be replaced with the blink reminder
@@ -360,16 +357,9 @@ final class TimerEngineTests: XCTestCase {
         // Both timers should be paused (the one that triggered their reminder)
         XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
         XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.blink)))
-        
-        // The key insight: Even though TimerEngine only tracks one activeReminder,
-        // AppDelegate now tracks overlay and subtle windows separately, so both
-        // reminders can be displayed simultaneously without interference
     }
     
     func testOverlayReminderDoesNotBlockSubtleReminders() {
-        // This test verifies the fix for the bug where a subtle reminder
-        // would cause an overlay reminder to get stuck
-        
         // Setup overlay user timer
         let overlayTimer = UserTimer(
             title: "Stand Up",
@@ -377,9 +367,9 @@ final class TimerEngineTests: XCTestCase {
             timeOnScreenSeconds: 10,
             intervalMinutes: 1
         )
-        settingsManager.settings.userTimers = [overlayTimer]
-        settingsManager.settings.blinkTimer.enabled = true
-        settingsManager.settings.blinkTimer.intervalSeconds = 60
+        mockSettings.addUserTimer(overlayTimer)
+        mockSettings.enableTimer(.blink)
+        mockSettings.setTimerInterval(.blink, seconds: 60)
         
         timerEngine.start()
         
@@ -412,9 +402,53 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.blink)))
         XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 60)
         
-        // The overlay timer should still be paused (user needs to dismiss it manually)
-        // Note: In the actual app, AppDelegate tracks this window separately and it
-        // remains visible even after the subtle reminder dismisses
+        // The overlay timer should still be paused
         XCTAssertTrue(timerEngine.isTimerPaused(.user(id: overlayTimer.id)))
+    }
+    
+    // MARK: - Tests using injectable time provider
+    
+    func testTimerEngineWithMockTimeProvider() {
+        let mockTime = MockTimeProvider(startTime: Date())
+        let engine = TimerEngine(
+            settingsManager: mockSettings,
+            enforceModeService: nil,
+            timeProvider: mockTime
+        )
+        
+        engine.start()
+        XCTAssertNotNil(engine.timerStates[.builtIn(.lookAway)])
+        
+        engine.stop()
+    }
+    
+    func testSystemSleepWakeWithMockTime() {
+        let startDate = Date()
+        let mockTime = MockTimeProvider(startTime: startDate)
+        let engine = TimerEngine(
+            settingsManager: mockSettings,
+            enforceModeService: nil,
+            timeProvider: mockTime
+        )
+        
+        engine.start()
+        let initialRemaining = engine.timerStates[.builtIn(.lookAway)]?.remainingSeconds ?? 0
+        
+        // Simulate sleep
+        engine.handleSystemSleep()
+        XCTAssertTrue(engine.isTimerPaused(.builtIn(.lookAway)))
+        
+        // Advance mock time by 5 minutes
+        mockTime.advance(by: 300)
+        
+        // Simulate wake
+        engine.handleSystemWake()
+        
+        // Timer should resume and have adjusted remaining time
+        XCTAssertFalse(engine.isTimerPaused(.builtIn(.lookAway)))
+        let newRemaining = engine.timerStates[.builtIn(.lookAway)]?.remainingSeconds ?? 0
+        XCTAssertEqual(newRemaining, initialRemaining - 300)
+        
+        engine.stop()
     }
 }

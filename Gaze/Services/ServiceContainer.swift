@@ -5,6 +5,7 @@
 //  Dependency injection container for managing service instances.
 //
 
+import Combine
 import Foundation
 
 /// A simple dependency injection container for managing service instances.
@@ -45,7 +46,7 @@ final class ServiceContainer {
     
     /// Creates a test container with injectable dependencies
     /// - Parameters:
-    ///   - settingsManager: The settings manager to use (defaults to MockSettingsManager in tests)
+    ///   - settingsManager: The settings manager to use
     ///   - enforceModeService: The enforce mode service to use
     init(
         settingsManager: any SettingsProviding,
@@ -67,6 +68,11 @@ final class ServiceContainer {
         )
         _timerEngine = engine
         return engine
+    }
+    
+    /// Sets a custom timer engine (useful for testing)
+    func setTimerEngine(_ engine: TimerEngine) {
+        _timerEngine = engine
     }
     
     /// Sets up smart mode services
@@ -104,9 +110,57 @@ final class ServiceContainer {
         usageTrackingService = nil
     }
     
-    /// Creates a new container configured for testing
+    /// Creates a new container configured for testing with default mock settings
     static func forTesting(settings: AppSettings = .defaults) -> ServiceContainer {
-        // We need to create this at runtime in tests using MockSettingsManager
-        fatalError("Use init(settingsManager:) directly in tests")
+        let mockSettings = MockSettingsManager(settings: settings)
+        return ServiceContainer(settingsManager: mockSettings)
     }
+}
+
+/// A mock settings manager for use in ServiceContainer.forTesting()
+/// This is a minimal implementation - use the full MockSettingsManager from tests for more features
+@MainActor
+final class MockSettingsManager: ObservableObject, SettingsProviding {
+    @Published var settings: AppSettings
+    
+    var settingsPublisher: Published<AppSettings>.Publisher {
+        $settings
+    }
+    
+    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] = [
+        .lookAway: \.lookAwayTimer,
+        .blink: \.blinkTimer,
+        .posture: \.postureTimer,
+    ]
+    
+    init(settings: AppSettings = .defaults) {
+        self.settings = settings
+    }
+    
+    func timerConfiguration(for type: TimerType) -> TimerConfiguration {
+        guard let keyPath = timerConfigKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
+        }
+        return settings[keyPath: keyPath]
+    }
+    
+    func updateTimerConfiguration(for type: TimerType, configuration: TimerConfiguration) {
+        guard let keyPath = timerConfigKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
+        }
+        settings[keyPath: keyPath] = configuration
+    }
+    
+    func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
+        var configs: [TimerType: TimerConfiguration] = [:]
+        for (type, keyPath) in timerConfigKeyPaths {
+            configs[type] = settings[keyPath: keyPath]
+        }
+        return configs
+    }
+    
+    func save() {}
+    func saveImmediately() {}
+    func load() {}
+    func resetToDefaults() { settings = .defaults }
 }

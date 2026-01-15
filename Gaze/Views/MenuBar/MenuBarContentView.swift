@@ -93,16 +93,16 @@ struct MenuBarContentView: View {
 
     private var onboardingIncompleteView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
+            // Version info
             HStack {
-                Image(systemName: "eye.fill")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                Text("Gaze")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                Spacer()
+                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
             }
-            .padding()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
 
             Divider()
 
@@ -143,6 +143,17 @@ struct MenuBarContentView: View {
 
             Divider()
 
+            // Version info
+            HStack {
+                Spacer()
+                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+
             Button(action: onQuit) {
                 HStack {
                     Image(systemName: "power")
@@ -167,16 +178,16 @@ struct MenuBarContentView: View {
 
     private func fullMenuBarView(timerEngine: TimerEngine) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header
+            // Version info
             HStack {
-                Image(systemName: "eye.fill")
-                    .font(.title2)
-                    .foregroundColor(.accentColor)
-                Text("Gaze")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                Spacer()
+                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
             }
-            .padding()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
 
             Divider()
 
@@ -265,6 +276,17 @@ struct MenuBarContentView: View {
             .padding(.horizontal, 8)
 
             Divider()
+
+            // Version info
+            HStack {
+                Spacer()
+                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
 
             // Quit
             Button(action: onQuit) {

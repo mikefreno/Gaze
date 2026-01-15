@@ -24,12 +24,10 @@ struct SettingsWindowView: View {
                         Label(section.title, systemImage: section.iconName)
                     }
                 }
-                .navigationTitle("Settings")
                 .listStyle(.sidebar)
             } detail: {
                 detailView(for: selectedSection)
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
 
             Divider()
 

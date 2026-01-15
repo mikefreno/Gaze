@@ -5,9 +5,9 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
-import SwiftUI
 import AppKit
 import Combine
+import SwiftUI
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
@@ -19,36 +19,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
-    
+
     // Smart Mode services
     private var fullscreenService: FullscreenDetectionService?
     private var idleService: IdleMonitoringService?
     private var usageTrackingService: UsageTrackingService?
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
-        
+
         timerEngine = TimerEngine(settingsManager: settingsManager)
-        
+
         // Initialize Smart Mode services
         setupSmartModeServices()
-        
+
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
             updateManager = UpdateManager.shared
         }
-        
+
         setupLifecycleObservers()
-        
+
         observeSettingsChanges()
-        
+
         // Start timers if onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
     }
-    
+
     private func setupSmartModeServices() {
         fullscreenService = FullscreenDetectionService()
         idleService = IdleMonitoringService(
@@ -57,49 +57,50 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         usageTrackingService = UsageTrackingService(
             resetThresholdMinutes: settingsManager.settings.smartMode.usageResetAfterMinutes
         )
-        
+
         // Connect idle service to usage tracking
         if let idleService = idleService {
             usageTrackingService?.setupIdleMonitoring(idleService)
         }
-        
+
         // Connect services to timer engine
         timerEngine?.setupSmartMode(
             fullscreenService: fullscreenService,
             idleService: idleService
         )
-        
+
         // Observe smart mode settings changes
         settingsManager.$settings
             .map { $0.smartMode }
             .removeDuplicates()
             .sink { [weak self] smartMode in
                 self?.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
-                self?.usageTrackingService?.updateResetThreshold(minutes: smartMode.usageResetAfterMinutes)
-                
+                self?.usageTrackingService?.updateResetThreshold(
+                    minutes: smartMode.usageResetAfterMinutes)
+
                 // Force state check when settings change to apply immediately
                 self?.fullscreenService?.forceUpdate()
                 self?.idleService?.forceUpdate()
             }
             .store(in: &cancellables)
     }
-    
+
     func onboardingCompleted() {
         startTimers()
-        
+
         // Start update checks after onboarding
         if updateManager == nil {
             updateManager = UpdateManager.shared
         }
     }
-    
+
     private func startTimers() {
         guard !hasStartedTimers else { return }
         hasStartedTimers = true
         timerEngine?.start()
         observeReminderEvents()
     }
-    
+
     private func observeSettingsChanges() {
         settingsManager.$settings
             .sink { [weak self] settings in
@@ -114,12 +115,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     func applicationWillTerminate(_ notification: Notification) {
         settingsManager.saveImmediately()
         timerEngine?.stop()
     }
-    
+
     private func setupLifecycleObservers() {
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
@@ -127,7 +128,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             name: NSWorkspace.willSleepNotification,
             object: nil
         )
-        
+
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(systemDidWake),
@@ -135,16 +136,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: nil
         )
     }
-    
+
     @objc private func systemWillSleep() {
         timerEngine?.handleSystemSleep()
         settingsManager.saveImmediately()
     }
-    
+
     @objc private func systemDidWake() {
         timerEngine?.handleSystemWake()
     }
-    
+
     private func observeReminderEvents() {
         timerEngine?.$activeReminder
             .sink { [weak self] reminder in
@@ -156,11 +157,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     private func showReminder(_ event: ReminderEvent) {
         let contentView: AnyView
         let requiresFocus: Bool
-        
+
         switch event {
         case .lookAwayTriggered(let countdownSeconds):
             contentView = AnyView(
@@ -196,20 +197,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             } else {
                 let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
                 contentView = AnyView(
-                    UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) { [weak self] in
+                    UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) {
+                        [weak self] in
                         self?.timerEngine?.dismissReminder()
                     }
                 )
                 requiresFocus = false
             }
         }
-        
+
         showReminderWindow(contentView, requiresFocus: requiresFocus, isOverlay: requiresFocus)
     }
-    
+
     private func showReminderWindow(_ content: AnyView, requiresFocus: Bool, isOverlay: Bool) {
         guard let screen = NSScreen.main else { return }
-        
+
         let window: NSWindow
         if requiresFocus {
             window = KeyableWindow(
@@ -226,29 +228,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 defer: false
             )
         }
-        
+
         window.identifier = WindowIdentifiers.reminder
         window.level = .floating
         window.isOpaque = false
         window.backgroundColor = .clear
         window.contentView = NSHostingView(rootView: content)
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        
+
         // Allow mouse events only for overlay reminders (they need dismiss button)
         // Subtle reminders should be completely transparent to mouse input
         window.acceptsMouseMovedEvents = requiresFocus
         window.ignoresMouseEvents = !requiresFocus
-        
+
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
-        
+
         if requiresFocus {
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         } else {
             window.orderFront(nil)
         }
-        
+
         // Track overlay and subtle reminders separately
         if isOverlay {
             overlayReminderWindowController?.close()
@@ -258,53 +260,53 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             subtleReminderWindowController = windowController
         }
     }
-    
+
     private func dismissOverlayReminder() {
         overlayReminderWindowController?.close()
         overlayReminderWindowController = nil
     }
-    
+
     private func dismissSubtleReminder() {
         subtleReminderWindowController?.close()
         subtleReminderWindowController = nil
     }
-    
+
     // Public method to open settings window
     func openSettings(tab: Int = 0) {
         // Post notification to close menu bar popover
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
-        
+
         // Dismiss overlay reminders to prevent them from blocking settings window
         // Overlay reminders are at .floating level which would sit above settings
         dismissOverlayReminder()
-        
+
         // Small delay to allow menu bar to close before opening settings
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             self?.openSettingsWindow(tab: tab)
         }
     }
-    
+
     // Public method to reopen onboarding window
     func openOnboarding() {
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
-        
+
         // Dismiss overlay reminders to prevent blocking onboarding window
         dismissOverlayReminder()
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
             guard let self = self else { return }
-            
+
             if self.activateWindow(withIdentifier: WindowIdentifiers.onboarding) {
                 return
             }
-            
+
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
                 styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
-            
+
             window.identifier = WindowIdentifiers.onboarding
             window.titleVisibility = .hidden
             window.titlebarAppearsTransparent = true
@@ -313,12 +315,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             window.contentView = NSHostingView(
                 rootView: OnboardingContainerView(settingsManager: self.settingsManager)
             )
-            
+
             window.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
         }
     }
-    
+
     private func openSettingsWindow(tab: Int) {
         if let existingWindow = findWindow(withIdentifier: WindowIdentifiers.settings) {
             NotificationCenter.default.post(
@@ -329,30 +331,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             NSApp.activate(ignoringOtherApps: true)
             return
         }
-        
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
-        
+
         window.identifier = WindowIdentifiers.settings
-        window.title = "Settings"
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.toolbar = NSToolbar()
         window.center()
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
+
         window.contentView = NSHostingView(
             rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: tab)
         )
-        
+
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
-        
+
         settingsWindowController = windowController
-        
+
         NSApp.activate(ignoringOtherApps: true)
-        
+
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(settingsWindowWillCloseNotification(_:)),
@@ -360,16 +366,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: window
         )
     }
-    
+
     @objc private func settingsWindowWillCloseNotification(_ notification: Notification) {
         settingsWindowController = nil
     }
-    
+
     /// Finds a window by its identifier
     private func findWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> NSWindow? {
         return NSApplication.shared.windows.first { $0.identifier == identifier }
     }
-    
+
     /// Brings window to front if it exists, returns true if found
     private func activateWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> Bool {
         guard let window = findWindow(withIdentifier: identifier) else {
@@ -386,7 +392,7 @@ class KeyableWindow: NSWindow {
     override var canBecomeKey: Bool {
         return true
     }
-    
+
     override var canBecomeMain: Bool {
         return true
     }
@@ -397,7 +403,7 @@ class NonKeyWindow: NSWindow {
     override var canBecomeKey: Bool {
         return false
     }
-    
+
     override var canBecomeMain: Bool {
         return false
     }

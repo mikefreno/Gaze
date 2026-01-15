@@ -12,12 +12,12 @@ enum SettingsSection: Int, CaseIterable, Identifiable {
     case lookAway = 1
     case blink = 2
     case posture = 3
-    case enforceMode = 4
-    case userTimers = 5
+    case userTimers = 4
+    case enforceMode = 5
     case smartMode = 6
-    
+
     var id: Int { rawValue }
-    
+
     var title: String {
         switch self {
         case .general: return "General"
@@ -29,7 +29,7 @@ enum SettingsSection: Int, CaseIterable, Identifiable {
         case .smartMode: return "Smart Mode"
         }
     }
-    
+
     var iconName: String {
         switch self {
         case .general: return "gearshape.fill"

@@ -1,33 +1,47 @@
 #!/bin/bash
 # Build and run Gaze application
-# Usage: ./run [build|test|run]
-# Default action is build and run
-ACTION=${1:-run}
+# Usage: ./run [build|test|run|lsp] [-v|--verbose] [-o|--output <file>] [--no-lsp]
+# Note: Default action (./run with no args) runs the app with verbose logging enabled
+
+set -o pipefail
+
+# Configuration
+readonly PROJECT="Gaze.xcodeproj"
+readonly SCHEME="Gaze"
+readonly CONFIGURATION="Debug"
+readonly APP_SUBSYSTEM="com.mikefreno.Gaze"
+
 VERBOSE=false
 OUTPUT_FILE=""
-# Function to kill any existing Gaze processes
+SKIP_LSP=false
+
+# Constructs xcodebuild command with common parameters
+build_xcodebuild_command() {
+    local action="$1"
+    echo "xcodebuild -project $PROJECT -scheme $SCHEME -configuration $CONFIGURATION $action"
+}
+
+# Kills any existing Gaze processes
 kill_existing_gaze_processes() {
     echo "🔍 Checking for existing Gaze processes..."
     
-    # Find and kill any running Gaze processes
+    local pids
     pids=$(pgrep -f "Gaze.app")
     if [ -n "$pids" ]; then
         echo "🛑 Killing existing Gaze processes (PID(s): $pids)..."
         kill $pids 2>/dev/null
-        # Wait a moment for processes to terminate
         sleep 1
     else
         echo "✅ No existing Gaze processes found"
     fi
 }
-# Function to update LSP configuration
+
+# Updates LSP configuration for editor support
 update_lsp_config() {
     echo "🔧 Updating LSP configuration..."
     
-    # Check if xcode-build-server is installed
     if command -v xcode-build-server &> /dev/null; then
-        # Generate buildServer.json for LSP
-        xcode-build-server config -project Gaze.xcodeproj -scheme Gaze > /dev/null 2>&1
+        xcode-build-server config -project "$PROJECT" -scheme "$SCHEME" > /dev/null 2>&1
         
         if [ $? -eq 0 ]; then
             echo "✅ LSP configuration updated (buildServer.json created)"
@@ -39,7 +53,131 @@ update_lsp_config() {
         echo "    This helps Neovim's LSP recognize your Swift modules"
     fi
 }
+
+# Gets the build output directory from xcodebuild
+get_build_directory() {
+    xcodebuild -project "$PROJECT" -scheme "$SCHEME" -configuration "$CONFIGURATION" \
+        -showBuildSettings 2>/dev/null | \
+        grep -m 1 "BUILT_PRODUCTS_DIR" | \
+        sed 's/.*= //'
+}
+
+# Handles post-build success actions
+handle_build_success() {
+    echo "✅ Build succeeded!"
+    
+    if [ "$SKIP_LSP" != true ]; then
+        update_lsp_config
+    fi
+}
+
+# Pretty prints build/test errors from output
+print_errors() {
+    local output="$1"
+    local action_type="$2"  # "Build" or "Test"
+    
+    echo ""
+    echo "📝 ${action_type} Errors:"
+    echo "================================================================================"
+    
+    # Extract error lines and format them
+    local errors
+    errors=$(echo "$output" | grep -E "error:|Error |failed|FAIL" | sed 's/^/  /')
+    
+    if [ -n "$errors" ]; then
+        echo "$errors"
+    else
+        echo "  No specific error messages found. See full output above."
+    fi
+    
+    echo "================================================================================"
+}
+
+# Launches the built application
+launch_app() {
+    local build_dir
+    build_dir=$(get_build_directory)
+    local app_path="${build_dir}/Gaze.app"
+    
+    if [ -d "$app_path" ]; then
+        echo "🚀 Launching: $app_path"
+        
+        if [ "$VERBOSE" = true ]; then
+            echo "📝 Capturing application logs in terminal (Ctrl+C to stop)..."
+            open "$app_path" &
+            sleep 2
+            
+            echo "Logs from Gaze.app will appear below (Ctrl+C to stop):"
+            echo "================================================================"
+            /usr/bin/log stream --predicate "subsystem contains \"$APP_SUBSYSTEM\"" \
+                --style compact 2>/dev/null
+            echo "================================================================"
+            echo "Application runtime logging stopped."
+        else
+            open "$app_path"
+        fi
+    else
+        echo "⚠️  App not found at expected location, trying fallback..."
+        open "$HOME/Library/Developer/Xcode/DerivedData/Gaze-*/Build/Products/Debug/Gaze.app"
+    fi
+}
+
+# Runs command with configurable output handling
+# Always captures output for error reporting
+run_with_output() {
+    local cmd="$1"
+    local exit_code
+    
+    if [ "$VERBOSE" = true ] && [ -n "$OUTPUT_FILE" ]; then
+        # Capture to variable and tee to file
+        COMMAND_OUTPUT=$(eval "$cmd" 2>&1 | tee "$OUTPUT_FILE")
+        exit_code=${PIPESTATUS[0]}
+    elif [ "$VERBOSE" = true ]; then
+        # Show output live and capture it
+        if [ -t 1 ]; then
+            # Interactive terminal - use tee to show output
+            COMMAND_OUTPUT=$(eval "$cmd" 2>&1 | tee /dev/tty)
+            exit_code=${PIPESTATUS[0]}
+        else
+            # Non-interactive - just capture and echo
+            COMMAND_OUTPUT=$(eval "$cmd" 2>&1)
+            exit_code=$?
+            echo "$COMMAND_OUTPUT"
+        fi
+    elif [ -n "$OUTPUT_FILE" ]; then
+        # Write to file and capture
+        COMMAND_OUTPUT=$(eval "$cmd" 2>&1 | tee "$OUTPUT_FILE")
+        exit_code=${PIPESTATUS[0]}
+    else
+        # Silent mode - capture for error display if needed
+        COMMAND_OUTPUT=$(eval "$cmd" 2>&1)
+        exit_code=$?
+    fi
+    
+    return $exit_code
+}
+
+# Displays usage information
+show_usage() {
+    echo "Usage: $0 [build|test|run|lsp] [-v|--verbose] [-o|--output <file_name>] [--no-lsp]"
+    echo ""
+    echo "Commands:"
+    echo "  build   - Build the application"
+    echo "  test    - Run unit tests"
+    echo "  run     - Build and run the application with full logging (default)"
+    echo "  lsp     - Update LSP configuration only (buildServer.json)"
+    echo ""
+    echo "Options:"
+    echo "  -v, --verbose    - Show output in stdout"
+    echo "  -o, --output     - Write output to log file"
+    echo "  --no-lsp         - Skip LSP configuration update"
+    echo ""
+    echo "Note: Running './run' with no arguments defaults to 'run' action with verbose logging."
+    echo "      Press Ctrl+C to stop log capture and keep the app running."
+}
+
 # Parse command line arguments
+ACTION=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         -v|--verbose)
@@ -56,140 +194,77 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            ACTION="$1"
+            if [ -z "$ACTION" ]; then
+                ACTION="$1"
+            fi
             shift
             ;;
     esac
 done
-# Function to run command with output control
-run_with_output() {
-    local cmd="$1"
-    if [ "$VERBOSE" = true ] && [ -n "$OUTPUT_FILE" ]; then
-        # Both verbose and output file specified
-        eval "$cmd" | tee "$OUTPUT_FILE"
-    elif [ "$VERBOSE" = true ]; then
-        # Verbose only
-        eval "$cmd"
-    elif [ -n "$OUTPUT_FILE" ]; then
-        # Output file only (treat as verbose)
-        eval "$cmd" > "$OUTPUT_FILE" 2>&1
-    else
-        # Neither verbose nor output file, send to /dev/null
-        eval "$cmd" > /dev/null 2>&1
-    fi
-}
-echo "=== Gaze Application Script ==="
-if [ "$ACTION" = "build" ]; then
-    echo "Building Gaze project..."
-    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Build succeeded!"
-        echo "💡 The app is located at: build/Debug/Gaze.app"
-        
-        # Update LSP config after successful build
-        if [ "$SKIP_LSP" != true ]; then
-            update_lsp_config
-        fi
-    else
-        echo "❌ Build failed!"
-        exit 1
-    fi
-    
-elif [ "$ACTION" = "test" ]; then
-    echo "Running unit tests..."
+
+# Default to run if no action specified
+if [ -z "$ACTION" ]; then
+    ACTION="run"
+    # Default run action is always verbose with full logging
     VERBOSE=true
-    
-    # Run tests and capture output
-    TEST_OUTPUT=$(xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug test 2>&1)
-    TEST_EXIT_CODE=$?
-    
-    # Display the test output
-    echo "$TEST_OUTPUT"
-    
-    # Check if tests passed or failed
-    if [ $TEST_EXIT_CODE -eq 0 ]; then
-        echo "✅ Tests passed!"
-    else
-        echo "❌ Tests failed!"
-        
-        # Extract and display failing tests in a pretty format
-        echo ""
-        echo "📝 Failed Tests:"
-        echo "================"
-        echo "$TEST_OUTPUT" | grep -E "(FAIL|Error|failed)" | sed 's/^/  • /'
-        echo "================"
-        exit 1
-    fi
-elif [ "$ACTION" = "run" ]; then
-    echo "Building and running Gaze application..."
-    
-    # Kill any existing Gaze processes first
-    kill_existing_gaze_processes
-    
-    # Always build first, then run
-    run_with_output "xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug build"
-    
-    if [ $? -eq 0 ]; then
-        echo "✅ Build succeeded!"
-        
-        # Update LSP config after successful build
-        if [ "$SKIP_LSP" != true ]; then
-            update_lsp_config
-        fi
-        
-        # Get the actual build output directory from xcodebuild
-        BUILD_DIR="$(xcodebuild -project Gaze.xcodeproj -scheme Gaze -configuration Debug -showBuildSettings 2>/dev/null | grep -m 1 "BUILT_PRODUCTS_DIR" | sed 's/.*= //')"
-        APP_PATH="${BUILD_DIR}/Gaze.app"
-        
-        if [ -d "$APP_PATH" ]; then
-            echo "🚀 Launching: $APP_PATH"
-            
-            if [ "$VERBOSE" = true ]; then
-                echo "📝 Capturing application logs in terminal (Ctrl+C to stop)..."
-                # Launch the app and capture its logs
-                open "$APP_PATH" &
-                APP_PID=$!
-                
-                # Wait a moment for app to start, then capture logs
-                sleep 2
-                
-                # Capture logs from the application using log stream
-                echo "Logs from Gaze.app will appear below (Ctrl+C to stop):"
-                echo "================================================================"
-                /usr/bin/log stream --predicate 'subsystem contains "com.mikefreno.Gaze"' --style compact 2>/dev/null | head -100
-                echo "================================================================"
-                echo "Application runtime logging stopped."
-            else
-                # Standard launch without logging
-                open "$APP_PATH"
-            fi
-        else
-            echo "⚠️  App not found at expected location, trying fallback..."
-            # Fallback to derived data location
-            open "$HOME/Library/Developer/Xcode/DerivedData/Gaze-*/Build/Products/Debug/Gaze.app"
-        fi
-    else
-        echo "❌ Build failed!"
-        exit 1
-    fi
-elif [ "$ACTION" = "lsp" ]; then
-    # New command to just update LSP config
-    echo "Updating LSP configuration only..."
-    update_lsp_config
-    
-else
-    echo "Usage: $0 [build|test|run|lsp] [-v|--verbose] [-o|--output <file_name>] [--no-lsp]"
-    echo ""
-    echo "Commands:"
-    echo "  build   - Build the application"
-    echo "  test    - Run unit tests"
-    echo "  run     - Build and run the application (default)"
-    echo "  lsp     - Update LSP configuration only (buildServer.json)"
-    echo ""
-    echo "Options:"
-    echo "  -v, --verbose    - Show output in stdout"
-    echo "  -o, --output     - Write output to log file"
-    echo "  --no-lsp         - Skip LSP configuration update"
-    exit 1
 fi
+
+# Main execution
+echo "=== Gaze Application Script ==="
+
+case "$ACTION" in
+    build)
+        echo "Building Gaze project..."
+        run_with_output "$(build_xcodebuild_command build)"
+        
+        if [ $? -eq 0 ]; then
+            handle_build_success
+            echo "💡 The app is located at: build/Debug/Gaze.app"
+        else
+            echo "❌ Build failed!"
+            print_errors "$COMMAND_OUTPUT" "Build"
+            exit 1
+        fi
+        ;;
+        
+    test)
+        echo "Running unit tests..."
+        run_with_output "$(build_xcodebuild_command test)"
+        
+        if [ $? -eq 0 ]; then
+            echo "✅ Tests passed!"
+        else
+            echo "❌ Tests failed!"
+            print_errors "$COMMAND_OUTPUT" "Test"
+            exit 1
+        fi
+        ;;
+        
+    run)
+        echo "Building and running Gaze application..."
+        
+        kill_existing_gaze_processes
+        
+        run_with_output "$(build_xcodebuild_command build)"
+        
+        if [ $? -eq 0 ]; then
+            handle_build_success
+            launch_app
+        else
+            echo "❌ Build failed!"
+            print_errors "$COMMAND_OUTPUT" "Build"
+            exit 1
+        fi
+        ;;
+        
+    lsp)
+        echo "Updating LSP configuration only..."
+        update_lsp_config
+        ;;
+        
+    *)
+        show_usage
+        exit 1
+        ;;
+esac
+

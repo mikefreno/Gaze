@@ -79,229 +79,135 @@ struct MenuBarContentView: View {
     var onOpenOnboarding: () -> Void
 
     var body: some View {
-        if !settingsManager.settings.hasCompletedOnboarding {
-            // Simplified view when onboarding is not complete
-            onboardingIncompleteView
-        } else if let timerEngine = timerEngine {
-            // Full view when onboarding is complete and timers are running
-            fullMenuBarView(timerEngine: timerEngine)
-        } else {
-            // Fallback view
-            EmptyView()
-        }
-    }
-
-    private var onboardingIncompleteView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Version info
-            HStack {
-                Spacer()
-                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            if settingsManager.settings.hasCompletedOnboarding {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Active Timers")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
 
-            Divider()
-
-            // Message
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Gaze!")
-                    .font(.headline)
-                    .padding(.horizontal)
-                    .padding(.top, 16)
-
-                Text("Complete the onboarding to start using Gaze!")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
-            }
-
-            Divider()
-
-            // Complete Onboarding Button
-            VStack(spacing: 4) {
-                Button(action: {
-                    onOpenOnboarding()
-                }) {
-                    HStack {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.accentColor)
-                        Text("Complete Onboarding")
-                        Spacer()
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(MenuBarHoverButtonStyle())
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
-
-            Divider()
-
-            // Version info
-            HStack {
-                Spacer()
-                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-
-            Button(action: onQuit) {
-                HStack {
-                    Image(systemName: "power")
-                        .foregroundColor(.red)
-                    Text("Quit Gaze")
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-            }
-            .buttonStyle(MenuBarHoverButtonStyle())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-        }
-        .frame(width: 300)
-        .onReceive(
-            NotificationCenter.default.publisher(for: Notification.Name("CloseMenuBarPopover"))
-        ) { _ in
-            dismiss()
-        }
-    }
-
-    private func fullMenuBarView(timerEngine: TimerEngine) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Version info
-            HStack {
-                Spacer()
-                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-
-            Divider()
-
-            // Timer Status
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Active Timers")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-
-                // Show all timers using unified identifier system
-                ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) {
-                    identifier in
-                    if timerEngine.timerStates[identifier] != nil {
-                        TimerStatusRowWithIndividualControls(
-                            identifier: identifier,
-                            timerEngine: timerEngine,
-                            settingsManager: settingsManager,
-                            onSkip: {
-                                timerEngine.skipNext(identifier: identifier)
-                            },
-                            onDevTrigger: {
-                                timerEngine.triggerReminder(for: identifier)
-                            },
-                            onTogglePause: { isPaused in
-                                if isPaused {
-                                    timerEngine.pauseTimer(identifier: identifier)
-                                } else {
-                                    timerEngine.resumeTimer(identifier: identifier)
+                    ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) {
+                        identifier in
+                        if timerEngine.timerStates[identifier] != nil {
+                            TimerStatusRowWithIndividualControls(
+                                identifier: identifier,
+                                timerEngine: timerEngine,
+                                settingsManager: settingsManager,
+                                onSkip: {
+                                    timerEngine.skipNext(identifier: identifier)
+                                },
+                                onDevTrigger: {
+                                    timerEngine.triggerReminder(for: identifier)
+                                },
+                                onTogglePause: { isPaused in
+                                    if isPaused {
+                                        timerEngine.pauseTimer(identifier: identifier)
+                                    } else {
+                                        timerEngine.resumeTimer(identifier: identifier)
+                                    }
+                                },
+                                onTap: {
+                                    switch identifier {
+                                    case .builtIn(let type):
+                                        onOpenSettingsTab(type.tabIndex)
+                                    case .user:
+                                        onOpenSettingsTab(3)  // User Timers tab
+                                    }
                                 }
-                            },
-                            onTap: {
-                                switch identifier {
-                                case .builtIn(let type):
-                                    onOpenSettingsTab(type.tabIndex)
-                                case .user:
-                                    onOpenSettingsTab(3)  // User Timers tab
-                                }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
+                .padding(.bottom, 8)
+
+                Divider()
+
+                // Controls
+                VStack(spacing: 4) {
+                    Button(action: {
+                        if isAllPaused(timerEngine: timerEngine) {
+                            timerEngine.resume()
+                        } else {
+                            timerEngine.pause()
+                        }
+                    }) {
+                        HStack {
+                            Image(
+                                systemName: isAllPaused(timerEngine: timerEngine)
+                                    ? "play.circle" : "pause.circle")
+                            Text(
+                                isAllPaused(timerEngine: timerEngine)
+                                    ? "Resume All Timers" : "Pause All Timers")
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(MenuBarHoverButtonStyle())
+
+                    Button(action: {
+                        onOpenSettings()
+                    }) {
+                        HStack {
+                            Image(systemName: "gearshape")
+                            Text("Settings...")
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(MenuBarHoverButtonStyle())
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 8)
+
+                Divider()
+            } else {
+                VStack(spacing: 4) {
+                    Button(action: {
+                        onOpenOnboarding()
+                    }) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.accentColor)
+                            Text("Complete Onboarding")
+                            Spacer()
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                    }
+                    .buttonStyle(MenuBarHoverButtonStyle())
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal, 8)
             }
-            .padding(.bottom, 8)
 
-            Divider()
-
-            // Controls
-            VStack(spacing: 4) {
-                Button(action: {
-                    if isAllPaused(timerEngine: timerEngine) {
-                        timerEngine.resume()
-                    } else {
-                        timerEngine.pause()
-                    }
-                }) {
-                    HStack {
-                        Image(
-                            systemName: isAllPaused(timerEngine: timerEngine)
-                                ? "play.circle" : "pause.circle")
-                        Text(
-                            isAllPaused(timerEngine: timerEngine)
-                                ? "Resume All Timers" : "Pause All Timers")
-                        Spacer()
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(MenuBarHoverButtonStyle())
-
-                Button(action: {
-                    onOpenSettings()
-                }) {
-                    HStack {
-                        Image(systemName: "gearshape")
-                        Text("Settings...")
-                        Spacer()
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(MenuBarHoverButtonStyle())
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 8)
-
-            Divider()
-
-            // Version info
             HStack {
+                Button(action: onQuit) {
+                    HStack {
+                        Image(systemName: "power")
+                            .foregroundColor(.red)
+                        Text("Quit Gaze")
+                        Spacer()
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                }
+                .buttonStyle(MenuBarHoverButtonStyle())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 8)
                 Spacer()
-                Text("v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
+                Text(
+                    "v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")"
+                )
+                .font(.caption)
+                .foregroundColor(.secondary)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
 
-            // Quit
-            Button(action: onQuit) {
-                HStack {
-                    Image(systemName: "power")
-                        .foregroundColor(.red)
-                    Text("Quit Gaze")
-                    Spacer()
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-            }
-            .buttonStyle(MenuBarHoverButtonStyle())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
         }
         .frame(width: 300)
         .onReceive(

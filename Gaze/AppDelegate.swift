@@ -76,6 +76,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             .sink { [weak self] smartMode in
                 self?.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
                 self?.usageTrackingService?.updateResetThreshold(minutes: smartMode.usageResetAfterMinutes)
+                
+                // Force state check when settings change to apply immediately
+                self?.fullscreenService?.forceUpdate()
+                self?.idleService?.forceUpdate()
             }
             .store(in: &cancellables)
     }

@@ -18,87 +18,18 @@ struct SettingsWindowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if #available(macOS 15.0, *) {
-                TabView(selection: $selectedSection) {
-                    Tab(
-                        SettingsSection.general.title,
-                        systemImage: SettingsSection.general.iconName,
-                        value: SettingsSection.general
-                    ) {
-                        GeneralSetupView(
-                            settingsManager: settingsManager,
-                            isOnboarding: false
-                        )
-                    }
-
-                    Tab(
-                        SettingsSection.lookAway.title,
-                        systemImage: SettingsSection.lookAway.iconName,
-                        value: SettingsSection.lookAway
-                    ) {
-                        LookAwaySetupView(settingsManager: settingsManager)
-                    }
-
-                    Tab(
-                        SettingsSection.blink.title, systemImage: SettingsSection.blink.iconName,
-                        value: SettingsSection.blink
-                    ) {
-                        BlinkSetupView(settingsManager: settingsManager)
-                    }
-
-                    Tab(
-                        SettingsSection.posture.title,
-                        systemImage: SettingsSection.posture.iconName,
-                        value: SettingsSection.posture
-                    ) {
-                        PostureSetupView(settingsManager: settingsManager)
-                    }
-
-                    Tab(
-                        SettingsSection.userTimers.title,
-                        systemImage: SettingsSection.userTimers.iconName,
-                        value: SettingsSection.userTimers
-                    ) {
-                        UserTimersView(
-                            userTimers: Binding(
-                                get: { settingsManager.settings.userTimers },
-                                set: { settingsManager.settings.userTimers = $0 }
-                            )
-                        )
-                    }
-                    Tab(
-                        SettingsSection.enforceMode.title,
-                        systemImage: SettingsSection.enforceMode.iconName,
-                        value: SettingsSection.enforceMode
-                    ) {
-                        EnforceModeSetupView(settingsManager: settingsManager)
-                    }
-
-                    Tab(
-                        SettingsSection.smartMode.title,
-                        systemImage: SettingsSection.smartMode.iconName,
-                        value: SettingsSection.smartMode
-                    ) {
-                        SmartModeSetupView(settingsManager: settingsManager)
+            NavigationSplitView {
+                List(SettingsSection.allCases, selection: $selectedSection) { section in
+                    NavigationLink(value: section) {
+                        Label(section.title, systemImage: section.iconName)
                     }
                 }
-                .tabViewStyle(.sidebarAdaptable)
-            } else {
-                // Fallback for macOS 14 and earlier - use a consistent sidebar approach without collapse button
-                NavigationSplitView {
-                    List(SettingsSection.allCases, selection: $selectedSection) { section in
-                        NavigationLink(value: section) {
-                            Label(section.title, systemImage: section.iconName)
-                        }
-                    }
-                    .navigationTitle("Settings")
-                    .listStyle(.sidebar)
-                } detail: {
-                    detailView(for: selectedSection)
-                }
-                // Disable the ability to collapse the sidebar by explicitly setting a fixed width
-                .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
+                .navigationTitle("Settings")
+                .listStyle(.sidebar)
+            } detail: {
+                detailView(for: selectedSection)
             }
+            .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
 
             Divider()
 
@@ -178,16 +109,27 @@ struct SettingsWindowView: View {
 
     #if DEBUG
         private func retriggerOnboarding() {
-            // Close settings window first
+            // Get AppDelegate reference first
+            guard let appDelegate = NSApplication.shared.delegate as? AppDelegate else { return }
+
+            // Step 1: Close any existing onboarding window
+            if let onboardingWindow = NSApplication.shared.windows.first(where: {
+                $0.identifier == WindowIdentifiers.onboarding
+            }) {
+                onboardingWindow.close()
+            }
+
+            // Step 2: Close settings window
             closeWindow()
 
-            // Get AppDelegate and open onboarding
-            if let appDelegate = NSApplication.shared.delegate as? AppDelegate {
-                // Reset onboarding state so it shows as fresh
-                settingsManager.settings.hasCompletedOnboarding = false
+            // Step 3: Reset onboarding state with a delay to ensure settings window is closed
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                self.settingsManager.settings.hasCompletedOnboarding = false
 
-                // Open onboarding window
-                appDelegate.openOnboarding()
+                // Step 4: Open onboarding window with another delay to ensure state is saved
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    appDelegate.openOnboarding()
+                }
             }
         }
     #endif

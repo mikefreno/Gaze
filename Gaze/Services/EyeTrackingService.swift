@@ -24,10 +24,6 @@ class EyeTrackingService: NSObject, ObservableObject {
         label: "com.gaze.videoDataOutput", qos: .userInitiated)
     private var _previewLayer: AVCaptureVideoPreviewLayer?
 
-    // Logging throttle
-    private var lastLogTime: Date = .distantPast
-    private let logInterval: TimeInterval = EyeTrackingConstants.logInterval
-    
     var previewLayer: AVCaptureVideoPreviewLayer? {
         guard let session = captureSession else {
             _previewLayer = nil
@@ -190,7 +186,9 @@ class EyeTrackingService: NSObject, ObservableObject {
         // - Camera at top = looking at screen is negative pitch
         // - Looking above screen (straight ahead) is ~0 or positive -> Look Away
         // - Looking at keyboard/lap is very negative -> Look Away
-        let pitchLookingAway = pitch > EyeTrackingConstants.pitchUpThreshold || pitch < EyeTrackingConstants.pitchDownThreshold
+        let pitchLookingAway =
+            pitch > EyeTrackingConstants.pitchUpThreshold
+            || pitch < EyeTrackingConstants.pitchDownThreshold
 
         let poseLookingAway = abs(yaw) > yawThreshold || pitchLookingAway
 

@@ -8,6 +8,7 @@
 import AppKit
 import Combine
 import SwiftUI
+import os.log
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
@@ -17,6 +18,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var updateManager: UpdateManager?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
+    
+    // Logging manager
+    private let logger = LoggingManager.shared
 
     // Smart Mode services
     private var fullscreenService: FullscreenDetectionService?
@@ -37,6 +41,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
+        
+        // Initialize logging
+        logger.configureLogging()
+        logger.appLogger.info("🚀 Application did finish launching")
 
         timerEngine = TimerEngine(settingsManager: settingsManager)
 
@@ -103,6 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func startTimers() {
         guard !hasStartedTimers else { return }
         hasStartedTimers = true
+        logger.appLogger.info("Starting timers")
         timerEngine?.start()
         observeReminderEvents()
     }
@@ -123,6 +132,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        logger.appLogger.info(" applicationWill terminate")
         settingsManager.saveImmediately()
         timerEngine?.stop()
     }
@@ -144,11 +154,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     @objc private func systemWillSleep() {
+        logger.systemLogger.info("System will sleep")
         timerEngine?.handleSystemSleep()
         settingsManager.saveImmediately()
     }
 
     @objc private func systemDidWake() {
+        logger.systemLogger.info("System did wake")
         timerEngine?.handleSystemWake()
     }
 

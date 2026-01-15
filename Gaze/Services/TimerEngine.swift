@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import os.log
 
 @MainActor
 class TimerEngine: ObservableObject {
@@ -27,6 +28,9 @@ class TimerEngine: ObservableObject {
     private var fullscreenService: FullscreenDetectionService?
     private var idleService: IdleMonitoringService?
     private var cancellables = Set<AnyCancellable>()
+    
+    // Logging manager
+    private let logger = LoggingManager.shared.timerLogger
 
     init(
         settingsManager: any SettingsProviding,
@@ -73,10 +77,10 @@ class TimerEngine: ObservableObject {
         
         if isFullscreen {
             pauseAllTimers(reason: .fullscreen)
-            print("⏸️ Timers paused: fullscreen detected")
+            logger.info("⏸️ Timers paused: fullscreen detected")
         } else {
             resumeAllTimers(reason: .fullscreen)
-            print("▶️ Timers resumed: fullscreen exited")
+            logger.info("▶️ Timers resumed: fullscreen exited")
         }
     }
     
@@ -85,10 +89,10 @@ class TimerEngine: ObservableObject {
         
         if isIdle {
             pauseAllTimers(reason: .idle)
-            print("⏸️ Timers paused: user idle")
+            logger.info("⏸️ Timers paused: user idle")
         } else {
             resumeAllTimers(reason: .idle)
-            print("▶️ Timers resumed: user active")
+            logger.info("▶️ Timers resumed: user active")
         }
     }
     
@@ -163,6 +167,7 @@ class TimerEngine: ObservableObject {
     }
     
     private func updateConfigurations() {
+        logger.debug("Updating timer configurations")
         var newStates: [TimerIdentifier: TimerState] = [:]
         
         // Update built-in timers
@@ -175,6 +180,7 @@ class TimerEngine: ObservableObject {
                     // Timer exists - check if interval changed
                     if existingState.originalIntervalSeconds != config.intervalSeconds {
                         // Interval changed - reset with new interval
+                        logger.debug("Timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: config.intervalSeconds,
@@ -187,6 +193,7 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // Timer was just enabled - create new state
+                    logger.debug("Timer enabled")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: config.intervalSeconds,
@@ -208,6 +215,7 @@ class TimerEngine: ObservableObject {
                     // Check if interval changed
                     if existingState.originalIntervalSeconds != newIntervalSeconds {
                         // Interval changed - reset with new interval
+                        logger.debug("User timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: newIntervalSeconds,
@@ -220,6 +228,7 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // New timer - create state
+                    logger.debug("User timer created")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: newIntervalSeconds,
@@ -373,6 +382,7 @@ class TimerEngine: ObservableObject {
     /// - Saves current time for elapsed calculation
     /// - Pauses all active timers
     func handleSystemSleep() {
+        logger.debug("System going to sleep")
         sleepStartTime = timeProvider.now()
         for (id, var state) in timerStates {
             state.pauseReasons.insert(.system)
@@ -387,6 +397,7 @@ class TimerEngine: ObservableObject {
     /// - Timers that expired during sleep will trigger immediately (1s delay)
     /// - Resumes all timers
     func handleSystemWake() {
+        logger.debug("System waking up")
         guard let sleepStart = sleepStartTime else {
             return
         }

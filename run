@@ -129,7 +129,26 @@ elif [ "$ACTION" = "run" ]; then
         
         if [ -d "$APP_PATH" ]; then
             echo "🚀 Launching: $APP_PATH"
-            open "$APP_PATH"
+            
+            if [ "$VERBOSE" = true ]; then
+                echo "📝 Capturing application logs in terminal (Ctrl+C to stop)..."
+                # Launch the app and capture its logs
+                open "$APP_PATH" &
+                APP_PID=$!
+                
+                # Wait a moment for app to start, then capture logs
+                sleep 2
+                
+                # Capture logs from the application using log stream
+                echo "Logs from Gaze.app will appear below (Ctrl+C to stop):"
+                echo "================================================================"
+                /usr/bin/log stream --predicate 'subsystem contains "com.mikefreno.Gaze"' --style compact 2>/dev/null | head -100
+                echo "================================================================"
+                echo "Application runtime logging stopped."
+            else
+                # Standard launch without logging
+                open "$APP_PATH"
+            fi
         else
             echo "⚠️  App not found at expected location, trying fallback..."
             # Fallback to derived data location

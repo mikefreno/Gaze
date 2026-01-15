@@ -9,6 +9,7 @@ import AppKit
 import Combine
 import CoreGraphics
 import Foundation
+import os.log
 
 public enum ScreenCaptureAuthorizationStatus: Equatable {
     case authorized
@@ -71,6 +72,7 @@ final class ScreenCapturePermissionManager: ObservableObject, ScreenCapturePermi
     }
 
     func openSystemSettings() {
+        LoggingManager.shared.uiLogger.log("sup")
         // Try different variations
         let possibleUrls = [
             "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording",

@@ -35,7 +35,8 @@ protocol ScreenCapturePermissionManaging: AnyObject {
 final class ScreenCapturePermissionManager: ObservableObject, ScreenCapturePermissionManaging {
     static let shared = ScreenCapturePermissionManager()
 
-    @Published private(set) var authorizationStatus: ScreenCaptureAuthorizationStatus = .notDetermined
+    @Published private(set) var authorizationStatus: ScreenCaptureAuthorizationStatus =
+        .notDetermined
 
     var authorizationStatusPublisher: AnyPublisher<ScreenCaptureAuthorizationStatus, Never> {
         $authorizationStatus.eraseToAnyPublisher()
@@ -70,11 +71,24 @@ final class ScreenCapturePermissionManager: ObservableObject, ScreenCapturePermi
     }
 
     func openSystemSettings() {
-        guard let url = URL(
-            string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording"
-        ) else {
-            return
+        // Try different variations
+        let possibleUrls = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenRecording",
+            "x-apple.systempreferences:Privacy?ScreenRecording",
+            "x-apple.systempreferences:com.apple.preference.security",
+            "x-apple.systempreferences:Privacy",
+            "x-apple.systempreferences:com.apple.preferences.security",
+        ]
+
+        for urlString in possibleUrls {
+            if let url = URL(string: urlString),
+                NSWorkspace.shared.open(url)
+            {
+                print("Successfully opened: \(urlString)")
+                return
+            }
         }
-        NSWorkspace.shared.open(url)
+
+        print("All attempts failed")
     }
 }

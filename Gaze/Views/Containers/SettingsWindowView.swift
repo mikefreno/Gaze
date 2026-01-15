@@ -134,7 +134,9 @@ struct SettingsWindowView: View {
                     }
                     .listStyle(.sidebar)
                 } detail: {
-                    detailView(for: selectedSection)
+                    ScrollView {
+                        detailView(for: selectedSection)
+                    }
                 }.onReceive(
                     NotificationCenter.default.publisher(
                         for: Notification.Name("SwitchToSettingsTab"))

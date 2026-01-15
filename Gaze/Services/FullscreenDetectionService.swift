@@ -10,20 +10,24 @@ import Combine
 import CoreGraphics
 import Foundation
 
-struct FullscreenWindowDescriptor: Equatable {
-    let ownerPID: pid_t
-    let layer: Int
-    let bounds: CGRect
+public struct FullscreenWindowDescriptor: Equatable {
+    public let ownerPID: pid_t
+    public let layer: Int
+    public let bounds: CGRect
+
+    public init(ownerPID: pid_t, layer: Int, bounds: CGRect) {
+        self.ownerPID = ownerPID
+        self.layer = layer
+        self.bounds = bounds
+    }
 }
 
-@MainActor
 protocol FullscreenEnvironmentProviding {
     func frontmostProcessIdentifier() -> pid_t?
     func windowDescriptors() -> [FullscreenWindowDescriptor]
     func screenFrames() -> [CGRect]
 }
 
-@MainActor
 struct SystemFullscreenEnvironmentProvider: FullscreenEnvironmentProviding {
     func frontmostProcessIdentifier() -> pid_t? {
         NSWorkspace.shared.frontmostApplication?.processIdentifier
@@ -53,13 +57,13 @@ struct SystemFullscreenEnvironmentProvider: FullscreenEnvironmentProviding {
         }
     }
 
-    func screenFrames() -> [CGRect] {
+    public func screenFrames() -> [CGRect] {
         NSScreen.screens.map(\.frame)
     }
 }
 
 @MainActor
-class FullscreenDetectionService: ObservableObject {
+final class FullscreenDetectionService: ObservableObject {
     @Published private(set) var isFullscreenActive = false
 
     private var observers: [NSObjectProtocol] = []
@@ -68,11 +72,11 @@ class FullscreenDetectionService: ObservableObject {
     private let environmentProvider: FullscreenEnvironmentProviding
 
     init(
-        permissionManager: ScreenCapturePermissionManaging? = nil,
-        environmentProvider: FullscreenEnvironmentProviding? = nil
+        permissionManager: ScreenCapturePermissionManaging = ScreenCapturePermissionManager.shared,
+        environmentProvider: FullscreenEnvironmentProviding = SystemFullscreenEnvironmentProvider()
     ) {
-        self.permissionManager = permissionManager ?? ScreenCapturePermissionManager.shared
-        self.environmentProvider = environmentProvider ?? SystemFullscreenEnvironmentProvider()
+        self.permissionManager = permissionManager
+        self.environmentProvider = environmentProvider
         setupObservers()
     }
 

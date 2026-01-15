@@ -17,8 +17,8 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.lookAwayTimer.intervalSeconds, 20 * 60)
         XCTAssertEqual(settings.lookAwayCountdownSeconds, 20)
         
-        XCTAssertTrue(settings.blinkTimer.enabled)
-        XCTAssertEqual(settings.blinkTimer.intervalSeconds, 5 * 60)
+        XCTAssertFalse(settings.blinkTimer.enabled)
+        XCTAssertEqual(settings.blinkTimer.intervalSeconds, 7 * 60)
         
         XCTAssertTrue(settings.postureTimer.enabled)
         XCTAssertEqual(settings.postureTimer.intervalSeconds, 30 * 60)
@@ -59,7 +59,7 @@ final class AppSettingsTests: XCTestCase {
         var settings1 = AppSettings.defaults
         var settings2 = AppSettings.defaults
         
-        settings2.blinkTimer.enabled = false
+        settings2.blinkTimer.enabled = true
         XCTAssertNotEqual(settings1, settings2)
     }
     

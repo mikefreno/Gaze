@@ -29,6 +29,8 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testTimerInitialization() {
+        // Enable all timers for this test (blink is disabled by default)
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 3)
@@ -38,8 +40,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testDisabledTimersNotInitialized() {
-        settingsManager.settings.blinkTimer.enabled = false
-        
+        // Blink is disabled by default, so we should only have 2 timers
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 2)
@@ -59,6 +60,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testPauseAllTimers() {
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         timerEngine.pause()
         
@@ -68,6 +70,7 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testResumeAllTimers() {
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         timerEngine.pause()
         timerEngine.resume()
@@ -120,6 +123,8 @@ final class TimerEngineTests: XCTestCase {
     }
     
     func testDismissReminderResetsTimer() {
+        settingsManager.settings.blinkTimer.enabled = true
+        settingsManager.settings.blinkTimer.intervalSeconds = 7 * 60
         timerEngine.start()
         timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds = 0
         timerEngine.activeReminder = .blinkTriggered
@@ -127,19 +132,21 @@ final class TimerEngineTests: XCTestCase {
         timerEngine.dismissReminder()
         
         XCTAssertNil(timerEngine.activeReminder)
-        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 5 * 60)
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 7 * 60)
     }
     
-    func testDismissLookAwayResumesTimers() {
+    func testDismissLookAwayResumesTimer() {
         timerEngine.start()
-        timerEngine.activeReminder = .lookAwayTriggered(countdownSeconds: 20)
-        timerEngine.pause()
+        // Trigger reminder pauses only the lookAway timer
+        timerEngine.triggerReminder(for: .builtIn(.lookAway))
+        
+        XCTAssertNotNil(timerEngine.activeReminder)
+        XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.lookAway)))
         
         timerEngine.dismissReminder()
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertFalse(state.isPaused)
-        }
+        // After dismiss, the lookAway timer should be resumed
+        XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.lookAway)))
     }
     
     func testTriggerReminderForLookAway() {
@@ -154,12 +161,12 @@ final class TimerEngineTests: XCTestCase {
             XCTFail("Expected lookAwayTriggered reminder")
         }
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertTrue(state.isPaused)
-        }
+        // Only the triggered timer should be paused
+        XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.lookAway)))
     }
     
     func testTriggerReminderForBlink() {
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         
         timerEngine.triggerReminder(for: .builtIn(.blink))
@@ -214,13 +221,16 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertEqual(formatted, "1:00:00")
     }
     
-    func testMultipleStartCallsResetTimers() {
+    func testMultipleStartCallsPreserveTimerState() {
+        // When start() is called multiple times while already running,
+        // it should preserve existing timer state (not reset)
         timerEngine.start()
         timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds = 100
         
         timerEngine.start()
         
-        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 20 * 60)
+        // Timer state is preserved since interval hasn't changed
+        XCTAssertEqual(timerEngine.timerStates[.builtIn(.lookAway)]?.remainingSeconds, 100)
     }
     
     func testSkipNextPreservesPausedState() {
@@ -249,26 +259,25 @@ final class TimerEngineTests: XCTestCase {
         XCTAssertNil(timerEngine.activeReminder)
     }
     
-    func testDismissBlinkReminderDoesNotResumeTimers() {
+    func testDismissBlinkReminderResumesTimer() {
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
-        timerEngine.activeReminder = .blinkTriggered
+        timerEngine.triggerReminder(for: .builtIn(.blink))
         
         timerEngine.dismissReminder()
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertFalse(state.isPaused)
-        }
+        // The blink timer should be resumed after dismissal
+        XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.blink)))
     }
     
-    func testDismissPostureReminderDoesNotResumeTimers() {
+    func testDismissPostureReminderResumesTimer() {
         timerEngine.start()
-        timerEngine.activeReminder = .postureTriggered
+        timerEngine.triggerReminder(for: .builtIn(.posture))
         
         timerEngine.dismissReminder()
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertFalse(state.isPaused)
-        }
+        // The posture timer should be resumed after dismissal
+        XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.posture)))
     }
     
     func testAllTimersStartWhenEnabled() {

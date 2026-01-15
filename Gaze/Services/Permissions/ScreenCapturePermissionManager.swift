@@ -22,7 +22,7 @@ public enum ScreenCaptureAuthorizationStatus: Equatable {
 }
 
 @MainActor
-public protocol ScreenCapturePermissionManaging: AnyObject {
+protocol ScreenCapturePermissionManaging: AnyObject {
     var authorizationStatus: ScreenCaptureAuthorizationStatus { get }
     var authorizationStatusPublisher: AnyPublisher<ScreenCaptureAuthorizationStatus, Never> { get }
 

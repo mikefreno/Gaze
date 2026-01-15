@@ -73,18 +73,6 @@ struct EnforceModeSetupView: View {
                     .padding()
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                    #if DEBUG
-                    HStack {
-                        Button("Debug Info") {
-                            showDebugView.toggle()
-                        }
-                        .buttonStyle(.bordered)
-                        Spacer()
-                    }
-                    .padding()
-                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-                    #endif
-
                     cameraStatusView
 
                     if enforceModeService.isEnforceModeEnabled {
@@ -97,9 +85,9 @@ struct EnforceModeSetupView: View {
                         if enforceModeService.isCameraActive && !isTestModeActive {
                             eyeTrackingStatusView
                             #if DEBUG
-                            if showDebugView {
-                                debugEyeTrackingView
-                            }
+                                if showDebugView {
+                                    debugEyeTrackingView
+                                }
                             #endif
                         } else if enforceModeService.isEnforceModeEnabled {
                             cameraPendingView
@@ -378,17 +366,17 @@ struct EnforceModeSetupView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Face Detected: \(eyeTrackingService.faceDetected ? "Yes" : "No")")
                     .font(.caption)
-                
+
                 Text("Looking at Screen: \(eyeTrackingService.userLookingAtScreen ? "Yes" : "No")")
                     .font(.caption)
-                
+
                 Text("Eyes Closed: \(eyeTrackingService.isEyesClosed ? "Yes" : "No")")
                     .font(.caption)
-                
+
                 if eyeTrackingService.faceDetected {
                     Text("Yaw: 0.0")
                         .font(.caption)
-                    
+
                     Text("Roll: 0.0")
                         .font(.caption)
                 }

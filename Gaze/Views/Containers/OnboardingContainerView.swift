@@ -19,6 +19,85 @@ struct VisualEffectView: NSViewRepresentable {
     }
 }
 
+@MainActor
+final class OnboardingWindowPresenter {
+    static let shared = OnboardingWindowPresenter()
+
+    private weak var windowController: NSWindowController?
+    private var closeObserver: NSObjectProtocol?
+
+    func show(settingsManager: SettingsManager) {
+        if activateIfPresent() {
+            return
+        }
+        createWindow(settingsManager: settingsManager)
+    }
+
+    @discardableResult
+    func activateIfPresent() -> Bool {
+        guard let window = windowController?.window else {
+            windowController = nil
+            return false
+        }
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+
+    func close() {
+        windowController?.close()
+        windowController = nil
+        if let closeObserver {
+            NotificationCenter.default.removeObserver(closeObserver)
+            self.closeObserver = nil
+        }
+    }
+
+    private func createWindow(settingsManager: SettingsManager) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.identifier = WindowIdentifiers.onboarding
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.center()
+        window.isReleasedWhenClosed = true
+        window.contentView = NSHostingView(
+            rootView: OnboardingContainerView(settingsManager: settingsManager)
+        )
+
+        let controller = NSWindowController(window: window)
+        controller.showWindow(nil)
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        windowController = controller
+
+        closeObserver.map(NotificationCenter.default.removeObserver)
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            self?.windowController = nil
+            if let closeObserver = self?.closeObserver {
+                NotificationCenter.default.removeObserver(closeObserver)
+            }
+            self?.closeObserver = nil
+        }
+    }
+
+    deinit {
+        if let closeObserver {
+            NotificationCenter.default.removeObserver(closeObserver)
+        }
+    }
+}
+
 struct OnboardingContainerView: View {
     @ObservedObject var settingsManager: SettingsManager
     @State private var currentPage = 0

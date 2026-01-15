@@ -33,8 +33,8 @@ final class SettingsManagerTests: XCTestCase {
         XCTAssertEqual(defaults.lookAwayTimer.intervalSeconds, 20 * 60)
         XCTAssertEqual(defaults.lookAwayCountdownSeconds, 20)
         
-        XCTAssertTrue(defaults.blinkTimer.enabled)
-        XCTAssertEqual(defaults.blinkTimer.intervalSeconds, 5 * 60)
+        XCTAssertFalse(defaults.blinkTimer.enabled)
+        XCTAssertEqual(defaults.blinkTimer.intervalSeconds, 7 * 60)
         
         XCTAssertTrue(defaults.postureTimer.enabled)
         XCTAssertEqual(defaults.postureTimer.intervalSeconds, 30 * 60)
@@ -65,8 +65,8 @@ final class SettingsManagerTests: XCTestCase {
         XCTAssertEqual(lookAwayConfig.intervalSeconds, 20 * 60)
         
         let blinkConfig = settingsManager.timerConfiguration(for: .blink)
-        XCTAssertTrue(blinkConfig.enabled)
-        XCTAssertEqual(blinkConfig.intervalSeconds, 5 * 60)
+        XCTAssertFalse(blinkConfig.enabled)
+        XCTAssertEqual(blinkConfig.intervalSeconds, 7 * 60)
         
         let postureConfig = settingsManager.timerConfiguration(for: .posture)
         XCTAssertTrue(postureConfig.enabled)

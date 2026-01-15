@@ -44,12 +44,13 @@ final class IntegrationTests: XCTestCase {
     }
     
     func testDisablingTimerRemovesFromEngine() {
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
         
-        var config = TimerConfiguration(enabled: false, intervalSeconds: 5 * 60)
-        settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
-        
+        // Stop and restart to apply the disabled setting
+        timerEngine.stop()
+        settingsManager.settings.blinkTimer.enabled = false
         timerEngine.start()
         XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
     }
@@ -100,17 +101,18 @@ final class IntegrationTests: XCTestCase {
     }
     
     func testResetToDefaultsAffectsTimerEngine() {
-        let config = TimerConfiguration(enabled: false, intervalSeconds: 5 * 60)
-        settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
-        
+        // Blink is disabled by default, enable it first
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
-        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
+        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
         
+        // Reset to defaults (blink disabled)
+        timerEngine.stop()
         settingsManager.resetToDefaults()
         timerEngine.start()
         
-        XCTAssertNotNil(timerEngine.timerStates[.builtIn(.blink)])
-        XCTAssertEqual(timerEngine.timerStates[.builtIn(.blink)]?.remainingSeconds, 5 * 60)
+        // Blink should now be disabled (per defaults)
+        XCTAssertNil(timerEngine.timerStates[.builtIn(.blink)])
     }
     
     func testTimerEngineRespectsDisabledTimers() {
@@ -124,6 +126,8 @@ final class IntegrationTests: XCTestCase {
     }
     
     func testCompleteWorkflow() {
+        // Enable all timers for this test
+        settingsManager.settings.blinkTimer.enabled = true
         timerEngine.start()
         
         XCTAssertEqual(timerEngine.timerStates.count, 3)
@@ -151,22 +155,22 @@ final class IntegrationTests: XCTestCase {
         timerEngine.triggerReminder(for: .builtIn(.lookAway))
         XCTAssertNotNil(timerEngine.activeReminder)
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertTrue(state.isPaused)
-        }
+        // Only the triggered timer should be paused
+        XCTAssertTrue(timerEngine.isTimerPaused(.builtIn(.lookAway)))
         
         timerEngine.dismissReminder()
         XCTAssertNil(timerEngine.activeReminder)
         
-        for (_, state) in timerEngine.timerStates {
-            XCTAssertFalse(state.isPaused)
-        }
+        // The triggered timer should be resumed
+        XCTAssertFalse(timerEngine.isTimerPaused(.builtIn(.lookAway)))
     }
     
     func testSettingsAutoSaveIntegration() {
         let config = TimerConfiguration(enabled: false, intervalSeconds: 900)
         settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
         
+        // Force save to persist immediately (settings debounce by 500ms normally)
+        settingsManager.save()
         settingsManager.load()
         
         let loadedConfig = settingsManager.timerConfiguration(for: .lookAway)

@@ -17,37 +17,36 @@ struct SettingsWindowView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            NavigationSplitView {
-                List(SettingsSection.allCases, selection: $selectedSection) { section in
-                    NavigationLink(value: section) {
-                        Label(section.title, systemImage: section.iconName)
+        ZStack {
+            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                NavigationSplitView {
+                    List(SettingsSection.allCases, selection: $selectedSection) { section in
+                        NavigationLink(value: section) {
+                            Label(section.title, systemImage: section.iconName)
+                        }
                     }
+                    .listStyle(.sidebar)
+                } detail: {
+                    detailView(for: selectedSection)
                 }
-                .listStyle(.sidebar)
-            } detail: {
-                detailView(for: selectedSection)
-            }
 
-            Divider()
-
-            HStack {
                 #if DEBUG
-                    Button("Retrigger Onboarding") {
-                        retriggerOnboarding()
+                    Divider()
+
+                    HStack {
+                        Button("Retrigger Onboarding") {
+                            retriggerOnboarding()
+                        }
+                        .buttonStyle(.bordered)
+
+                        Spacer()
                     }
-                    .buttonStyle(.bordered)
+                    .padding()
                 #endif
-
-                Spacer()
-
-                Button("Close") {
-                    closeWindow()
-                }
-                .keyboardShortcut(.escape)
-                .buttonStyle(.borderedProminent)
             }
-            .padding()
         }
         #if APPSTORE
             .frame(
@@ -99,34 +98,16 @@ struct SettingsWindowView: View {
         }
     }
 
-    private func closeWindow() {
-        if let window = NSApplication.shared.windows.first(where: { $0.title == "Settings" }) {
-            window.close()
-        }
-    }
-
     #if DEBUG
         private func retriggerOnboarding() {
-            // Get AppDelegate reference first
-            guard let appDelegate = NSApplication.shared.delegate as? AppDelegate else { return }
+            OnboardingWindowPresenter.shared.close()
+            SettingsWindowPresenter.shared.close()
 
-            // Step 1: Close any existing onboarding window
-            if let onboardingWindow = NSApplication.shared.windows.first(where: {
-                $0.identifier == WindowIdentifiers.onboarding
-            }) {
-                onboardingWindow.close()
-            }
-
-            // Step 2: Close settings window
-            closeWindow()
-
-            // Step 3: Reset onboarding state with a delay to ensure settings window is closed
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 self.settingsManager.settings.hasCompletedOnboarding = false
 
-                // Step 4: Open onboarding window with another delay to ensure state is saved
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    appDelegate.openOnboarding()
+                    OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
                 }
             }
         }

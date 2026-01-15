@@ -123,6 +123,8 @@ class EnforceModeService: ObservableObject {
         do {
             try await eyeTrackingService.startEyeTracking()
             isCameraActive = true
+            lastFaceDetectionTime = Date() // Reset grace period
+            startFaceDetectionTimer()
             print("✓ Camera active")
         } catch {
             print("⚠️ Failed to start camera: \(error.localizedDescription)")
@@ -137,9 +139,7 @@ class EnforceModeService: ObservableObject {
         isCameraActive = false
         userCompliedWithBreak = false
         
-        // Invalidate the face detection timer when stopping camera
-        faceDetectionTimer?.invalidate()
-        faceDetectionTimer = nil
+        stopFaceDetectionTimer()
     }
     
     func checkUserCompliance() {
@@ -159,32 +159,39 @@ class EnforceModeService: ObservableObject {
     }
     
     private func handleFaceDetectionChange(faceDetected: Bool) {
-        // Update the last face detection time
+        // Update the last face detection time only when a face is actively detected
         if faceDetected {
             lastFaceDetectionTime = Date()
         }
-        
-        // If we are in enforce mode and camera is active, start checking for person presence
-        if isEnforceModeEnabled && isCameraActive {
-            // Cancel any existing timer and restart it
-            faceDetectionTimer?.invalidate()
-            
-            // Create a new timer to check for extended periods without face detection
-            faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-                guard let self = self else { return }
-                
-                // Dispatch to main actor to safely access main actor-isolated properties and methods
-                Task { @MainActor in
-                    let timeSinceLastDetection = Date().timeIntervalSince(self.lastFaceDetectionTime)
-                    
-                    // If person has not been detected for too long, temporarily disable enforce mode
-                    if timeSinceLastDetection > self.faceDetectionTimeout {
-                        print("⏰ Person not detected for \(self.faceDetectionTimeout)s. Temporarily disabling enforce mode.")
-                        self.isEnforceModeEnabled = false
-                        self.stopCamera()
-                    }
-                }
+    }
+    
+    private func startFaceDetectionTimer() {
+        stopFaceDetectionTimer()
+        // Check every 1 second
+        faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.checkFaceDetectionTimeout()
             }
+        }
+    }
+    
+    private func stopFaceDetectionTimer() {
+        faceDetectionTimer?.invalidate()
+        faceDetectionTimer = nil
+    }
+    
+    private func checkFaceDetectionTimeout() {
+        guard isEnforceModeEnabled && isCameraActive else {
+            stopFaceDetectionTimer()
+            return
+        }
+        
+        let timeSinceLastDetection = Date().timeIntervalSince(lastFaceDetectionTime)
+        
+        // If person has not been detected for too long, temporarily disable enforce mode
+        if timeSinceLastDetection > faceDetectionTimeout {
+            print("⏰ Person not detected for \(faceDetectionTimeout)s. Temporarily disabling enforce mode.")
+            disableEnforceMode()
         }
     }
     
@@ -206,6 +213,8 @@ class EnforceModeService: ObservableObject {
         do {
             try await eyeTrackingService.startEyeTracking()
             isCameraActive = true
+            lastFaceDetectionTime = Date() // Reset grace period
+            startFaceDetectionTimer()
             print("✓ Test mode camera active")
         } catch {
             print("⚠️ Failed to start test mode camera: \(error.localizedDescription)")

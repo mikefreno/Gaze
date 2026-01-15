@@ -23,6 +23,10 @@ class EyeTrackingService: NSObject, ObservableObject {
     private let videoDataOutputQueue = DispatchQueue(label: "com.gaze.videoDataOutput", qos: .userInitiated)
     private var _previewLayer: AVCaptureVideoPreviewLayer?
     
+    // Logging throttle
+    private var lastLogTime: Date = .distantPast
+    private let logInterval: TimeInterval = 0.5 // Log every 0.5 seconds
+    
     var previewLayer: AVCaptureVideoPreviewLayer? {
         guard let session = captureSession else { 
             _previewLayer = nil
@@ -114,9 +118,16 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
     
     private func processFaceObservations(_ observations: [VNFaceObservation]?) {
-        print("🔍 Processing face observations...")
+        let shouldLog = Date().timeIntervalSince(lastLogTime) >= logInterval
+        
+        if shouldLog {
+            print("🔍 Processing face observations...")
+        }
+        
         guard let observations = observations, !observations.isEmpty else {
-            print("❌ No faces detected")
+            if shouldLog {
+                print("❌ No faces detected")
+            }
             faceDetected = false
             userLookingAtScreen = false
             return
@@ -125,60 +136,58 @@ class EyeTrackingService: NSObject, ObservableObject {
         faceDetected = true
         let face = observations.first!
         
-        print("✅ Face detected. Bounding box: \(face.boundingBox)")
+        if shouldLog {
+            print("✅ Face detected. Bounding box: \(face.boundingBox)")
+        }
         
         guard let landmarks = face.landmarks else {
-            print("❌ No face landmarks detected")
+            if shouldLog {
+                print("❌ No face landmarks detected")
+            }
             return
         }
         
-        // Log eye landmarks
+        // Check eye closure
         if let leftEye = landmarks.leftEye,
            let rightEye = landmarks.rightEye {
-            print("👁️ Left eye landmarks: \(leftEye.pointCount) points")
-            print("👁️ Right eye landmarks: \(rightEye.pointCount) points")
-            
-            let leftEyeHeight = calculateEyeHeight(leftEye)
-            let rightEyeHeight = calculateEyeHeight(rightEye)
-            
-            print("👁️ Left eye height: \(leftEyeHeight)")
-            print("👁️ Right eye height: \(rightEyeHeight)")
-            
-            let eyesClosed = detectEyesClosed(leftEye: leftEye, rightEye: rightEye)
+            let eyesClosed = detectEyesClosed(leftEye: leftEye, rightEye: rightEye, shouldLog: shouldLog)
             self.isEyesClosed = eyesClosed
-            print("👁️ Eyes closed: \(eyesClosed)")
         }
         
-        // Log gaze detection
-        let lookingAway = detectLookingAway(face: face, landmarks: landmarks)
+        // Check gaze direction
+        let lookingAway = detectLookingAway(face: face, landmarks: landmarks, shouldLog: shouldLog)
         userLookingAtScreen = !lookingAway
         
-        print("📊 Gaze angle - Yaw: \(face.yaw?.doubleValue ?? 0.0), Roll: \(face.roll?.doubleValue ?? 0.0)")
-        print("🎯 Looking away: \(lookingAway)")
-        print("👀 User looking at screen: \(userLookingAtScreen)")
+        if shouldLog {
+            lastLogTime = Date()
+        }
     }
     
-    private func detectEyesClosed(leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D) -> Bool {
+    private func detectEyesClosed(leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D, shouldLog: Bool) -> Bool {
         guard leftEye.pointCount >= 2, rightEye.pointCount >= 2 else {
-            print("⚠️ Eye landmarks insufficient for eye closure detection")
+            if shouldLog {
+                print("⚠️ Eye landmarks insufficient for eye closure detection")
+            }
             return false
         }
         
-        let leftEyeHeight = calculateEyeHeight(leftEye)
-        let rightEyeHeight = calculateEyeHeight(rightEye)
+        let leftEyeHeight = calculateEyeHeight(leftEye, shouldLog: shouldLog)
+        let rightEyeHeight = calculateEyeHeight(rightEye, shouldLog: shouldLog)
         
         let closedThreshold: CGFloat = 0.02
         
         let isClosed = leftEyeHeight < closedThreshold && rightEyeHeight < closedThreshold
         
-        print("👁️ Eye closure detection - Left: \(leftEyeHeight) < \(closedThreshold) = \(leftEyeHeight < closedThreshold), Right: \(rightEyeHeight) < \(closedThreshold) = \(rightEyeHeight < closedThreshold)")
+        if shouldLog {
+            print("👁️ Eye closure detection - Left: \(leftEyeHeight) < \(closedThreshold) = \(leftEyeHeight < closedThreshold), Right: \(rightEyeHeight) < \(closedThreshold) = \(rightEyeHeight < closedThreshold)")
+            print("👁️ Eyes closed: \(isClosed)")
+        }
         
         return isClosed
     }
     
-    private func calculateEyeHeight(_ eye: VNFaceLandmarkRegion2D) -> CGFloat {
+    private func calculateEyeHeight(_ eye: VNFaceLandmarkRegion2D, shouldLog: Bool) -> CGFloat {
         let points = eye.normalizedPoints
-        print("📏 Eye points count: \(points.count)")
         guard points.count >= 2 else { return 0 }
         
         let yValues = points.map { $0.y }
@@ -186,25 +195,88 @@ class EyeTrackingService: NSObject, ObservableObject {
         let minY = yValues.min() ?? 0
         
         let height = abs(maxY - minY)
-        print("📏 Eye height calculation: max(\(maxY)) - min(\(minY)) = \(height)")
+        
+        if shouldLog {
+            print("📏 Eye height: \(height)")
+        }
         
         return height
     }
     
-    private func detectLookingAway(face: VNFaceObservation, landmarks: VNFaceLandmarks2D) -> Bool {
+    private func detectLookingAway(face: VNFaceObservation, landmarks: VNFaceLandmarks2D, shouldLog: Bool) -> Bool {
+        // 1. Face Pose Check (Yaw & Pitch)
         let yaw = face.yaw?.doubleValue ?? 0.0
-        let roll = face.roll?.doubleValue ?? 0.0
+        let pitch = face.pitch?.doubleValue ?? 0.0
         
-        let yawThreshold = 0.35
-        let rollThreshold = 0.4
+        let yawThreshold = 0.35   // ~20 degrees
+        let pitchThreshold = 0.4  // ~23 degrees
         
-        let isLookingAway = abs(yaw) > yawThreshold || abs(roll) > rollThreshold
+        let poseLookingAway = abs(yaw) > yawThreshold || abs(pitch) > pitchThreshold
         
-        print("📊 Gaze detection - Yaw: \(yaw), Roll: \(roll)")
-        print("📉 Thresholds - Yaw: \(yawThreshold), Roll: \(rollThreshold)")
-        print("🎯 Looking away result: \(isLookingAway)")
+        // 2. Eye Gaze Check (Pupil Position)
+        var eyesLookingAway = false
+        
+        if let leftEye = landmarks.leftEye,
+           let rightEye = landmarks.rightEye,
+           let leftPupil = landmarks.leftPupil,
+           let rightPupil = landmarks.rightPupil {
+            
+            let leftRatio = calculatePupilHorizontalRatio(eye: leftEye, pupil: leftPupil)
+            let rightRatio = calculatePupilHorizontalRatio(eye: rightEye, pupil: rightPupil)
+            
+            // Normal range for "looking center" is roughly 0.3 to 0.7
+            // (0.0 = extreme right, 1.0 = extreme left relative to face)
+            // Note: Camera is mirrored, so logic might be inverted
+            
+            let minRatio = 0.25
+            let maxRatio = 0.75
+            
+            let leftLookingAway = leftRatio < minRatio || leftRatio > maxRatio
+            let rightLookingAway = rightRatio < minRatio || rightRatio > maxRatio
+            
+            // Consider looking away if BOTH eyes are off-center
+            eyesLookingAway = leftLookingAway && rightLookingAway
+            
+            if shouldLog {
+                print("👁️ Pupil Ratios - Left: \(String(format: "%.2f", leftRatio)), Right: \(String(format: "%.2f", rightRatio))")
+                print("👁️ Eyes Looking Away: \(eyesLookingAway)")
+            }
+        }
+        
+        let isLookingAway = poseLookingAway || eyesLookingAway
+        
+        if shouldLog {
+            print("📊 Gaze detection - Yaw: \(yaw), Pitch: \(pitch)")
+            print("📉 Thresholds - Yaw: \(yawThreshold), Pitch: \(pitchThreshold)")
+            print("🎯 Looking away: \(isLookingAway) (Pose: \(poseLookingAway), Eyes: \(eyesLookingAway))")
+            print("👀 User looking at screen: \(!isLookingAway)")
+        }
         
         return isLookingAway
+    }
+    
+    private func calculatePupilHorizontalRatio(eye: VNFaceLandmarkRegion2D, pupil: VNFaceLandmarkRegion2D) -> Double {
+        let eyePoints = eye.normalizedPoints
+        let pupilPoints = pupil.normalizedPoints
+        
+        guard !eyePoints.isEmpty, !pupilPoints.isEmpty else { return 0.5 }
+        
+        // Get eye horizontal bounds
+        let eyeMinX = eyePoints.map { $0.x }.min() ?? 0
+        let eyeMaxX = eyePoints.map { $0.x }.max() ?? 0
+        let eyeWidth = eyeMaxX - eyeMinX
+        
+        guard eyeWidth > 0 else { return 0.5 }
+        
+        // Get pupil center X
+        let pupilCenterX = pupilPoints.map { $0.x }.reduce(0, +) / Double(pupilPoints.count)
+        
+        // Calculate ratio (0.0 to 1.0)
+        // 0.0 = Right side of eye (camera view)
+        // 1.0 = Left side of eye (camera view)
+        let ratio = (pupilCenterX - eyeMinX) / eyeWidth
+        
+        return ratio
     }
 }
 

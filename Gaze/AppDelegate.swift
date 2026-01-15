@@ -16,7 +16,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var updateManager: UpdateManager?
     private var overlayReminderWindowController: NSWindowController?
     private var subtleReminderWindowController: NSWindowController?
-    private var settingsWindowController: NSWindowController?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
 
@@ -271,120 +270,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         subtleReminderWindowController = nil
     }
 
-    // Public method to open settings window
     func openSettings(tab: Int = 0) {
-        // Post notification to close menu bar popover
-        NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
+        handleMenuDismissal()
 
-        // Dismiss overlay reminders to prevent them from blocking settings window
-        // Overlay reminders are at .floating level which would sit above settings
-        dismissOverlayReminder()
-
-        // Small delay to allow menu bar to close before opening settings
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.openSettingsWindow(tab: tab)
+            guard let self else { return }
+            SettingsWindowPresenter.shared.show(settingsManager: self.settingsManager, initialTab: tab)
         }
     }
 
-    // Public method to reopen onboarding window
     func openOnboarding() {
-        NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
-
-        // Dismiss overlay reminders to prevent blocking onboarding window
-        dismissOverlayReminder()
+        handleMenuDismissal()
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self = self else { return }
-
-            if self.activateWindow(withIdentifier: WindowIdentifiers.onboarding) {
-                return
-            }
-
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
-                styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-
-            window.identifier = WindowIdentifiers.onboarding
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
-            window.center()
-            window.isReleasedWhenClosed = true
-            window.contentView = NSHostingView(
-                rootView: OnboardingContainerView(settingsManager: self.settingsManager)
-            )
-
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            guard let self else { return }
+            OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
         }
     }
 
-    private func openSettingsWindow(tab: Int) {
-        if let existingWindow = findWindow(withIdentifier: WindowIdentifiers.settings) {
-            NotificationCenter.default.post(
-                name: Notification.Name("SwitchToSettingsTab"),
-                object: tab
-            )
-            existingWindow.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
-
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-
-        window.identifier = WindowIdentifiers.settings
-        window.titleVisibility = .hidden
-        window.titlebarAppearsTransparent = true
-        window.toolbarStyle = .unified
-        window.toolbar = NSToolbar()
-        window.center()
-        window.setFrameAutosaveName("SettingsWindow")
-        window.isReleasedWhenClosed = false
-
-        window.contentView = NSHostingView(
-            rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: tab)
-        )
-
-        let windowController = NSWindowController(window: window)
-        windowController.showWindow(nil)
-
-        settingsWindowController = windowController
-
-        NSApp.activate(ignoringOtherApps: true)
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(settingsWindowWillCloseNotification(_:)),
-            name: NSWindow.willCloseNotification,
-            object: window
-        )
+    private func handleMenuDismissal() {
+        NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
+        dismissOverlayReminder()
     }
 
-    @objc private func settingsWindowWillCloseNotification(_ notification: Notification) {
-        settingsWindowController = nil
-    }
-
-    /// Finds a window by its identifier
-    private func findWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> NSWindow? {
-        return NSApplication.shared.windows.first { $0.identifier == identifier }
-    }
-
-    /// Brings window to front if it exists, returns true if found
-    private func activateWindow(withIdentifier identifier: NSUserInterfaceItemIdentifier) -> Bool {
-        guard let window = findWindow(withIdentifier: identifier) else {
-            return false
-        }
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        return true
-    }
 }
 
 // Custom window class that can become key to receive keyboard events

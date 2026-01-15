@@ -13,92 +13,98 @@ struct EnforceModeSetupView: View {
     @ObservedObject var cameraService = CameraAccessService.shared
     @ObservedObject var eyeTrackingService = EyeTrackingService.shared
     @ObservedObject var enforceModeService = EnforceModeService.shared
+    @ObservedObject var trackingConstants = EyeTrackingConstants.shared
 
     @State private var isProcessingToggle = false
     @State private var isTestModeActive = false
     @State private var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
     @State private var showDebugView = false
     @State private var isViewActive = false
+    @State private var showAdvancedSettings = false
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                Image(systemName: "video.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
-                Text("Enforce Mode")
-                    .font(.system(size: 28, weight: .bold))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
+            ScrollView {
+                VStack(spacing: 16) {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 60))
+                        .foregroundColor(.accentColor)
+                    Text("Enforce Mode")
+                        .font(.system(size: 28, weight: .bold))
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 30)
 
-            Spacer()
+                Spacer()
 
-            VStack(spacing: 30) {
-                Text("Use your camera to ensure you take breaks")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 30) {
+                    Text("Use your camera to ensure you take breaks")
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
 
-                VStack(spacing: 20) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Enable Enforce Mode")
-                                .font(.headline)
-                            Text("Camera activates 3 seconds before lookaway reminders")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        Spacer()
-                        Toggle(
-                            "",
-                            isOn: Binding(
-                                get: {
-                                    settingsManager.settings.enforcementMode
-                                },
-                                set: { newValue in
-                                    print("🎛️ Toggle changed to: \(newValue)")
-                                    guard !isProcessingToggle else {
-                                        print("⚠️ Already processing toggle")
-                                        return
+                    VStack(spacing: 20) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Enable Enforce Mode")
+                                    .font(.headline)
+                                Text("Camera activates 3 seconds before lookaway reminders")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                            Toggle(
+                                "",
+                                isOn: Binding(
+                                    get: {
+                                        settingsManager.settings.enforcementMode
+                                    },
+                                    set: { newValue in
+                                        print("🎛️ Toggle changed to: \(newValue)")
+                                        guard !isProcessingToggle else {
+                                            print("⚠️ Already processing toggle")
+                                            return
+                                        }
+                                        settingsManager.settings.enforcementMode = newValue
+                                        handleEnforceModeToggle(enabled: newValue)
                                     }
-                                    settingsManager.settings.enforcementMode = newValue
-                                    handleEnforceModeToggle(enabled: newValue)
-                                }
+                                )
                             )
-                        )
-                        .labelsHidden()
-                        .disabled(isProcessingToggle)
-                    }
-                    .padding()
-                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                            .labelsHidden()
+                            .disabled(isProcessingToggle)
+                        }
+                        .padding()
+                        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                    cameraStatusView
+                        cameraStatusView
 
-                    if enforceModeService.isEnforceModeEnabled {
-                        testModeButton
-                    }
-
-                    if isTestModeActive && enforceModeService.isCameraActive {
-                        testModePreviewView
-                    } else {
-                        if enforceModeService.isCameraActive && !isTestModeActive {
-                            eyeTrackingStatusView
-                            #if DEBUG
-                                if showDebugView {
-                                    debugEyeTrackingView
-                                }
-                            #endif
-                        } else if enforceModeService.isEnforceModeEnabled {
-                            cameraPendingView
+                        if enforceModeService.isEnforceModeEnabled {
+                            testModeButton
                         }
 
-                        privacyInfoView
+                        if isTestModeActive && enforceModeService.isCameraActive {
+                            testModePreviewView
+                            trackingConstantsView
+                        } else {
+                            if enforceModeService.isCameraActive && !isTestModeActive {
+                                trackingConstantsView
+                                eyeTrackingStatusView
+                                #if DEBUG
+                                    if showDebugView {
+                                        debugEyeTrackingView
+                                    }
+                                #endif
+                            } else if enforceModeService.isEnforceModeEnabled {
+                                cameraPendingView
+                            }
+
+                            privacyInfoView
+                        }
                     }
                 }
-            }
 
-            Spacer()
+                Spacer()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
@@ -163,35 +169,35 @@ struct EnforceModeSetupView: View {
                         }
                     }
 
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Live Tracking Status")
-                        .font(.headline)
+                /*VStack(alignment: .leading, spacing: 12) {*/
+                /*Text("Live Tracking Status")*/
+                /*.font(.headline)*/
 
-                    HStack(spacing: 20) {
-                        statusIndicator(
-                            title: "Face Detected",
-                            isActive: eyeTrackingService.faceDetected,
-                            icon: "person.fill"
-                        )
+                /*HStack(spacing: 20) {*/
+                /*statusIndicator(*/
+                /*title: "Face Detected",*/
+                /*isActive: eyeTrackingService.faceDetected,*/
+                /*icon: "person.fill"*/
+                /*)*/
 
-                        statusIndicator(
-                            title: "Looking Away",
-                            isActive: !eyeTrackingService.userLookingAtScreen,
-                            icon: "arrow.turn.up.right"
-                        )
-                    }
+                /*statusIndicator(*/
+                /*title: "Looking Away",*/
+                /*isActive: !eyeTrackingService.userLookingAtScreen,*/
+                /*icon: "arrow.turn.up.right"*/
+                /*)*/
+                /*}*/
 
-                    Text(
-                        lookingAway
-                            ? "✓ Break compliance detected" : "⚠️ Please look away from screen"
-                    )
-                    .font(.caption)
-                    .foregroundColor(lookingAway ? .green : .orange)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(.top, 4)
-                }
-                .padding()
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                /*Text(*/
+                /*lookingAway*/
+                /*? "✓ Break compliance detected" : "⚠️ Please look away from screen"*/
+                /*)*/
+                /*.font(.caption)*/
+                /*.foregroundColor(lookingAway ? .green : .orange)*/
+                /*.frame(maxWidth: .infinity, alignment: .center)*/
+                /*.padding(.top, 4)*/
+                /*}*/
+                /*.padding()*/
+                /*.glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))*/
             }
         }
     }
@@ -355,6 +361,269 @@ struct EnforceModeSetupView: View {
                 }
             }
         }
+    }
+
+    private var trackingConstantsView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Tracking Sensitivity")
+                    .font(.headline)
+                Spacer()
+                Button(action: {
+                    eyeTrackingService.enableDebugLogging.toggle()
+                }) {
+                    Image(systemName: eyeTrackingService.enableDebugLogging ? "ant.circle.fill" : "ant.circle")
+                        .foregroundColor(eyeTrackingService.enableDebugLogging ? .orange : .secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Toggle console debug logging")
+                
+                Button(showAdvancedSettings ? "Hide Settings" : "Show Settings") {
+                    withAnimation {
+                        showAdvancedSettings.toggle()
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+            
+            // Debug info always visible when tracking
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Live Values:")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                
+                if let leftRatio = eyeTrackingService.debugLeftPupilRatio,
+                   let rightRatio = eyeTrackingService.debugRightPupilRatio {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Left Pupil: \(String(format: "%.3f", leftRatio))")
+                                .font(.caption2)
+                                .foregroundColor(
+                                    !trackingConstants.minPupilEnabled && !trackingConstants.maxPupilEnabled ? .secondary :
+                                    (leftRatio < trackingConstants.minPupilRatio || leftRatio > trackingConstants.maxPupilRatio) ? .orange : .green
+                                )
+                            Text("Right Pupil: \(String(format: "%.3f", rightRatio))")
+                                .font(.caption2)
+                                .foregroundColor(
+                                    !trackingConstants.minPupilEnabled && !trackingConstants.maxPupilEnabled ? .secondary :
+                                    (rightRatio < trackingConstants.minPupilRatio || rightRatio > trackingConstants.maxPupilRatio) ? .orange : .green
+                                )
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Range: \(String(format: "%.2f", trackingConstants.minPupilRatio)) - \(String(format: "%.2f", trackingConstants.maxPupilRatio))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            let bothEyesOut = (leftRatio < trackingConstants.minPupilRatio || leftRatio > trackingConstants.maxPupilRatio) && 
+                                             (rightRatio < trackingConstants.minPupilRatio || rightRatio > trackingConstants.maxPupilRatio)
+                            Text(bothEyesOut ? "Both Out ⚠️" : "In Range ✓")
+                                .font(.caption2)
+                                .foregroundColor(bothEyesOut ? .orange : .green)
+                        }
+                    }
+                } else {
+                    Text("Pupil data unavailable")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+                
+                if let yaw = eyeTrackingService.debugYaw,
+                   let pitch = eyeTrackingService.debugPitch {
+                    HStack(spacing: 16) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Yaw: \(String(format: "%.3f", yaw))")
+                                .font(.caption2)
+                                .foregroundColor(
+                                    !trackingConstants.yawEnabled ? .secondary :
+                                    abs(yaw) > trackingConstants.yawThreshold ? .orange : .green
+                                )
+                            Text("Pitch: \(String(format: "%.3f", pitch))")
+                                .font(.caption2)
+                                .foregroundColor(
+                                    !trackingConstants.pitchUpEnabled && !trackingConstants.pitchDownEnabled ? .secondary :
+                                    (pitch > trackingConstants.pitchUpThreshold || pitch < trackingConstants.pitchDownThreshold) ? .orange : .green
+                                )
+                        }
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Yaw Max: \(String(format: "%.2f", trackingConstants.yawThreshold))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                            Text("Pitch: \(String(format: "%.2f", trackingConstants.pitchDownThreshold)) to \(String(format: "%.2f", trackingConstants.pitchUpThreshold))")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+            .padding(.top, 4)
+
+            if showAdvancedSettings {
+                VStack(spacing: 16) {
+                    // Yaw Threshold
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.yawEnabled)
+                                .labelsHidden()
+                            Text("Yaw Threshold (Head Turn)")
+                                .foregroundColor(
+                                    trackingConstants.yawEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.2f rad", trackingConstants.yawThreshold))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(value: $trackingConstants.yawThreshold, in: 0.1...0.8, step: 0.05)
+                            .disabled(!trackingConstants.yawEnabled)
+                        Text("Lower = more sensitive to head turning")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Pitch Up Threshold
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.pitchUpEnabled)
+                                .labelsHidden()
+                            Text("Pitch Up Threshold (Looking Up)")
+                                .foregroundColor(
+                                    trackingConstants.pitchUpEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.2f rad", trackingConstants.pitchUpThreshold))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(
+                            value: $trackingConstants.pitchUpThreshold, in: -0.2...0.5, step: 0.05
+                        )
+                        .disabled(!trackingConstants.pitchUpEnabled)
+                        Text("Lower = more sensitive to looking up")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Pitch Down Threshold
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.pitchDownEnabled)
+                                .labelsHidden()
+                            Text("Pitch Down Threshold (Looking Down)")
+                                .foregroundColor(
+                                    trackingConstants.pitchDownEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.2f rad", trackingConstants.pitchDownThreshold))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(
+                            value: $trackingConstants.pitchDownThreshold, in: -0.8...0.0, step: 0.05
+                        )
+                        .disabled(!trackingConstants.pitchDownEnabled)
+                        Text("Higher = more sensitive to looking down")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Min Pupil Ratio
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.minPupilEnabled)
+                                .labelsHidden()
+                            Text("Min Pupil Ratio (Looking Right)")
+                                .foregroundColor(
+                                    trackingConstants.minPupilEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.2f", trackingConstants.minPupilRatio))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(value: $trackingConstants.minPupilRatio, in: 0.2...0.5, step: 0.01)
+                            .disabled(!trackingConstants.minPupilEnabled)
+                        Text("Higher = more sensitive to looking right")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Max Pupil Ratio
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.maxPupilEnabled)
+                                .labelsHidden()
+                            Text("Max Pupil Ratio (Looking Left)")
+                                .foregroundColor(
+                                    trackingConstants.maxPupilEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.2f", trackingConstants.maxPupilRatio))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(value: $trackingConstants.maxPupilRatio, in: 0.5...0.8, step: 0.01)
+                            .disabled(!trackingConstants.maxPupilEnabled)
+                        Text("Lower = more sensitive to looking left")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Divider()
+
+                    // Eye Closed Threshold
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Toggle("", isOn: $trackingConstants.eyeClosedEnabled)
+                                .labelsHidden()
+                            Text("Eye Closed Threshold")
+                                .foregroundColor(
+                                    trackingConstants.eyeClosedEnabled ? .primary : .secondary)
+                            Spacer()
+                            Text(String(format: "%.3f", trackingConstants.eyeClosedThreshold))
+                                .foregroundColor(.secondary)
+                                .font(.caption)
+                        }
+                        Slider(
+                            value: Binding(
+                                get: { Double(trackingConstants.eyeClosedThreshold) },
+                                set: { trackingConstants.eyeClosedThreshold = CGFloat($0) }
+                            ), in: 0.01...0.1, step: 0.005
+                        )
+                        .disabled(!trackingConstants.eyeClosedEnabled)
+                        Text("Lower = more sensitive to eye closure")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+
+                    // Reset button
+                    Button(action: {
+                        trackingConstants.resetToDefaults()
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Reset to Defaults")
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .padding(.top, 8)
+                }
+                .padding(.top, 8)
+            }
+        }
+        .padding()
+        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
     }
 
     private var debugEyeTrackingView: some View {

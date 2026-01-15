@@ -14,7 +14,7 @@ class TimerEngine: ObservableObject {
     @Published var activeReminder: ReminderEvent?
 
     private var timerSubscription: AnyCancellable?
-    private let settingsManager: SettingsManager
+    private let settingsProvider: any SettingsProviding
     private var sleepStartTime: Date?
     
     // For enforce mode integration
@@ -25,9 +25,9 @@ class TimerEngine: ObservableObject {
     private var idleService: IdleMonitoringService?
     private var cancellables = Set<AnyCancellable>()
 
-    init(settingsManager: SettingsManager) {
-        self.settingsManager = settingsManager
-        self.enforceModeService = EnforceModeService.shared
+    init(settingsManager: any SettingsProviding, enforceModeService: EnforceModeService? = nil) {
+        self.settingsProvider = settingsManager
+        self.enforceModeService = enforceModeService ?? EnforceModeService.shared
         
         Task { @MainActor in
             self.enforceModeService?.setTimerEngine(self)
@@ -61,7 +61,7 @@ class TimerEngine: ObservableObject {
     }
     
     private func handleFullscreenChange(isFullscreen: Bool) {
-        guard settingsManager.settings.smartMode.autoPauseOnFullscreen else { return }
+        guard settingsProvider.settings.smartMode.autoPauseOnFullscreen else { return }
         
         if isFullscreen {
             pauseAllTimers(reason: .fullscreen)
@@ -73,7 +73,7 @@ class TimerEngine: ObservableObject {
     }
     
     private func handleIdleChange(isIdle: Bool) {
-        guard settingsManager.settings.smartMode.autoPauseOnIdle else { return }
+        guard settingsProvider.settings.smartMode.autoPauseOnIdle else { return }
         
         if isIdle {
             pauseAllTimers(reason: .idle)
@@ -114,7 +114,7 @@ class TimerEngine: ObservableObject {
         
         // Add built-in timers
         for timerType in TimerType.allCases {
-            let config = settingsManager.timerConfiguration(for: timerType)
+            let config = settingsProvider.timerConfiguration(for: timerType)
             if config.enabled {
                 let identifier = TimerIdentifier.builtIn(timerType)
                 newStates[identifier] = TimerState(
@@ -127,7 +127,7 @@ class TimerEngine: ObservableObject {
         }
         
         // Add user timers
-        for userTimer in settingsManager.settings.userTimers where userTimer.enabled {
+        for userTimer in settingsProvider.settings.userTimers where userTimer.enabled {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             newStates[identifier] = TimerState(
                 identifier: identifier,
@@ -159,7 +159,7 @@ class TimerEngine: ObservableObject {
         
         // Update built-in timers
         for timerType in TimerType.allCases {
-            let config = settingsManager.timerConfiguration(for: timerType)
+            let config = settingsProvider.timerConfiguration(for: timerType)
             let identifier = TimerIdentifier.builtIn(timerType)
             
             if config.enabled {
@@ -191,7 +191,7 @@ class TimerEngine: ObservableObject {
         }
         
         // Update user timers
-        for userTimer in settingsManager.settings.userTimers {
+        for userTimer in settingsProvider.settings.userTimers {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             let newIntervalSeconds = userTimer.intervalMinutes * 60
             
@@ -269,10 +269,10 @@ class TimerEngine: ObservableObject {
         let intervalSeconds: Int
         switch identifier {
         case .builtIn(let type):
-            let config = settingsManager.timerConfiguration(for: type)
+            let config = settingsProvider.timerConfiguration(for: type)
             intervalSeconds = config.intervalSeconds
         case .user(let id):
-            guard let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) else { return }
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else { return }
             intervalSeconds = userTimer.intervalMinutes * 60
         }
         
@@ -335,14 +335,14 @@ class TimerEngine: ObservableObject {
             switch type {
             case .lookAway:
                 activeReminder = .lookAwayTriggered(
-                    countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds)
+                    countdownSeconds: settingsProvider.settings.lookAwayCountdownSeconds)
             case .blink:
                 activeReminder = .blinkTriggered
             case .posture:
                 activeReminder = .postureTriggered
             }
         case .user(let id):
-            if let userTimer = settingsManager.settings.userTimers.first(where: { $0.id == id }) {
+            if let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) {
                 activeReminder = .userTimerTriggered(userTimer)
             }
         }

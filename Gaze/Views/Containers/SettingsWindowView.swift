@@ -7,6 +7,108 @@
 
 import SwiftUI
 
+@MainActor
+final class SettingsWindowPresenter {
+    static let shared = SettingsWindowPresenter()
+
+    private weak var windowController: NSWindowController?
+    private var closeObserver: NSObjectProtocol?
+
+    func show(settingsManager: SettingsManager, initialTab: Int = 0) {
+        if focusExistingWindow(tab: initialTab) {
+            return
+        }
+        createWindow(settingsManager: settingsManager, initialTab: initialTab)
+    }
+
+    func focus(tab: Int) {
+        _ = focusExistingWindow(tab: tab)
+    }
+
+    func close() {
+        windowController?.close()
+        windowController = nil
+        removeCloseObserver()
+    }
+
+    @discardableResult
+    private func focusExistingWindow(tab: Int?) -> Bool {
+        guard let window = windowController?.window else {
+            windowController = nil
+            return false
+        }
+
+        if let tab {
+            NotificationCenter.default.post(
+                name: Notification.Name("SwitchToSettingsTab"),
+                object: tab
+            )
+        }
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        return true
+    }
+
+    private func createWindow(settingsManager: SettingsManager, initialTab: Int) {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+
+        window.identifier = WindowIdentifiers.settings
+        window.titleVisibility = .hidden
+        window.titlebarAppearsTransparent = true
+        window.toolbarStyle = .unified
+        window.toolbar = NSToolbar()
+        window.center()
+        window.setFrameAutosaveName("SettingsWindow")
+        window.isReleasedWhenClosed = false
+
+        let contentView = SettingsWindowView(
+            settingsManager: settingsManager,
+            initialTab: initialTab
+        )
+        window.contentView = NSHostingView(rootView: contentView)
+
+        let controller = NSWindowController(window: window)
+        controller.showWindow(nil)
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        windowController = controller
+
+        removeCloseObserver()
+        closeObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: window,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.windowController = nil
+                self?.removeCloseObserver()
+            }
+        }
+    }
+
+    @MainActor
+    private func removeCloseObserver() {
+        if let closeObserver {
+            NotificationCenter.default.removeObserver(closeObserver)
+            self.closeObserver = nil
+        }
+    }
+
+    deinit {
+        Task { @MainActor in
+            removeCloseObserver()
+        }
+    }
+}
+
 struct SettingsWindowView: View {
     @ObservedObject var settingsManager: SettingsManager
     @State private var selectedSection: SettingsSection

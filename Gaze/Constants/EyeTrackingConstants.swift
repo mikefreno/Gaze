@@ -54,6 +54,16 @@ class EyeTrackingConstants: ObservableObject {
     @Published var maxPupilRatio: Double = 0.45
     @Published var maxPupilEnabled: Bool = true
     
+    // MARK: - Pixel-Based Gaze Detection Thresholds
+    /// Python GazeTracking thresholds for pixel-based pupil detection
+    /// Formula: pupilX / (eyeCenterX * 2 - 10)
+    /// Looking right: ratio ≤ 0.35
+    /// Looking center: 0.35 < ratio < 0.65
+    /// Looking left: ratio ≥ 0.65
+    @Published var pixelGazeMinRatio: Double = 0.35  // Looking right threshold
+    @Published var pixelGazeMaxRatio: Double = 0.65  // Looking left threshold
+    @Published var pixelGazeEnabled: Bool = true
+    
     private init() {}
     
     // MARK: - Reset to Defaults

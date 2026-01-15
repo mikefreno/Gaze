@@ -21,6 +21,8 @@ struct EnforceModeSetupView: View {
     @State private var showDebugView = false
     @State private var isViewActive = false
     @State private var showAdvancedSettings = false
+    @State private var showCalibrationWindow = false
+    @ObservedObject var calibrationManager = CalibrationManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -80,6 +82,7 @@ struct EnforceModeSetupView: View {
 
                         if enforceModeService.isEnforceModeEnabled {
                             testModeButton
+                            calibrationSection
                         }
 
                         if isTestModeActive && enforceModeService.isCameraActive {
@@ -149,6 +152,58 @@ struct EnforceModeSetupView: View {
         }
         .buttonStyle(.borderedProminent)
         .controlSize(.large)
+    }
+    
+    private var calibrationSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "target")
+                    .font(.title3)
+                    .foregroundColor(.blue)
+                Text("Eye Tracking Calibration")
+                    .font(.headline)
+            }
+            
+            if calibrationManager.calibrationData.isComplete {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(calibrationManager.getCalibrationSummary())
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
+                    if calibrationManager.needsRecalibration() {
+                        Label("Calibration expired - recalibration recommended", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                    } else {
+                        Label("Calibration active and valid", systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.green)
+                    }
+                }
+            } else {
+                Text("Not calibrated - using default thresholds")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Button(action: {
+                showCalibrationWindow = true
+            }) {
+                HStack {
+                    Image(systemName: "target")
+                    Text(calibrationManager.calibrationData.isComplete ? "Recalibrate" : "Run Calibration")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
+        }
+        .padding()
+        .glassEffectIfAvailable(GlassStyle.regular.tint(.blue.opacity(0.1)), in: .rect(cornerRadius: 12))
+        .sheet(isPresented: $showCalibrationWindow) {
+            EyeTrackingCalibrationView()
+        }
     }
 
     private var testModePreviewView: some View {

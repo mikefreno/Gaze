@@ -127,7 +127,7 @@ class EyeTrackingService: NSObject, ObservableObject {
         self.videoOutput = output
     }
 
-    private func processFaceObservations(_ observations: [VNFaceObservation]?, imageSize: CGSize) {
+    private func processFaceObservations(_ observations: [VNFaceObservation]?, imageSize: CGSize, pixelBuffer: CVPixelBuffer? = nil) {
         guard let observations = observations, !observations.isEmpty else {
             faceDetected = false
             userLookingAtScreen = false
@@ -171,10 +171,12 @@ class EyeTrackingService: NSObject, ObservableObject {
             face: face,
             landmarks: landmarks,
             imageSize: imageSize,
+            pixelBuffer: pixelBuffer,
             shouldLog: enableDebugLogging
         )
         userLookingAtScreen = !lookingAway
     }
+
 
     private func detectEyesClosed(
         leftEye: VNFaceLandmarkRegion2D, rightEye: VNFaceLandmarkRegion2D, shouldLog: Bool
@@ -214,7 +216,7 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
 
     private func detectLookingAway(
-        face: VNFaceObservation, landmarks: VNFaceLandmarks2D, imageSize: CGSize, shouldLog: Bool
+        face: VNFaceObservation, landmarks: VNFaceLandmarks2D, imageSize: CGSize, pixelBuffer: CVPixelBuffer?, shouldLog: Bool
     ) -> Bool {
         let constants = EyeTrackingConstants.shared
 
@@ -266,99 +268,86 @@ class EyeTrackingService: NSObject, ObservableObject {
             }
         }
 
-        // 2. Eye Gaze Check (Pupil Position)
+        // 2. Eye Gaze Check (Pixel-Based Pupil Detection)
         var eyesLookingAway = false
 
-        if let leftEye = landmarks.leftEye,
+        if let pixelBuffer = pixelBuffer,
+            let leftEye = landmarks.leftEye,
             let rightEye = landmarks.rightEye,
-            let leftPupil = landmarks.leftPupil,
-            let rightPupil = landmarks.rightPupil
+            constants.pixelGazeEnabled
         {
+            var leftGazeRatio: Double? = nil
+            var rightGazeRatio: Double? = nil
             
-            // NEW: Use inter-eye distance method
-            let gazeOffsets = calculateGazeUsingInterEyeDistance(
-                leftEye: leftEye,
-                rightEye: rightEye,
-                leftPupil: leftPupil,
-                rightPupil: rightPupil,
+            // Detect left pupil (side = 0)
+            if let leftResult = PupilDetector.detectPupil(
+                in: pixelBuffer,
+                eyeLandmarks: leftEye,
+                faceBoundingBox: face.boundingBox,
                 imageSize: imageSize,
-                faceBoundingBox: face.boundingBox
-            )
-
-            let leftRatio = calculatePupilHorizontalRatio(
-                eye: leftEye,
-                pupil: leftPupil,
-                imageSize: imageSize,
-                faceBoundingBox: face.boundingBox
-            )
-            let rightRatio = calculatePupilHorizontalRatio(
-                eye: rightEye,
-                pupil: rightPupil,
-                imageSize: imageSize,
-                faceBoundingBox: face.boundingBox
-            )
-
-            // Debug logging
-            if shouldLog {
-                print(
-                    "👁️ Pupil Ratios (OLD METHOD) - Left: \(String(format: "%.3f", leftRatio)), Right: \(String(format: "%.3f", rightRatio))"
-                )
-                print(
-                    "👁️ Gaze Offsets (NEW METHOD) - Left: \(String(format: "%.3f", gazeOffsets.leftGaze)), Right: \(String(format: "%.3f", gazeOffsets.rightGaze))"
-                )
-                print(
-                    "👁️ Thresholds - Min: \(constants.minPupilRatio), Max: \(constants.maxPupilRatio)"
+                side: 0
+            ) {
+                leftGazeRatio = calculateGazeRatio(
+                    pupilPosition: leftResult.pupilPosition,
+                    eyeRegion: leftResult.eyeRegion
                 )
             }
-
+            
+            // Detect right pupil (side = 1)
+            if let rightResult = PupilDetector.detectPupil(
+                in: pixelBuffer,
+                eyeLandmarks: rightEye,
+                faceBoundingBox: face.boundingBox,
+                imageSize: imageSize,
+                side: 1
+            ) {
+                rightGazeRatio = calculateGazeRatio(
+                    pupilPosition: rightResult.pupilPosition,
+                    eyeRegion: rightResult.eyeRegion
+                )
+            }
+            
+            // CRITICAL: Connect to CalibrationManager
+            if CalibrationManager.shared.isCalibrating,
+               let leftRatio = leftGazeRatio,
+               let rightRatio = rightGazeRatio {
+                CalibrationManager.shared.collectSample(
+                    leftRatio: leftRatio,
+                    rightRatio: rightRatio
+                )
+            }
+            
+            // Determine looking away using calibrated thresholds
+            if let leftRatio = leftGazeRatio, let rightRatio = rightGazeRatio {
+                let avgRatio = (leftRatio + rightRatio) / 2.0
+                let lookingRight = avgRatio <= constants.pixelGazeMinRatio
+                let lookingLeft = avgRatio >= constants.pixelGazeMaxRatio
+                eyesLookingAway = lookingRight || lookingLeft
+                
+                if shouldLog {
+                    print("👁️ PIXEL GAZE: L=\(String(format: "%.3f", leftRatio)) R=\(String(format: "%.3f", rightRatio)) Avg=\(String(format: "%.3f", avgRatio)) Away=\(eyesLookingAway)")
+                    print("   Thresholds: Min=\(String(format: "%.3f", constants.pixelGazeMinRatio)) Max=\(String(format: "%.3f", constants.pixelGazeMaxRatio))")
+                }
+            } else {
+                if shouldLog {
+                    print("⚠️ Pixel pupil detection failed for one or both eyes")
+                }
+            }
+            
             // Update debug values
             Task { @MainActor in
-                debugLeftPupilRatio = leftRatio
-                debugRightPupilRatio = rightRatio
-            }
-
-            // Normal range for "looking center" is roughly 0.3 to 0.7
-            // (0.0 = extreme right, 1.0 = extreme left relative to face)
-            // Note: Camera is mirrored, so logic might be inverted
-
-            var leftLookingAway = false
-            var rightLookingAway = false
-
-            // Check min pupil ratio if enabled
-            /*if constants.minPupilEnabled {*/
-            /*let minRatio = constants.minPupilRatio*/
-            /*if leftRatio < minRatio {*/
-            /*leftLookingAway = true*/
-            /*}*/
-            /*if rightRatio < minRatio {*/
-            /*rightLookingAway = true*/
-            /*}*/
-            /*}*/
-
-            /*// Check max pupil ratio if enabled*/
-            /*if constants.maxPupilEnabled {*/
-            /*let maxRatio = constants.maxPupilRatio*/
-            /*if leftRatio > maxRatio {*/
-            /*leftLookingAway = true*/
-            /*}*/
-            /*if rightRatio > maxRatio {*/
-            /*rightLookingAway = true*/
-            /*}*/
-            /*}*/
-
-            // Consider looking away if EITHER eye is off-center
-            // Changed from AND to OR logic because requiring both eyes makes detection too restrictive
-            // This is more sensitive but also more reliable for detecting actual looking away
-            eyesLookingAway = leftLookingAway || rightLookingAway
-
-            if shouldLog {
-                print(
-                    "👁️ Looking Away - Left: \(leftLookingAway), Right: \(rightLookingAway), Either: \(eyesLookingAway)"
-                )
+                debugLeftPupilRatio = leftGazeRatio
+                debugRightPupilRatio = rightGazeRatio
             }
         } else {
             if shouldLog {
-                print("👁️ Missing pupil or eye landmarks!")
+                if pixelBuffer == nil {
+                    print("⚠️ No pixel buffer available for pupil detection")
+                } else if !constants.pixelGazeEnabled {
+                    print("⚠️ Pixel gaze detection disabled in constants")
+                } else {
+                    print("⚠️ Missing eye landmarks for pupil detection")
+                }
             }
         }
 
@@ -366,228 +355,32 @@ class EyeTrackingService: NSObject, ObservableObject {
 
         return isLookingAway
     }
-
-    private func calculatePupilHorizontalRatio(
-        eye: VNFaceLandmarkRegion2D,
-        pupil: VNFaceLandmarkRegion2D,
-        imageSize: CGSize,
-        faceBoundingBox: CGRect
-    ) -> Double {
-        // Use normalizedPoints which are already normalized to face bounding box
-        let eyePoints = eye.normalizedPoints
-        let pupilPoints = pupil.normalizedPoints
-
-        // Throttle debug logging to every 0.5 seconds
-        let now = Date()
-        let shouldLog = now.timeIntervalSince(lastDebugLogTime) >= 0.5
-
-        if shouldLog {
-            lastDebugLogTime = now
-
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            print("📊 EYE TRACKING DEBUG DATA")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-            print("\n🖼️  IMAGE SIZE:")
-            print("   Width: \(imageSize.width), Height: \(imageSize.height)")
-
-            print("\n📦 FACE BOUNDING BOX (normalized):")
-            print("   Origin: (\(faceBoundingBox.origin.x), \(faceBoundingBox.origin.y))")
-            print("   Size: (\(faceBoundingBox.size.width), \(faceBoundingBox.size.height))")
-
-            print("\n👁️  EYE LANDMARK POINTS (normalized to face bounding box - from Vision):")
-            print("   Count: \(eyePoints.count)")
-            let eyeMinX = eyePoints.min(by: { $0.x < $1.x })?.x ?? 0
-            let eyeMaxX = eyePoints.max(by: { $0.x < $1.x })?.x ?? 0
-            for (index, point) in eyePoints.enumerated() {
-                var marker = ""
-                if abs(point.x - eyeMinX) < 0.0001 {
-                    marker = " ← LEFTMOST (inner corner)"
-                } else if abs(point.x - eyeMaxX) < 0.0001 {
-                    marker = " ← RIGHTMOST (outer corner)"
-                }
-                if index == 0 {
-                    marker += " [FIRST]"
-                } else if index == eyePoints.count - 1 {
-                    marker += " [LAST]"
-                }
-                print(
-                    "   [\(index)]: (\(String(format: "%.4f", point.x)), \(String(format: "%.4f", point.y)))\(marker)"
-                )
-            }
-
-            print("\n👁️  PUPIL LANDMARK POINTS (normalized to face bounding box - from Vision):")
-            print("   Count: \(pupilPoints.count)")
-            for (index, point) in pupilPoints.enumerated() {
-                print(
-                    "   [\(index)]: (\(String(format: "%.4f", point.x)), \(String(format: "%.4f", point.y)))"
-                )
-            }
-
-            if let minPoint = eyePoints.min(by: { $0.x < $1.x }),
-                let maxPoint = eyePoints.max(by: { $0.x < $1.x })
-            {
-                let eyeMinX = minPoint.x
-                let eyeMaxX = maxPoint.x
-                let eyeWidth = eyeMaxX - eyeMinX
-                let pupilCenterX = pupilPoints.map { $0.x }.reduce(0, +) / Double(pupilPoints.count)
-                let ratio = (pupilCenterX - eyeMinX) / eyeWidth
-
-                print("\n📏 CALCULATIONS:")
-                print("   Eye MinX: \(String(format: "%.4f", eyeMinX))")
-                print("   Eye MaxX: \(String(format: "%.4f", eyeMaxX))")
-                print("   Eye Width: \(String(format: "%.4f", eyeWidth))")
-                
-                // Analyze different point pairs to find better eye width
-                if eyePoints.count >= 6 {
-                    let cornerWidth = eyePoints[5].x - eyePoints[0].x
-                    print("   Corner-to-Corner Width [0→5]: \(String(format: "%.4f", cornerWidth))")
-                    
-                    // Try middle points too
-                    if eyePoints.count >= 4 {
-                        let midWidth = eyePoints[3].x - eyePoints[0].x
-                        print("   Point [0→3] Width: \(String(format: "%.4f", midWidth))")
-                    }
-                }
-                
-                print("   Pupil Center X: \(String(format: "%.4f", pupilCenterX))")
-                print("   Pupil Min X: \(String(format: "%.4f", pupilPoints.min(by: { $0.x < $1.x })?.x ?? 0))")
-                print("   Pupil Max X: \(String(format: "%.4f", pupilPoints.max(by: { $0.x < $1.x })?.x ?? 0))")
-                print("   Final Ratio (current method): \(String(format: "%.4f", ratio))")
-                
-                // Calculate alternate ratios
-                if eyePoints.count >= 6 {
-                    let cornerWidth = eyePoints[5].x - eyePoints[0].x
-                    if cornerWidth > 0 {
-                        let cornerRatio = (pupilCenterX - eyePoints[0].x) / cornerWidth
-                        print("   Alternate Ratio (using corners [0→5]): \(String(format: "%.4f", cornerRatio))")
-                    }
-                }
-            }
-
-            print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-        }
-
-        guard !eyePoints.isEmpty, !pupilPoints.isEmpty else { return 0.5 }
-
-        guard let minPoint = eyePoints.min(by: { $0.x < $1.x }),
-            let maxPoint = eyePoints.max(by: { $0.x < $1.x })
-        else {
-            return 0.5
-        }
-
-        let eyeMinX = minPoint.x
-        let eyeMaxX = maxPoint.x
-        let eyeWidth = eyeMaxX - eyeMinX
-
-        guard eyeWidth > 0 else { return 0.5 }
-
-        let pupilCenterX = pupilPoints.map { $0.x }.reduce(0, +) / Double(pupilPoints.count)
-
-        // Calculate ratio (0.0 to 1.0) - already normalized to face bounding box by Vision
-        let ratio = (pupilCenterX - eyeMinX) / eyeWidth
-
-        return ratio
-    }
     
-    /// NEW APPROACH: Calculate gaze using inter-eye distance as reference
-    /// This works around Vision's limitation that eye landmarks only track the iris, not true eye corners
-    private func calculateGazeUsingInterEyeDistance(
-        leftEye: VNFaceLandmarkRegion2D,
-        rightEye: VNFaceLandmarkRegion2D,
-        leftPupil: VNFaceLandmarkRegion2D,
-        rightPupil: VNFaceLandmarkRegion2D,
-        imageSize: CGSize,
-        faceBoundingBox: CGRect
-    ) -> (leftGaze: Double, rightGaze: Double) {
+    /// Calculate gaze ratio using Python GazeTracking algorithm
+    /// Formula: ratio = pupilX / (eyeCenterX * 2 - 10)
+    /// Returns: 0.0-1.0 (0.0 = far right, 1.0 = far left)
+    private func calculateGazeRatio(pupilPosition: PupilPosition, eyeRegion: EyeRegion) -> Double {
+        let pupilX = Double(pupilPosition.x)
+        let eyeCenterX = Double(eyeRegion.center.x)
         
-        // CRITICAL: Convert from face-normalized coordinates to image coordinates
-        // normalizedPoints are relative to face bounding box, not stable for gaze tracking
+        // Python formula from GazeTracking library
+        let denominator = (eyeCenterX * 2.0 - 10.0)
         
-        // Helper to convert face-normalized point to image coordinates
-        func toImageCoords(_ point: CGPoint) -> CGPoint {
-            // Face bounding box origin is in Vision coordinates (bottom-left origin)
-            let imageX = faceBoundingBox.origin.x + point.x * faceBoundingBox.width
-            let imageY = faceBoundingBox.origin.y + point.y * faceBoundingBox.height
-            return CGPoint(x: imageX, y: imageY)
+        guard denominator > 0 else {
+            // Fallback to simple normalized position
+            let eyeLeft = Double(eyeRegion.frame.minX)
+            let eyeRight = Double(eyeRegion.frame.maxX)
+            let eyeWidth = eyeRight - eyeLeft
+            guard eyeWidth > 0 else { return 0.5 }
+            return (pupilX - eyeLeft) / eyeWidth
         }
         
-        // Convert all points to image space
-        let leftEyePointsImg = leftEye.normalizedPoints.map { toImageCoords($0) }
-        let rightEyePointsImg = rightEye.normalizedPoints.map { toImageCoords($0) }
-        let leftPupilPointsImg = leftPupil.normalizedPoints.map { toImageCoords($0) }
-        let rightPupilPointsImg = rightPupil.normalizedPoints.map { toImageCoords($0) }
+        let ratio = pupilX / denominator
         
-        // Calculate eye centers (average of all iris boundary points)
-        let leftEyeCenterX = leftEyePointsImg.map { $0.x }.reduce(0, +) / Double(leftEyePointsImg.count)
-        let rightEyeCenterX = rightEyePointsImg.map { $0.x }.reduce(0, +) / Double(rightEyePointsImg.count)
-        
-        // Calculate pupil centers
-        let leftPupilX = leftPupilPointsImg.map { $0.x }.reduce(0, +) / Double(leftPupilPointsImg.count)
-        let rightPupilX = rightPupilPointsImg.map { $0.x }.reduce(0, +) / Double(rightPupilPointsImg.count)
-        
-        // Inter-eye distance (the distance between eye centers) - should be stable now
-        let interEyeDistance = abs(rightEyeCenterX - leftEyeCenterX)
-        
-        // Estimate iris width as a fraction of inter-eye distance
-        // Typical human: inter-pupil distance ~63mm, iris width ~12mm → ratio ~1/5
-        let irisWidth = interEyeDistance / 5.0
-        
-        // Calculate gaze offset for each eye (positive = looking right, negative = looking left)
-        let leftGazeOffset = (leftPupilX - leftEyeCenterX) / irisWidth
-        let rightGazeOffset = (rightPupilX - rightEyeCenterX) / irisWidth
-        
-        // Throttle debug logging
-        let now = Date()
-        let shouldLog = now.timeIntervalSince(lastDebugLogTime) >= 0.5
-        
-        if shouldLog {
-            lastDebugLogTime = now
-            
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            print("📊 INTER-EYE DISTANCE GAZE (IMAGE COORDS)")
-            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-            
-            print("\n🖼️  IMAGE SPACE:")
-            print("   Image Size: \(Int(imageSize.width)) x \(Int(imageSize.height))")
-            print("   Face Box: x=\(String(format: "%.3f", faceBoundingBox.origin.x)) w=\(String(format: "%.3f", faceBoundingBox.width))")
-            
-            print("\n👁️  EYE CENTERS (image coords):")
-            print("   Left Eye Center X: \(String(format: "%.4f", leftEyeCenterX)) (\(Int(leftEyeCenterX * imageSize.width))px)")
-            print("   Right Eye Center X: \(String(format: "%.4f", rightEyeCenterX)) (\(Int(rightEyeCenterX * imageSize.width))px)")
-            print("   Inter-Eye Distance: \(String(format: "%.4f", interEyeDistance)) (\(Int(interEyeDistance * imageSize.width))px)")
-            print("   Estimated Iris Width: \(String(format: "%.4f", irisWidth)) (\(Int(irisWidth * imageSize.width))px)")
-            
-            print("\n👁️  PUPIL POSITIONS (image coords):")
-            print("   Left Pupil X: \(String(format: "%.4f", leftPupilX)) (\(Int(leftPupilX * imageSize.width))px)")
-            print("   Right Pupil X: \(String(format: "%.4f", rightPupilX)) (\(Int(rightPupilX * imageSize.width))px)")
-            
-            print("\n📏 PUPIL OFFSETS FROM EYE CENTER:")
-            print("   Left Offset: \(String(format: "%.4f", leftPupilX - leftEyeCenterX)) (\(Int((leftPupilX - leftEyeCenterX) * imageSize.width))px)")
-            print("   Right Offset: \(String(format: "%.4f", rightPupilX - rightEyeCenterX)) (\(Int((rightPupilX - rightEyeCenterX) * imageSize.width))px)")
-            
-            print("\n📏 GAZE OFFSETS (normalized to iris width):")
-            print("   Left Gaze Offset: \(String(format: "%.4f", leftGazeOffset)) (0=center, +right, -left)")
-            print("   Right Gaze Offset: \(String(format: "%.4f", rightGazeOffset)) (0=center, +right, -left)")
-            print("   Average Gaze: \(String(format: "%.4f", (leftGazeOffset + rightGazeOffset) / 2))")
-            
-            // Interpretation
-            let avgGaze = (leftGazeOffset + rightGazeOffset) / 2
-            var interpretation = ""
-            if avgGaze < -0.5 {
-                interpretation = "Looking LEFT"
-            } else if avgGaze > 0.5 {
-                interpretation = "Looking RIGHT"
-            } else {
-                interpretation = "Looking CENTER"
-            }
-            print("   Interpretation: \(interpretation)")
-            
-            print("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
-        }
-        
-        return (leftGazeOffset, rightGazeOffset)
+        // Clamp to valid range
+        return max(0.0, min(1.0, ratio))
     }
+
 }
 
 extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
@@ -616,7 +409,8 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
             Task { @MainActor in
                 self.processFaceObservations(
                     request.results as? [VNFaceObservation],
-                    imageSize: size
+                    imageSize: size,
+                    pixelBuffer: pixelBuffer
                 )
             }
         }

@@ -62,4 +62,20 @@ enum EyeTrackingConstants: Sendable {
     static let pixelGazeMinRatio: Double = 0.35  // Looking right threshold
     static let pixelGazeMaxRatio: Double = 0.65  // Looking left threshold
     static let pixelGazeEnabled: Bool = true
+    
+    // MARK: - Screen Boundary Detection (New)
+    
+    /// Forgiveness margin for the "gray area" around the screen edge.
+    /// 0.05 means the safe zone is extended by 5% of the range on each side.
+    /// If in the gray area, we assume the user is Looking Away (success).
+    static let boundaryForgivenessMargin: Double = 0.05
+    
+    /// Distance sensitivity factor.
+    /// 1.0 = Linear scaling (face width 50% smaller -> eye movement expected to be 50% smaller)
+    /// > 1.0 = More aggressive scaling
+    static let distanceSensitivity: Double = 1.0
+    
+    /// Minimum confidence required for a valid pupil detection before updating the gaze average.
+    /// Helps filter out blinks or noisy frames.
+    static let minimumGazeConfidence: Int = 3 // consecutive valid frames
 }

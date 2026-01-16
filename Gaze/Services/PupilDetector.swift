@@ -746,11 +746,24 @@ final class PupilDetector: @unchecked Sendable {
     ) {
         let size = width * height
         guard size > 0 else { return }
-
-        // SIMPLIFIED: Skip blur to avoid contaminating dark pupil pixels with bright mask pixels
-        // Apply binary threshold directly to input
+        
+        // 1. Apply Gaussian Blur (reduces noise)
+        // We reuse tempBuffer for intermediate steps if available, or just output
+        // Note: gaussianBlurOptimized writes from input -> output
+        gaussianBlurOptimized(input: input, output: output, width: width, height: height)
+        
+        // 2. Apply Erosion (expands dark regions)
+        // Python: cv2.erode(kernel, iterations=3)
+        // This helps connect broken parts of the pupil
+        // Note: erodeOptimized processes in-place on output if input==output
+        erodeOptimized(input: output, output: output, width: width, height: height, iterations: 3)
+        
+        // 3. Binary Threshold
         for i in 0..<size {
-            output[i] = input[i] > UInt8(threshold) ? 255 : 0
+            // Python: cv2.threshold(..., cv2.THRESH_BINARY)
+            // Pixels > threshold become 255 (white), others 0 (black)
+            // So Pupil is BLACK (0)
+            output[i] = output[i] > UInt8(threshold) ? 255 : 0
         }
     }
 
@@ -851,47 +864,103 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Optimized Contour Detection
 
-    /// Optimized centroid-of-dark-pixels approach - much faster than union-find
-    /// Returns the centroid of the largest dark region
+    /// Finds the largest connected component of dark pixels and returns its centroid
+    /// This is much more robust than averaging all dark pixels, as it ignores shadows/noise
     private nonisolated static func findPupilFromContoursOptimized(
         data: UnsafePointer<UInt8>,
         width: Int,
         height: Int
     ) -> (x: Double, y: Double)? {
-
-        // Optimized approach: find centroid of all black pixels
-        // This works well for pupil detection since the pupil is the main dark blob
-
-        var sumX: Int = 0
-        var sumY: Int = 0
-        var count: Int = 0
-
-        // After binary thresholding, pixels are 0 (black/pupil) or 255 (white/background)
-        // Use threshold of 128 to catch any pixels that are closer to black
-        let threshold = UInt8(128)
-
-        // Process entire image to get accurate centroid
+        let size = width * height
+        
+        // 1. Threshold pass: Identify all dark pixels (0)
+        // We use a visited array to track processed pixels for flood fill
+        // Using a flat bool array for performance
+        var visited = [Bool](repeating: false, count: size)
+        
+        var maxBlobSize = 0
+        var maxBlobSumX = 0
+        var maxBlobSumY = 0
+        
+        // 2. Iterate through pixels to find connected components
         for y in 0..<height {
             let rowOffset = y * width
             for x in 0..<width {
-                if data[rowOffset + x] < threshold {
-                    sumX += x
-                    sumY += y
-                    count += 1
+                let idx = rowOffset + x
+                
+                // If it's a dark pixel (0) and not visited, start a flood fill
+                if data[idx] == 0 && !visited[idx] {
+                    var currentBlobSize = 0
+                    var currentBlobSumX = 0
+                    var currentBlobSumY = 0
+                    
+                    // Stack for DFS/BFS (using array as stack is fast in Swift)
+                    var stack: [Int] = [idx]
+                    visited[idx] = true
+                    
+                    while let currentIdx = stack.popLast() {
+                        let cx = currentIdx % width
+                        let cy = currentIdx / width
+                        
+                        currentBlobSize += 1
+                        currentBlobSumX += cx
+                        currentBlobSumY += cy
+                        
+                        // Check 4 neighbors
+                        // Right
+                        if cx + 1 < width {
+                            let nIdx = currentIdx + 1
+                            if data[nIdx] == 0 && !visited[nIdx] {
+                                visited[nIdx] = true
+                                stack.append(nIdx)
+                            }
+                        }
+                        // Left
+                        if cx - 1 >= 0 {
+                            let nIdx = currentIdx - 1
+                            if data[nIdx] == 0 && !visited[nIdx] {
+                                visited[nIdx] = true
+                                stack.append(nIdx)
+                            }
+                        }
+                        // Down
+                        if cy + 1 < height {
+                            let nIdx = currentIdx + width
+                            if data[nIdx] == 0 && !visited[nIdx] {
+                                visited[nIdx] = true
+                                stack.append(nIdx)
+                            }
+                        }
+                        // Up
+                        if cy - 1 >= 0 {
+                            let nIdx = currentIdx - width
+                            if data[nIdx] == 0 && !visited[nIdx] {
+                                visited[nIdx] = true
+                                stack.append(nIdx)
+                            }
+                        }
+                    }
+                    
+                    // Check if this is the largest blob so far
+                    if currentBlobSize > maxBlobSize {
+                        maxBlobSize = currentBlobSize
+                        maxBlobSumX = currentBlobSumX
+                        maxBlobSumY = currentBlobSumY
+                    }
                 }
             }
         }
 
-        if enableDiagnosticLogging && count < 5 {
-            logDebug("👁 PupilDetector: Dark pixel count = \(count) (need >= 5)")
+        if enableDiagnosticLogging && maxBlobSize < 5 {
+            logDebug("👁 PupilDetector: Largest blob size = \(maxBlobSize) (need >= 5)")
         }
 
-        // Minimum 5 pixels for valid pupil (reduced from 10 for small eye regions)
-        guard count >= 5 else { return nil }
+        // Minimum 5 pixels for valid pupil
+        guard maxBlobSize >= 5 else { return nil }
 
         return (
-            x: Double(sumX) / Double(count),
-            y: Double(sumY) / Double(count)
+            x: Double(maxBlobSumX) / Double(maxBlobSize),
+            y: Double(maxBlobSumY) / Double(maxBlobSize)
         )
     }
 

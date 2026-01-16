@@ -470,19 +470,66 @@ class EyeTrackingService: NSObject, ObservableObject {
             if let leftRatio = leftGazeRatio,
                 let rightRatio = rightGazeRatio
             {
+                let faceWidth = face.boundingBox.width
+                
                 Task { @MainActor in
                     if CalibrationManager.shared.isCalibrating {
                         CalibrationManager.shared.collectSample(
                             leftRatio: leftRatio,
-                            rightRatio: rightRatio
+                            rightRatio: rightRatio,
+                            leftVertical: leftVerticalRatio,
+                            rightVertical: rightVerticalRatio,
+                            faceWidthRatio: faceWidth
                         )
                     }
                 }
 
-                let avgRatio = (leftRatio + rightRatio) / 2.0
-                let lookingRight = avgRatio <= EyeTrackingConstants.pixelGazeMinRatio
-                let lookingLeft = avgRatio >= EyeTrackingConstants.pixelGazeMaxRatio
-                eyesLookingAway = lookingRight || lookingLeft
+                let avgH = (leftRatio + rightRatio) / 2.0
+                // Use 0.5 as default for vertical if not available
+                let avgV = (leftVerticalRatio != nil && rightVerticalRatio != nil)
+                    ? (leftVerticalRatio! + rightVerticalRatio!) / 2.0
+                    : 0.5
+                
+                // Use Calibrated Thresholds from thread-safe state
+                if let thresholds = CalibrationState.shared.thresholds,
+                   CalibrationState.shared.isComplete {
+                    
+                    // 1. Distance Scaling
+                    let currentFaceWidth = face.boundingBox.width
+                    let refFaceWidth = thresholds.referenceFaceWidth
+                    
+                    var distanceScale = 1.0
+                    if refFaceWidth > 0 && currentFaceWidth > 0 {
+                        distanceScale = refFaceWidth / currentFaceWidth
+                        distanceScale = 1.0 + (distanceScale - 1.0) * EyeTrackingConstants.distanceSensitivity
+                    }
+                    
+                    // 2. Normalize Gaze
+                    let centerH = (thresholds.screenLeftBound + thresholds.screenRightBound) / 2.0
+                    let centerV = (thresholds.screenTopBound + thresholds.screenBottomBound) / 2.0
+                    
+                    let deltaH = (avgH - centerH) * distanceScale
+                    let deltaV = (avgV - centerV) * distanceScale
+                    
+                    let normalizedH = centerH + deltaH
+                    let normalizedV = centerV + deltaV
+                    
+                    // 3. Boundary Check
+                    let margin = EyeTrackingConstants.boundaryForgivenessMargin
+                    
+                    let isLookingLeft = normalizedH > (thresholds.screenLeftBound + margin)
+                    let isLookingRight = normalizedH < (thresholds.screenRightBound - margin)
+                    let isLookingUp = normalizedV < (thresholds.screenTopBound - margin)
+                    let isLookingDown = normalizedV > (thresholds.screenBottomBound + margin)
+                    
+                    eyesLookingAway = isLookingLeft || isLookingRight || isLookingUp || isLookingDown
+                    
+                } else {
+                    // Fallback to default constants
+                    let lookingRight = avgH <= EyeTrackingConstants.pixelGazeMinRatio
+                    let lookingLeft = avgH >= EyeTrackingConstants.pixelGazeMaxRatio
+                    eyesLookingAway = lookingRight || lookingLeft
+                }
             }
         }
 
@@ -621,6 +668,8 @@ class EyeTrackingService: NSObject, ObservableObject {
         {
             var leftGazeRatio: Double? = nil
             var rightGazeRatio: Double? = nil
+            var leftVerticalRatio: Double? = nil
+            var rightVerticalRatio: Double? = nil
 
             // Detect left pupil (side = 0)
             if let leftResult = PupilDetector.detectPupil(
@@ -631,6 +680,10 @@ class EyeTrackingService: NSObject, ObservableObject {
                 side: 0
             ) {
                 leftGazeRatio = calculateGazeRatio(
+                    pupilPosition: leftResult.pupilPosition,
+                    eyeRegion: leftResult.eyeRegion
+                )
+                leftVerticalRatio = calculateVerticalRatioSync(
                     pupilPosition: leftResult.pupilPosition,
                     eyeRegion: leftResult.eyeRegion
                 )
@@ -648,6 +701,10 @@ class EyeTrackingService: NSObject, ObservableObject {
                     pupilPosition: rightResult.pupilPosition,
                     eyeRegion: rightResult.eyeRegion
                 )
+                rightVerticalRatio = calculateVerticalRatioSync(
+                    pupilPosition: rightResult.pupilPosition,
+                    eyeRegion: rightResult.eyeRegion
+                )
             }
 
             // CRITICAL: Connect to CalibrationManager
@@ -655,37 +712,114 @@ class EyeTrackingService: NSObject, ObservableObject {
                 let leftRatio = leftGazeRatio,
                 let rightRatio = rightGazeRatio
             {
+                // Calculate face width ratio for distance estimation
+                let faceWidthRatio = face.boundingBox.width
+                
                 CalibrationManager.shared.collectSample(
                     leftRatio: leftRatio,
-                    rightRatio: rightRatio
+                    rightRatio: rightRatio,
+                    leftVertical: leftVerticalRatio,
+                    rightVertical: rightVerticalRatio,
+                    faceWidthRatio: faceWidthRatio
                 )
             }
 
-// Determine looking away using calibrated thresholds
-             if let leftRatio = leftGazeRatio, let rightRatio = rightGazeRatio {
-                 let avgRatio = (leftRatio + rightRatio) / 2.0
-                 let lookingRight = avgRatio <= EyeTrackingConstants.pixelGazeMinRatio
-                 let lookingLeft = avgRatio >= EyeTrackingConstants.pixelGazeMaxRatio
-                 eyesLookingAway = lookingRight || lookingLeft
-
-                if shouldLog {
-                    print(
-                        "👁️ PIXEL GAZE: L=\(String(format: "%.3f", leftRatio)) R=\(String(format: "%.3f", rightRatio)) Avg=\(String(format: "%.3f", avgRatio)) Away=\(eyesLookingAway)"
-                    )
-                    print(
-                        "   Thresholds: Min=\(String(format: "%.3f", EyeTrackingConstants.pixelGazeMinRatio)) Max=\(String(format: "%.3f", EyeTrackingConstants.pixelGazeMaxRatio))"
-                    )
+            // Determine looking away using calibrated thresholds
+            if let leftRatio = leftGazeRatio, let rightRatio = rightGazeRatio {
+                let avgH = (leftRatio + rightRatio) / 2.0
+                // Use 0.5 as default for vertical if not available (though it should be)
+                let avgV = (leftVerticalRatio != nil && rightVerticalRatio != nil) 
+                    ? (leftVerticalRatio! + rightVerticalRatio!) / 2.0 
+                    : 0.5
+                
+                 // Use Calibrated Thresholds if available
+                 // Use thread-safe state instead of accessing CalibrationManager.shared (MainActor)
+                 if let thresholds = CalibrationState.shared.thresholds,
+                    CalibrationState.shared.isComplete {
+                     
+                     // 1. Distance Scaling
+                    // If current face is SMALLER than reference, user is FURTHER away.
+                    // Eyes move LESS for same screen angle. We need to SCALE UP the deviation.
+                    let currentFaceWidth = face.boundingBox.width
+                    let refFaceWidth = thresholds.referenceFaceWidth
+                    
+                    var distanceScale = 1.0
+                    if refFaceWidth > 0 && currentFaceWidth > 0 {
+                        // Simple linear scaling: scale = ref / current
+                        // e.g. Ref=0.5, Current=0.25 (further) -> Scale=2.0
+                        distanceScale = refFaceWidth / currentFaceWidth
+                        
+                        // Apply sensitivity tuning
+                        distanceScale = 1.0 + (distanceScale - 1.0) * EyeTrackingConstants.distanceSensitivity
+                    }
+                    
+                    // 2. Normalize Gaze (Center Relative)
+                    // We assume ~0.5 is center. We scale the delta from 0.5.
+                    // Note: This is an approximation. A better way uses the calibrated center.
+                    let centerH = (thresholds.screenLeftBound + thresholds.screenRightBound) / 2.0
+                    let centerV = (thresholds.screenTopBound + thresholds.screenBottomBound) / 2.0
+                    
+                    let deltaH = (avgH - centerH) * distanceScale
+                    let deltaV = (avgV - centerV) * distanceScale
+                    
+                    let normalizedH = centerH + deltaH
+                    let normalizedV = centerV + deltaV
+                    
+                    // 3. Boundary Check with Margin
+                    // "Forgiveness" expands the safe zone (screen bounds).
+                    // If you are IN the margin, you are considered ON SCREEN (Safe).
+                    // Looking Away means passing the (Bound + Margin).
+                    
+                    let margin = EyeTrackingConstants.boundaryForgivenessMargin
+                    
+                    // Check Left (Higher Ratio)
+                    // Screen Left is e.g. 0.7. Looking Left > 0.7.
+                    // To look away, must exceed (0.7 + margin).
+                    let isLookingLeft = normalizedH > (thresholds.screenLeftBound + margin)
+                    
+                    // Check Right (Lower Ratio)
+                    // Screen Right is e.g. 0.3. Looking Right < 0.3.
+                    // To look away, must be less than (0.3 - margin).
+                    let isLookingRight = normalizedH < (thresholds.screenRightBound - margin)
+                    
+                    // Check Up (Lower Ratio, usually)
+                    let isLookingUp = normalizedV < (thresholds.screenTopBound - margin)
+                    
+                    // Check Down (Higher Ratio, usually)
+                    let isLookingDown = normalizedV > (thresholds.screenBottomBound + margin)
+                    
+                    eyesLookingAway = isLookingLeft || isLookingRight || isLookingUp || isLookingDown
+                    
+                    if shouldLog {
+                        print("👁️ CALIBRATED GAZE: AvgH=\(String(format: "%.2f", avgH)) AvgV=\(String(format: "%.2f", avgV)) DistScale=\(String(format: "%.2f", distanceScale))")
+                        print("   NormH=\(String(format: "%.2f", normalizedH)) NormV=\(String(format: "%.2f", normalizedV)) Away=\(eyesLookingAway)")
+                        print("   Bounds: H[\(String(format: "%.2f", thresholds.screenRightBound))-\(String(format: "%.2f", thresholds.screenLeftBound))] V[\(String(format: "%.2f", thresholds.screenTopBound))-\(String(format: "%.2f", thresholds.screenBottomBound))]")
+                    }
+                    
+                } else {
+                    // Fallback to default constants
+                    let lookingRight = avgH <= EyeTrackingConstants.pixelGazeMinRatio
+                    let lookingLeft = avgH >= EyeTrackingConstants.pixelGazeMaxRatio
+                    eyesLookingAway = lookingRight || lookingLeft
                 }
+                
+                // Update debug values
+                Task { @MainActor in
+                    debugLeftPupilRatio = leftGazeRatio
+                    debugRightPupilRatio = rightGazeRatio
+                    debugLeftVerticalRatio = leftVerticalRatio
+                    debugRightVerticalRatio = rightVerticalRatio
+                }
+
+                 if shouldLog && !CalibrationState.shared.isComplete {
+                    print(
+                        "👁️ RAW GAZE: L=\(String(format: "%.3f", leftRatio)) R=\(String(format: "%.3f", rightRatio)) Avg=\(String(format: "%.3f", avgH)) Away=\(eyesLookingAway)"
+                    )
+                 }
             } else {
                 if shouldLog {
                     print("⚠️ Pixel pupil detection failed for one or both eyes")
                 }
-            }
-
-            // Update debug values
-            Task { @MainActor in
-                debugLeftPupilRatio = leftGazeRatio
-                debugRightPupilRatio = rightGazeRatio
             }
         } else {
             if shouldLog {

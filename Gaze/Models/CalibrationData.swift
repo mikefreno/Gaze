@@ -45,15 +45,15 @@ enum CalibrationStep: String, Codable, CaseIterable {
         case .farLeft:
             return "Look as far left as comfortable"
         case .left:
-            return "Look to the left"
+            return "Look to the left edge of the screen"
         case .farRight:
             return "Look as far right as comfortable"
         case .right:
-            return "Look to the right"
+            return "Look to the right edge of the screen"
         case .up:
-            return "Look up"
+            return "Look to the top edge of the screen"
         case .down:
-            return "Look down"
+            return "Look to the bottom edge of the screen"
         case .topLeft:
             return "Look to the top left corner"
         case .topRight:
@@ -70,17 +70,31 @@ struct GazeSample: Codable {
     let leftRatio: Double?
     let rightRatio: Double?
     let averageRatio: Double
+    let leftVerticalRatio: Double?
+    let rightVerticalRatio: Double?
+    let averageVerticalRatio: Double
+    let faceWidthRatio: Double? // For distance scaling (face width / image width)
     let timestamp: Date
     
-    init(leftRatio: Double?, rightRatio: Double?) {
+    init(leftRatio: Double?, rightRatio: Double?, leftVerticalRatio: Double? = nil, rightVerticalRatio: Double? = nil, faceWidthRatio: Double? = nil) {
         self.leftRatio = leftRatio
         self.rightRatio = rightRatio
+        self.leftVerticalRatio = leftVerticalRatio
+        self.rightVerticalRatio = rightVerticalRatio
+        self.faceWidthRatio = faceWidthRatio
         
-        // Calculate average from available ratios
+        // Calculate average horizontal ratio
         if let left = leftRatio, let right = rightRatio {
             self.averageRatio = (left + right) / 2.0
         } else {
             self.averageRatio = leftRatio ?? rightRatio ?? 0.5
+        }
+        
+        // Calculate average vertical ratio
+        if let left = leftVerticalRatio, let right = rightVerticalRatio {
+            self.averageVerticalRatio = (left + right) / 2.0
+        } else {
+            self.averageVerticalRatio = leftVerticalRatio ?? rightVerticalRatio ?? 0.5
         }
         
         self.timestamp = Date()
@@ -88,24 +102,43 @@ struct GazeSample: Codable {
 }
 
 struct GazeThresholds: Codable {
-    let minLeftRatio: Double   // Looking left threshold (e.g., 0.65)
-    let maxRightRatio: Double  // Looking right threshold (e.g., 0.35)
-    let centerMin: Double      // Center range minimum
-    let centerMax: Double      // Center range maximum
+    // Horizontal Thresholds
+    let minLeftRatio: Double   // Looking left (≥ value)
+    let maxRightRatio: Double  // Looking right (≤ value)
+    
+    // Vertical Thresholds
+    let minUpRatio: Double     // Looking up (≤ value, typically < 0.5)
+    let maxDownRatio: Double   // Looking down (≥ value, typically > 0.5)
+    
+    // Screen Bounds (Calibration Zone)
+    // Defines the rectangle of pupil ratios that correspond to looking AT the screen
+    let screenLeftBound: Double
+    let screenRightBound: Double
+    let screenTopBound: Double
+    let screenBottomBound: Double
+    
+    // Reference Data for Distance Scaling
+    let referenceFaceWidth: Double // Average face width during calibration
     
     var isValid: Bool {
-        // Ensure thresholds don't overlap
-        return maxRightRatio < centerMin &&
-               centerMin < centerMax &&
-               centerMax < minLeftRatio
+        // Basic sanity checks
+        return maxRightRatio < minLeftRatio &&
+               minUpRatio < maxDownRatio &&
+               screenRightBound < screenLeftBound && // Assuming lower ratio = right
+               screenTopBound < screenBottomBound // Assuming lower ratio = up
     }
     
     static var defaultThresholds: GazeThresholds {
         GazeThresholds(
             minLeftRatio: 0.65,
             maxRightRatio: 0.35,
-            centerMin: 0.40,
-            centerMax: 0.60
+            minUpRatio: 0.40,
+            maxDownRatio: 0.60,
+            screenLeftBound: 0.60,
+            screenRightBound: 0.40,
+            screenTopBound: 0.45,
+            screenBottomBound: 0.55,
+            referenceFaceWidth: 0.0 // 0.0 means unused/uncalibrated
         )
     }
 }
@@ -137,62 +170,95 @@ struct CalibrationData: Codable {
     func averageRatio(for step: CalibrationStep) -> Double? {
         let stepSamples = getSamples(for: step)
         guard !stepSamples.isEmpty else { return nil }
-        
-        let sum = stepSamples.reduce(0.0) { $0 + $1.averageRatio }
-        return sum / Double(stepSamples.count)
+        return stepSamples.reduce(0.0) { $0 + $1.averageRatio } / Double(stepSamples.count)
     }
     
-    func standardDeviation(for step: CalibrationStep) -> Double? {
+    func averageVerticalRatio(for step: CalibrationStep) -> Double? {
         let stepSamples = getSamples(for: step)
-        guard stepSamples.count > 1, let mean = averageRatio(for: step) else { return nil }
-        
-        let variance = stepSamples.reduce(0.0) { sum, sample in
-            let diff = sample.averageRatio - mean
-            return sum + (diff * diff)
-        } / Double(stepSamples.count - 1)
-        
-        return sqrt(variance)
+        guard !stepSamples.isEmpty else { return nil }
+        return stepSamples.reduce(0.0) { $0 + $1.averageVerticalRatio } / Double(stepSamples.count)
+    }
+    
+    func averageFaceWidth(for step: CalibrationStep) -> Double? {
+        let stepSamples = getSamples(for: step)
+        let validSamples = stepSamples.compactMap { $0.faceWidthRatio }
+        guard !validSamples.isEmpty else { return nil }
+        return validSamples.reduce(0.0, +) / Double(validSamples.count)
     }
     
     mutating func calculateThresholds() {
-        // Need at least center, left, and right samples
-        guard let centerMean = averageRatio(for: .center),
-              let leftMean = averageRatio(for: .left),
-              let rightMean = averageRatio(for: .right) else {
-            print("⚠️ Insufficient calibration data to calculate thresholds")
-            return
-        }
+        // We need Center, Left, Right, Up, Down samples for a full calibration
+        // Fallback: If corners (TopLeft, etc.) are available, use them to reinforce bounds
         
-        let centerStdDev = standardDeviation(for: .center) ?? 0.05
+        let centerH = averageRatio(for: .center) ?? 0.5
+        let centerV = averageVerticalRatio(for: .center) ?? 0.5
         
-        // Calculate center range (mean ± 0.5 * std_dev)
-        let centerMin = max(0.0, centerMean - 0.5 * centerStdDev)
-        let centerMax = min(1.0, centerMean + 0.5 * centerStdDev)
+        // 1. Horizontal Bounds
+        // If specific Left/Right steps missing, try corners
+        let leftH = averageRatio(for: .left) ?? averageRatio(for: .topLeft) ?? averageRatio(for: .bottomLeft) ?? (centerH + 0.15)
+        let rightH = averageRatio(for: .right) ?? averageRatio(for: .topRight) ?? averageRatio(for: .bottomRight) ?? (centerH - 0.15)
         
-        // Calculate left threshold (midpoint between center and left extremes)
-        let minLeftRatio = centerMax + (leftMean - centerMax) * 0.5
+        // 2. Vertical Bounds
+        let upV = averageVerticalRatio(for: .up) ?? averageVerticalRatio(for: .topLeft) ?? averageVerticalRatio(for: .topRight) ?? (centerV - 0.15)
+        let downV = averageVerticalRatio(for: .down) ?? averageVerticalRatio(for: .bottomLeft) ?? averageVerticalRatio(for: .bottomRight) ?? (centerV + 0.15)
         
-        // Calculate right threshold (midpoint between center and right extremes)
-        let maxRightRatio = centerMin - (centerMin - rightMean) * 0.5
+        // 3. Face Width Reference (average of all center samples)
+        let refFaceWidth = averageFaceWidth(for: .center) ?? 0.0
         
-        // Validate and adjust if needed
-        var thresholds = GazeThresholds(
-            minLeftRatio: min(0.95, max(0.55, minLeftRatio)),
-            maxRightRatio: max(0.05, min(0.45, maxRightRatio)),
-            centerMin: centerMin,
-            centerMax: centerMax
+        // 4. Compute Boundaries with Margin
+        // "Screen Bound" is exactly where the user looked.
+        // We set thresholds slightly BEYOND that to detect "Looking Away".
+        
+        // Note: Assuming standard coordinates where:
+        // Horizontal: 0.0 (Right) -> 1.0 (Left)
+        // Vertical: 0.0 (Up) -> 1.0 (Down)
+        
+        // Thresholds for "Looking Away"
+        // Looking Left = Ratio > Screen Left Edge
+        let lookLeftThreshold = leftH + 0.05
+        // Looking Right = Ratio < Screen Right Edge
+        let lookRightThreshold = rightH - 0.05
+        
+        // Looking Up = Ratio < Screen Top Edge
+        let lookUpThreshold = upV - 0.05
+        // Looking Down = Ratio > Screen Bottom Edge
+        let lookDownThreshold = downV + 0.05
+        
+        let thresholds = GazeThresholds(
+            minLeftRatio: lookLeftThreshold,
+            maxRightRatio: lookRightThreshold,
+            minUpRatio: lookUpThreshold,
+            maxDownRatio: lookDownThreshold,
+            screenLeftBound: leftH,
+            screenRightBound: rightH,
+            screenTopBound: upV,
+            screenBottomBound: downV,
+            referenceFaceWidth: refFaceWidth
         )
-        
-        // Ensure no overlap
-        if !thresholds.isValid {
-            print("⚠️ Computed thresholds overlap, using defaults")
-            thresholds = GazeThresholds.defaultThresholds
-        }
         
         self.computedThresholds = thresholds
         print("✓ Calibration thresholds calculated:")
-        print("  Left: ≥\(String(format: "%.3f", thresholds.minLeftRatio))")
-        print("  Center: \(String(format: "%.3f", thresholds.centerMin))-\(String(format: "%.3f", thresholds.centerMax))")
-        print("  Right: ≤\(String(format: "%.3f", thresholds.maxRightRatio))")
+        print("  H-Range: \(String(format: "%.3f", rightH)) to \(String(format: "%.3f", leftH))")
+        print("  V-Range: \(String(format: "%.3f", upV)) to \(String(format: "%.3f", downV))")
+        print("  Ref Face Width: \(String(format: "%.3f", refFaceWidth))")
+    }
+}
+
+/// Thread-safe storage for active calibration thresholds
+/// Allows non-isolated code (video processing) to read thresholds without hitting MainActor
+class CalibrationState: @unchecked Sendable {
+    static let shared = CalibrationState()
+    private let queue = DispatchQueue(label: "com.gaze.calibrationState", attributes: .concurrent)
+    private var _thresholds: GazeThresholds?
+    private var _isComplete: Bool = false
+    
+    var thresholds: GazeThresholds? {
+        get { queue.sync { _thresholds } }
+        set { queue.async(flags: .barrier) { self._thresholds = newValue } }
+    }
+    
+    var isComplete: Bool {
+        get { queue.sync { _isComplete } }
+        set { queue.async(flags: .barrier) { self._isComplete = newValue } }
     }
 }

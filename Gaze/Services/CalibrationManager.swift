@@ -56,10 +56,16 @@ class CalibrationManager: ObservableObject {
         calibrationData = CalibrationData()
     }
     
-    func collectSample(leftRatio: Double?, rightRatio: Double?) {
+    func collectSample(leftRatio: Double?, rightRatio: Double?, leftVertical: Double? = nil, rightVertical: Double? = nil, faceWidthRatio: Double? = nil) {
         guard isCalibrating, let step = currentStep else { return }
         
-        let sample = GazeSample(leftRatio: leftRatio, rightRatio: rightRatio)
+        let sample = GazeSample(
+            leftRatio: leftRatio,
+            rightRatio: rightRatio,
+            leftVerticalRatio: leftVertical,
+            rightVerticalRatio: rightVertical,
+            faceWidthRatio: faceWidthRatio
+        )
         calibrationData.addSample(sample, for: step)
         samplesCollected += 1
         
@@ -116,6 +122,10 @@ class CalibrationManager: ObservableObject {
         currentStepIndex = 0
         samplesCollected = 0
         calibrationData = CalibrationData()
+        
+        // Reset thread-safe state
+        CalibrationState.shared.isComplete = false
+        CalibrationState.shared.thresholds = nil
     }
     
     // MARK: - Persistence
@@ -157,6 +167,11 @@ class CalibrationManager: ObservableObject {
     func clearCalibration() {
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
         calibrationData = CalibrationData()
+        
+        // Reset thread-safe state
+        CalibrationState.shared.isComplete = false
+        CalibrationState.shared.thresholds = nil
+        
         print("🗑️ Calibration data cleared")
     }
     
@@ -185,19 +200,22 @@ class CalibrationManager: ObservableObject {
     
     // MARK: - Apply Calibration
     
-private func applyCalibration() {
+    private func applyCalibration() {
         guard let thresholds = calibrationData.computedThresholds else {
             print("⚠️ No thresholds to apply")
             return
         }
         
-        // Note: EyeTrackingConstants are static properties that should not be modified.
-        // Any calibrated values should be used separately in the logic, not stored back to the constants.
-        // This is a placeholder for future implementation if dynamic threshold updates are needed.
+        // Push to thread-safe state for background processing
+        CalibrationState.shared.thresholds = thresholds
+        CalibrationState.shared.isComplete = true
         
         print("✓ Applied calibrated thresholds:")
         print("  Looking left: ≥\(String(format: "%.3f", thresholds.minLeftRatio))")
         print("  Looking right: ≤\(String(format: "%.3f", thresholds.maxRightRatio))")
+        print("  Looking up: ≤\(String(format: "%.3f", thresholds.minUpRatio))")
+        print("  Looking down: ≥\(String(format: "%.3f", thresholds.maxDownRatio))")
+        print("  Screen Bounds: [\(String(format: "%.2f", thresholds.screenRightBound))..\(String(format: "%.2f", thresholds.screenLeftBound))] x [\(String(format: "%.2f", thresholds.screenTopBound))..\(String(format: "%.2f", thresholds.screenBottomBound))]")
     }
     
     // MARK: - Statistics
@@ -214,9 +232,9 @@ private func applyCalibration() {
         var summary = "Calibrated: \(dateFormatter.string(from: calibrationData.calibrationDate))\n"
         
         if let thresholds = calibrationData.computedThresholds {
-            summary += "Left threshold: \(String(format: "%.3f", thresholds.minLeftRatio))\n"
-            summary += "Right threshold: \(String(format: "%.3f", thresholds.maxRightRatio))\n"
-            summary += "Center range: \(String(format: "%.3f", thresholds.centerMin)) - \(String(format: "%.3f", thresholds.centerMax))"
+            summary += "H-Range: \(String(format: "%.3f", thresholds.screenRightBound)) to \(String(format: "%.3f", thresholds.screenLeftBound))\n"
+            summary += "V-Range: \(String(format: "%.3f", thresholds.screenTopBound)) to \(String(format: "%.3f", thresholds.screenBottomBound))\n"
+            summary += "Ref Face Width: \(String(format: "%.3f", thresholds.referenceFaceWidth))"
         }
         
         return summary

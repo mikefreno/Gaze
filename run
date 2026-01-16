@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build and run Gaze application
-# Usage: ./run [build|test|run|lsp] [-v|--verbose] [-o|--output <file>] [--no-lsp]
+# Usage: ./run [build|test|run|lsp] [-v|--verbose] [-c|--coverage] [-p|--performance] [-o|--output <file>] [--no-lsp]
 # Note: Default action (./run with no args) runs the app with verbose logging enabled
 
 set -o pipefail
@@ -14,11 +14,25 @@ readonly APP_SUBSYSTEM="com.mikefreno.Gaze"
 VERBOSE=false
 OUTPUT_FILE=""
 SKIP_LSP=false
+PERFORMANCE=false
+COVERAGE=false
 
 # Constructs xcodebuild command with common parameters
 build_xcodebuild_command() {
     local action="$1"
-    echo "xcodebuild -project $PROJECT -scheme $SCHEME -configuration $CONFIGURATION $action"
+    local cmd="xcodebuild -project $PROJECT -scheme $SCHEME -configuration $CONFIGURATION $action"
+    
+    # Add performance profiling if requested
+    if [ "$PERFORMANCE" = true ]; then
+        cmd="$cmd -enablePerformanceTestsDiagnostics YES"
+    fi
+    
+    # Add coverage analysis if requested
+    if [ "$COVERAGE" = true ]; then
+        cmd="$cmd -enableCodeCoverage YES"
+    fi
+    
+    echo "$cmd"
 }
 
 # Kills any existing Gaze processes
@@ -152,7 +166,7 @@ run_with_output() {
 
 # Displays usage information
 show_usage() {
-    echo "Usage: $0 [build|test|run|lsp] [-v|--verbose] [-o|--output <file_name>] [--no-lsp]"
+    echo "Usage: $0 [build|test|run|lsp] [-v|--verbose] [-o|--output <file_name>] [--no-lsp] [-p|--performance] [-c|--coverage]"
     echo ""
     echo "Commands:"
     echo "  build   - Build the application"
@@ -164,6 +178,8 @@ show_usage() {
     echo "  -v, --verbose    - Show output in stdout"
     echo "  -o, --output     - Write output to log file"
     echo "  --no-lsp         - Skip LSP configuration update"
+    echo "  -p, --performance - Run tests with performance profiling"
+    echo "  -c, --coverage   - Run tests with code coverage analysis"
     echo ""
     echo "Note: Running './run' with no arguments defaults to 'run' action with verbose logging."
     echo "      Press Ctrl+C to stop log capture and keep the app running."
@@ -184,6 +200,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-lsp)
             SKIP_LSP=true
+            shift
+            ;;
+        -p|--performance)
+            PERFORMANCE=true
+            shift
+            ;;
+        -c|--coverage)
+            COVERAGE=true
             shift
             ;;
         *)

@@ -63,7 +63,9 @@ final class PupilCalibration: @unchecked Sendable {
         }
     }
 
-    private nonisolated func findBestThreshold(eyeData: UnsafePointer<UInt8>, width: Int, height: Int) -> Int {
+    private nonisolated func findBestThreshold(
+        eyeData: UnsafePointer<UInt8>, width: Int, height: Int
+    ) -> Int {
         let averageIrisSize = 0.48
         var bestThreshold = 50
         var bestDiff = Double.greatestFiniteMagnitude
@@ -91,7 +93,9 @@ final class PupilCalibration: @unchecked Sendable {
         return bestThreshold
     }
 
-    private nonisolated static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int) -> Double {
+    private nonisolated static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int)
+        -> Double
+    {
         let margin = 5
         guard width > margin * 2, height > margin * 2 else { return 0 }
 
@@ -145,15 +149,17 @@ final class PupilDetector: @unchecked Sendable {
 
     nonisolated(unsafe) static var enableDebugImageSaving = false
     nonisolated(unsafe) static var enablePerformanceLogging = false
+    nonisolated(unsafe) static var enableDiagnosticLogging = false
     nonisolated(unsafe) static var frameSkipCount = 10  // Process every Nth frame
 
     // MARK: - State (protected by lock)
 
     private nonisolated(unsafe) static var _debugImageCounter = 0
     private nonisolated(unsafe) static var _frameCounter = 0
-    private nonisolated(unsafe) static var _lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) = (
-        nil, nil
-    )
+    private nonisolated(unsafe) static var _lastPupilPositions:
+        (left: PupilPosition?, right: PupilPosition?) = (
+            nil, nil
+        )
     private nonisolated(unsafe) static var _metrics = PupilDetectorMetrics()
 
     nonisolated(unsafe) static let calibration = PupilCalibration()
@@ -170,7 +176,8 @@ final class PupilDetector: @unchecked Sendable {
         set { _frameCounter = newValue }
     }
 
-    private nonisolated static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) {
+    private nonisolated static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?)
+    {
         get { _lastPupilPositions }
         set { _lastPupilPositions = newValue }
     }
@@ -218,6 +225,11 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Public API
 
+    /// Call once per video frame to enable proper frame skipping
+    nonisolated static func advanceFrame() {
+        frameCounter += 1
+    }
+
     /// Detects pupil position with frame skipping for performance
     /// Returns cached result on skipped frames
     nonisolated static func detectPupil(
@@ -252,7 +264,7 @@ final class PupilDetector: @unchecked Sendable {
                 let elapsed = (CFAbsoluteTimeGetCurrent() - startTime) * 1000
                 metrics.recordProcessingTime(elapsed)
                 if metrics.processedFrameCount % 30 == 0 {
-                    print(
+                    logDebug(
                         "👁 PupilDetector: \(String(format: "%.2f", elapsed))ms (avg: \(String(format: "%.2f", metrics.averageProcessingTimeMs))ms)"
                     )
                 }
@@ -266,10 +278,18 @@ final class PupilDetector: @unchecked Sendable {
             imageSize: imageSize
         )
 
-        guard eyePoints.count >= 6 else { return nil }
+        guard eyePoints.count >= 6 else {
+            if enableDiagnosticLogging {
+                logDebug("👁 PupilDetector: Failed - eyePoints.count=\(eyePoints.count) < 6")
+            }
+            return nil
+        }
 
         // Step 2: Create eye region bounding box with margin
         guard let eyeRegion = createEyeRegion(from: eyePoints, imageSize: imageSize) else {
+            if enableDiagnosticLogging {
+                logDebug("👁 PupilDetector: Failed - createEyeRegion returned nil")
+            }
             return nil
         }
 
@@ -285,6 +305,9 @@ final class PupilDetector: @unchecked Sendable {
             let eyeBuf = eyeBuffer,
             let tmpBuf = tempBuffer
         else {
+            if enableDiagnosticLogging {
+                logDebug("👁 PupilDetector: Failed - buffers not allocated")
+            }
             return nil
         }
 
@@ -293,6 +316,9 @@ final class PupilDetector: @unchecked Sendable {
             extractGrayscaleDataOptimized(
                 from: pixelBuffer, to: grayBuffer, width: frameWidth, height: frameHeight)
         else {
+            if enableDiagnosticLogging {
+                logDebug("👁 PupilDetector: Failed - grayscale extraction failed")
+            }
             return nil
         }
 
@@ -301,7 +327,13 @@ final class PupilDetector: @unchecked Sendable {
         let eyeHeight = Int(eyeRegion.frame.height)
 
         // Early exit for tiny regions (less than 10x10 pixels)
-        guard eyeWidth >= 10, eyeHeight >= 10 else { return nil }
+        guard eyeWidth >= 10, eyeHeight >= 10 else {
+            if enableDiagnosticLogging {
+                logDebug(
+                    "👁 PupilDetector: Failed - eye region too small (\(eyeWidth)x\(eyeHeight))")
+            }
+            return nil
+        }
 
         guard
             isolateEyeWithMaskOptimized(
@@ -313,6 +345,9 @@ final class PupilDetector: @unchecked Sendable {
                 output: eyeBuf
             )
         else {
+            if enableDiagnosticLogging {
+                logDebug("👁 PupilDetector: Failed - isolateEyeWithMask failed")
+            }
             return nil
         }
 
@@ -352,7 +387,18 @@ final class PupilDetector: @unchecked Sendable {
                 height: eyeHeight
             )
         else {
+            if enableDiagnosticLogging {
+                logDebug(
+                    "👁 PupilDetector: Failed - findPupilFromContours returned nil (not enough dark pixels)"
+                )
+            }
             return nil
+        }
+
+        if enableDiagnosticLogging {
+            logDebug(
+                "👁 PupilDetector: Success - centroid at (\(String(format: "%.1f", centroidX)), \(String(format: "%.1f", centroidY))) in \(eyeWidth)x\(eyeHeight) region"
+            )
         }
 
         let pupilPosition = PupilPosition(x: CGFloat(centroidX), y: CGFloat(centroidY))
@@ -738,7 +784,9 @@ final class PupilDetector: @unchecked Sendable {
         }
     }
 
-    private nonisolated static func createEyeRegion(from points: [CGPoint], imageSize: CGSize) -> EyeRegion? {
+    private nonisolated static func createEyeRegion(from points: [CGPoint], imageSize: CGSize)
+        -> EyeRegion?
+    {
         guard !points.isEmpty else { return nil }
 
         let margin: CGFloat = 5
@@ -792,10 +840,12 @@ final class PupilDetector: @unchecked Sendable {
 
         CGImageDestinationAddImage(destination, cgImage, nil)
         CGImageDestinationFinalize(destination)
-        print("💾 Saved debug image: \(url.path)")
+        logDebug("💾 Saved debug image: \(url.path)")
     }
 
-    private nonisolated static func createCGImage(from data: UnsafePointer<UInt8>, width: Int, height: Int)
+    private nonisolated static func createCGImage(
+        from data: UnsafePointer<UInt8>, width: Int, height: Int
+    )
         -> CGImage?
     {
         let mutableData = UnsafeMutablePointer<UInt8>.allocate(capacity: width * height)

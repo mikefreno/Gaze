@@ -201,7 +201,6 @@ struct MenuBarContentView: View {
                     .padding(.vertical, 6)
                 }
                 .buttonStyle(MenuBarHoverButtonStyle())
-                .padding(.horizontal, 8)
                 .padding(.vertical, 8)
                 Spacer()
                 Text(

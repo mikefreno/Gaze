@@ -8,7 +8,6 @@
 import AppKit
 import Combine
 import SwiftUI
-import os.log
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
@@ -20,43 +19,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var hasStartedTimers = false
     private var isSettingsWindowOpen = false
     private var isOnboardingWindowOpen = false
-    
-    // Logging manager
-    private let logger = LoggingManager.shared
-    
+
     // Convenience accessor for settings
     private var settingsManager: any SettingsProviding {
         serviceContainer.settingsManager
     }
-    
+
     override init() {
         self.serviceContainer = ServiceContainer.shared
         self.windowManager = WindowManager.shared
         super.init()
-        
+
         // Setup window close observers
         setupWindowCloseObservers()
     }
-    
+
     /// Initializer for testing with injectable dependencies
     init(serviceContainer: ServiceContainer, windowManager: WindowManaging) {
         self.serviceContainer = serviceContainer
         self.windowManager = windowManager
         super.init()
     }
-    
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
-        
-        // Initialize logging
-        logger.configureLogging()
-        logger.appLogger.info("🚀 Application did finish launching")
 
-        // Get timer engine from service container
+        logInfo("🚀 Application did finish launching")
+
         timerEngine = serviceContainer.timerEngine
 
-        // Setup smart mode services through container
         serviceContainer.setupSmartModeServices()
 
         // Check if onboarding needs to be shown automatically
@@ -87,7 +79,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             .removeDuplicates()
             .sink { [weak self] smartMode in
                 guard let self = self else { return }
-                self.serviceContainer.idleService?.updateThreshold(minutes: smartMode.idleThresholdMinutes)
+                self.serviceContainer.idleService?.updateThreshold(
+                    minutes: smartMode.idleThresholdMinutes)
                 self.serviceContainer.usageTrackingService?.updateResetThreshold(
                     minutes: smartMode.usageResetAfterMinutes)
 
@@ -110,7 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func startTimers() {
         guard !hasStartedTimers else { return }
         hasStartedTimers = true
-        logger.appLogger.info("Starting timers")
+        logInfo("Starting timers")
         timerEngine?.start()
         observeReminderEvents()
     }
@@ -128,13 +121,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 }
             }
             .store(in: &cancellables)
-        
+
         // Also observe smart mode settings
         observeSmartModeSettings()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        logger.appLogger.info(" applicationWill terminate")
+        logInfo(" applicationWill terminate")
         settingsManager.saveImmediately()
         timerEngine?.stop()
     }
@@ -156,13 +149,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     @objc private func systemWillSleep() {
-        logger.systemLogger.info("System will sleep")
+        logInfo("System will sleep")
         timerEngine?.handleSystemSleep()
         settingsManager.saveImmediately()
     }
 
     @objc private func systemDidWake() {
-        logger.systemLogger.info("System did wake")
+        logInfo("System did wake")
         timerEngine?.handleSystemWake()
     }
 
@@ -185,21 +178,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 self?.timerEngine?.dismissReminder()
             }
             windowManager.showReminderWindow(view, windowType: .overlay)
-            
+
         case .blinkTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             let view = BlinkReminderView(sizePercentage: sizePercentage) { [weak self] in
                 self?.timerEngine?.dismissReminder()
             }
             windowManager.showReminderWindow(view, windowType: .subtle)
-            
+
         case .postureTriggered:
             let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
             let view = PostureReminderView(sizePercentage: sizePercentage) { [weak self] in
                 self?.timerEngine?.dismissReminder()
             }
             windowManager.showReminderWindow(view, windowType: .subtle)
-            
+
         case .userTimerTriggered(let timer):
             if timer.type == .overlay {
                 let view = UserTimerOverlayReminderView(timer: timer) { [weak self] in
@@ -208,7 +201,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
                 windowManager.showReminderWindow(view, windowType: .overlay)
             } else {
                 let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
-                let view = UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) { [weak self] in
+                let view = UserTimerReminderView(timer: timer, sizePercentage: sizePercentage) {
+                    [weak self] in
                     self?.timerEngine?.dismissReminder()
                 }
                 windowManager.showReminderWindow(view, windowType: .subtle)
@@ -228,7 +222,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
             return
         }
-        
+
         handleMenuDismissal()
         isSettingsWindowOpen = true
 
@@ -247,7 +241,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             }
             return
         }
-        
+
         handleMenuDismissal()
         // Explicitly set the flag to true when we're about to show the onboarding window
         isOnboardingWindowOpen = true
@@ -262,7 +256,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         NotificationCenter.default.post(name: Notification.Name("CloseMenuBarPopover"), object: nil)
         windowManager.dismissOverlayReminder()
     }
-    
+
     private func setupWindowCloseObservers() {
         // Observe settings window closing
         NotificationCenter.default.addObserver(
@@ -271,7 +265,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             name: Notification.Name("SettingsWindowDidClose"),
             object: nil
         )
-        
+
         // Observe onboarding window closing
         NotificationCenter.default.addObserver(
             self,
@@ -280,11 +274,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: nil
         )
     }
-    
+
     @objc private func settingsWindowDidClose() {
         isSettingsWindowOpen = false
     }
-    
+
     @objc private func onboardingWindowDidClose() {
         // Reset the flag when we receive the close notification
         isOnboardingWindowOpen = false

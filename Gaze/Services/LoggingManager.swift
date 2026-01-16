@@ -46,15 +46,12 @@ final class LoggingManager {
     // MARK: - Initialization
 
     private init() {
-        // Private initializer to enforce singleton pattern
     }
 
     // MARK: - Public Methods
 
-    /// Configure the logging system for verbose output when needed
     func configureLogging() {
-        // For now, we'll use standard OSLog behavior.
-        // This can be extended in the future to support runtime log level changes.
+        //nothing needed for now
     }
 
     /// Convenience method for debug logging
@@ -85,8 +82,6 @@ final class LoggingManager {
         logger.warning("\(message)")
     }
 }
-
-// MARK: - Global Convenience Functions
 
 /// Log an info message using the shared LoggingManager
 public func logInfo(_ message: String, category: String = "General") {

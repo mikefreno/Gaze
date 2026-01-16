@@ -24,7 +24,12 @@ class EyeTrackingService: NSObject, ObservableObject {
     @Published var debugRightPupilRatio: Double?
     @Published var debugYaw: Double?
     @Published var debugPitch: Double?
-    @Published var enableDebugLogging: Bool = false
+    @Published var enableDebugLogging: Bool = false {
+        didSet {
+            // Sync with PupilDetector's diagnostic logging
+            PupilDetector.enableDiagnosticLogging = enableDebugLogging
+        }
+    }
 
     // Throttle for debug logging
     private var lastDebugLogTime: Date = .distantPast
@@ -227,6 +232,10 @@ class EyeTrackingService: NSObject, ObservableObject {
 
         result.faceDetected = true
         let face = observations.first!
+
+        // Always extract yaw/pitch from face, even if landmarks aren't available
+        result.debugYaw = face.yaw?.doubleValue ?? 0.0
+        result.debugPitch = face.pitch?.doubleValue ?? 0.0
 
         guard let landmarks = face.landmarks else {
             return result
@@ -659,6 +668,9 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
         }
+
+        // Advance frame counter for pupil detector frame skipping
+        PupilDetector.advanceFrame()
 
         let request = VNDetectFaceLandmarksRequest { [weak self] request, error in
             guard let self = self else { return }

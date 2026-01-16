@@ -7,7 +7,6 @@
 
 import Combine
 import Foundation
-import os.log
 
 @MainActor
 class TimerEngine: ObservableObject {
@@ -17,20 +16,17 @@ class TimerEngine: ObservableObject {
     private var timerSubscription: AnyCancellable?
     private let settingsProvider: any SettingsProviding
     private var sleepStartTime: Date?
-    
+
     /// Time provider for deterministic testing (defaults to system time)
     private let timeProvider: TimeProviding
-    
+
     // For enforce mode integration
     private var enforceModeService: EnforceModeService?
-    
+
     // Smart Mode services
     private var fullscreenService: FullscreenDetectionService?
     private var idleService: IdleMonitoringService?
     private var cancellables = Set<AnyCancellable>()
-    
-    // Logging manager
-    private let logger = LoggingManager.shared.timerLogger
 
     convenience init(
         settingsManager: any SettingsProviding,
@@ -51,19 +47,19 @@ class TimerEngine: ObservableObject {
         self.settingsProvider = settingsManager
         self.enforceModeService = enforceModeService ?? EnforceModeService.shared
         self.timeProvider = timeProvider
-        
+
         Task { @MainActor in
             self.enforceModeService?.setTimerEngine(self)
         }
     }
-    
+
     func setupSmartMode(
         fullscreenService: FullscreenDetectionService?,
         idleService: IdleMonitoringService?
     ) {
         self.fullscreenService = fullscreenService
         self.idleService = idleService
-        
+
         // Subscribe to fullscreen state changes
         fullscreenService?.$isFullscreenActive
             .sink { [weak self] isFullscreen in
@@ -72,7 +68,7 @@ class TimerEngine: ObservableObject {
                 }
             }
             .store(in: &cancellables)
-        
+
         // Subscribe to idle state changes
         idleService?.$isIdle
             .sink { [weak self] isIdle in
@@ -82,31 +78,31 @@ class TimerEngine: ObservableObject {
             }
             .store(in: &cancellables)
     }
-    
+
     private func handleFullscreenChange(isFullscreen: Bool) {
         guard settingsProvider.settings.smartMode.autoPauseOnFullscreen else { return }
-        
+
         if isFullscreen {
             pauseAllTimers(reason: .fullscreen)
-            logger.info("⏸️ Timers paused: fullscreen detected")
+            logInfo("⏸️ Timers paused: fullscreen detected")
         } else {
             resumeAllTimers(reason: .fullscreen)
-            logger.info("▶️ Timers resumed: fullscreen exited")
+            logInfo("▶️ Timers resumed: fullscreen exited")
         }
     }
-    
+
     private func handleIdleChange(isIdle: Bool) {
         guard settingsProvider.settings.smartMode.autoPauseOnIdle else { return }
-        
+
         if isIdle {
             pauseAllTimers(reason: .idle)
-            logger.info("⏸️ Timers paused: user idle")
+            logInfo("⏸️ Timers paused: user idle")
         } else {
             resumeAllTimers(reason: .idle)
-            logger.info("▶️ Timers resumed: user active")
+            logInfo("▶️ Timers resumed: user active")
         }
     }
-    
+
     private func pauseAllTimers(reason: PauseReason) {
         for (id, var state) in timerStates {
             state.pauseReasons.insert(reason)
@@ -114,7 +110,7 @@ class TimerEngine: ObservableObject {
             timerStates[id] = state
         }
     }
-    
+
     private func resumeAllTimers(reason: PauseReason) {
         for (id, var state) in timerStates {
             state.pauseReasons.remove(reason)
@@ -129,12 +125,12 @@ class TimerEngine: ObservableObject {
             updateConfigurations()
             return
         }
-        
+
         // Initial start - create all timer states
         stop()
 
         var newStates: [TimerIdentifier: TimerState] = [:]
-        
+
         // Add built-in timers
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
@@ -148,7 +144,7 @@ class TimerEngine: ObservableObject {
                 )
             }
         }
-        
+
         // Add user timers
         for userTimer in settingsProvider.settings.userTimers where userTimer.enabled {
             let identifier = TimerIdentifier.user(id: userTimer.id)
@@ -159,7 +155,7 @@ class TimerEngine: ObservableObject {
                 isActive: true
             )
         }
-        
+
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
 
@@ -171,27 +167,27 @@ class TimerEngine: ObservableObject {
                 }
             }
     }
-    
+
     /// Check if enforce mode is active and should affect timer behavior
     func checkEnforceMode() {
         // Deprecated - camera is now activated in handleTick before timer triggers
     }
-    
+
     private func updateConfigurations() {
-        logger.debug("Updating timer configurations")
+        logDebug("Updating timer configurations")
         var newStates: [TimerIdentifier: TimerState] = [:]
-        
+
         // Update built-in timers
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
             let identifier = TimerIdentifier.builtIn(timerType)
-            
+
             if config.enabled {
                 if let existingState = timerStates[identifier] {
                     // Timer exists - check if interval changed
                     if existingState.originalIntervalSeconds != config.intervalSeconds {
                         // Interval changed - reset with new interval
-                        logger.debug("Timer interval changed")
+                        logDebug("Timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: config.intervalSeconds,
@@ -204,7 +200,7 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // Timer was just enabled - create new state
-                    logger.debug("Timer enabled")
+                    logDebug("Timer enabled")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: config.intervalSeconds,
@@ -215,18 +211,18 @@ class TimerEngine: ObservableObject {
             }
             // If config.enabled is false and timer exists, it will be removed
         }
-        
+
         // Update user timers
         for userTimer in settingsProvider.settings.userTimers {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             let newIntervalSeconds = userTimer.intervalMinutes * 60
-            
+
             if userTimer.enabled {
                 if let existingState = timerStates[identifier] {
                     // Check if interval changed
                     if existingState.originalIntervalSeconds != newIntervalSeconds {
                         // Interval changed - reset with new interval
-                        logger.debug("User timer interval changed")
+                        logDebug("User timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: newIntervalSeconds,
@@ -239,7 +235,7 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // New timer - create state
-                    logger.debug("User timer created")
+                    logDebug("User timer created")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: newIntervalSeconds,
@@ -250,7 +246,7 @@ class TimerEngine: ObservableObject {
             }
             // If timer is disabled, it will be removed
         }
-        
+
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
     }
@@ -276,14 +272,14 @@ class TimerEngine: ObservableObject {
             timerStates[id] = state
         }
     }
-    
+
     func pauseTimer(identifier: TimerIdentifier) {
         guard var state = timerStates[identifier] else { return }
         state.pauseReasons.insert(.manual)
         state.isPaused = true
         timerStates[identifier] = state
     }
-    
+
     func resumeTimer(identifier: TimerIdentifier) {
         guard var state = timerStates[identifier] else { return }
         state.pauseReasons.remove(.manual)
@@ -293,17 +289,18 @@ class TimerEngine: ObservableObject {
 
     func skipNext(identifier: TimerIdentifier) {
         guard let state = timerStates[identifier] else { return }
-        
+
         let intervalSeconds: Int
         switch identifier {
         case .builtIn(let type):
             let config = settingsProvider.timerConfiguration(for: type)
             intervalSeconds = config.intervalSeconds
         case .user(let id):
-            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else { return }
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id })
+            else { return }
             intervalSeconds = userTimer.intervalMinutes * 60
         }
-        
+
         timerStates[identifier] = TimerState(
             identifier: identifier,
             intervalSeconds: intervalSeconds,
@@ -319,7 +316,7 @@ class TimerEngine: ObservableObject {
         let identifier = reminder.identifier
         skipNext(identifier: identifier)
         resumeTimer(identifier: identifier)
-        
+
         enforceModeService?.handleReminderDismissed()
     }
 
@@ -327,7 +324,7 @@ class TimerEngine: ObservableObject {
         for (identifier, state) in timerStates {
             guard !state.isPaused else { continue }
             guard state.isActive else { continue }
-            
+
             if state.targetDate < timeProvider.now() - 3.0 {
                 skipNext(identifier: identifier)
                 continue
@@ -340,12 +337,13 @@ class TimerEngine: ObservableObject {
                     if case .builtIn(.lookAway) = identifier {
                         if enforceModeService?.shouldEnforceBreak(for: identifier) == true {
                             Task { @MainActor in
-                                await enforceModeService?.startCameraForLookawayTimer(secondsRemaining: updatedState.remainingSeconds)
+                                await enforceModeService?.startCameraForLookawayTimer(
+                                    secondsRemaining: updatedState.remainingSeconds)
                             }
                         }
                     }
                 }
-                
+
                 if updatedState.remainingSeconds <= 0 {
                     triggerReminder(for: identifier)
                     break
@@ -357,7 +355,7 @@ class TimerEngine: ObservableObject {
     func triggerReminder(for identifier: TimerIdentifier) {
         // Pause only the timer that triggered
         pauseTimer(identifier: identifier)
-        
+
         switch identifier {
         case .builtIn(let type):
             switch type {
@@ -384,16 +382,16 @@ class TimerEngine: ObservableObject {
     func getFormattedTimeRemaining(for identifier: TimerIdentifier) -> String {
         return getTimeRemaining(for: identifier).formatAsTimerDurationFull()
     }
-    
+
     func isTimerPaused(_ identifier: TimerIdentifier) -> Bool {
         return timerStates[identifier]?.isPaused ?? true
     }
-    
+
     /// Handles system sleep event
     /// - Saves current time for elapsed calculation
     /// - Pauses all active timers
     func handleSystemSleep() {
-        logger.debug("System going to sleep")
+        logDebug("System going to sleep")
         sleepStartTime = timeProvider.now()
         for (id, var state) in timerStates {
             state.pauseReasons.insert(.system)
@@ -401,24 +399,24 @@ class TimerEngine: ObservableObject {
             timerStates[id] = state
         }
     }
-    
+
     /// Handles system wake event
     /// - Calculates elapsed time during sleep
     /// - Adjusts remaining time for all active timers
     /// - Timers that expired during sleep will trigger immediately (1s delay)
     /// - Resumes all timers
     func handleSystemWake() {
-        logger.debug("System waking up")
+        logDebug("System waking up")
         guard let sleepStart = sleepStartTime else {
             return
         }
-        
+
         defer {
             sleepStartTime = nil
         }
-        
+
         let elapsedSeconds = Int(timeProvider.now().timeIntervalSince(sleepStart))
-        
+
         guard elapsedSeconds >= 1 else {
             for (id, var state) in timerStates {
                 state.pauseReasons.remove(.system)
@@ -427,18 +425,19 @@ class TimerEngine: ObservableObject {
             }
             return
         }
-        
+
         for (identifier, state) in timerStates where state.isActive {
             var updatedState = state
             updatedState.remainingSeconds = max(0, state.remainingSeconds - elapsedSeconds)
-            
+
             if updatedState.remainingSeconds <= 0 {
                 updatedState.remainingSeconds = 1
             }
-            
+
             updatedState.pauseReasons.remove(.system)
             updatedState.isPaused = !updatedState.pauseReasons.isEmpty
             timerStates[identifier] = updatedState
         }
     }
 }
+

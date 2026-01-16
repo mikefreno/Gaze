@@ -212,10 +212,20 @@ struct EnforceModeSetupView: View {
             let previewLayer = eyeTrackingService.previewLayer ?? cachedPreviewLayer
 
             if let layer = previewLayer {
-                ZStack(alignment: .topTrailing) {
+                ZStack {
                     CameraPreviewView(previewLayer: layer, borderColor: borderColor)
                     
-                    GazeOverlayView(eyeTrackingService: eyeTrackingService)
+                    // Pupil detection overlay (drawn on video)
+                    PupilOverlayView(eyeTrackingService: eyeTrackingService)
+                    
+                    // Debug info overlay (top-right corner)
+                    VStack {
+                        HStack {
+                            Spacer()
+                            GazeOverlayView(eyeTrackingService: eyeTrackingService)
+                        }
+                        Spacer()
+                    }
                 }
                 .frame(height: 300)
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))

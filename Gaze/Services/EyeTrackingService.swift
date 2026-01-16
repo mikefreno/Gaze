@@ -9,6 +9,7 @@ import AVFoundation
 import Combine
 import Vision
 import simd
+import AppKit
 
 @MainActor
 class EyeTrackingService: NSObject, ObservableObject {
@@ -32,6 +33,21 @@ class EyeTrackingService: NSObject, ObservableObject {
             PupilDetector.enableDiagnosticLogging = enableDebugLogging
         }
     }
+    
+    // Debug eye images for UI display
+    @Published var debugLeftEyeInput: NSImage?
+    @Published var debugRightEyeInput: NSImage?
+    @Published var debugLeftEyeProcessed: NSImage?
+    @Published var debugRightEyeProcessed: NSImage?
+    @Published var debugLeftPupilPosition: PupilPosition?
+    @Published var debugRightPupilPosition: PupilPosition?
+    @Published var debugLeftEyeSize: CGSize?
+    @Published var debugRightEyeSize: CGSize?
+    
+    // Eye region positions for video overlay
+    @Published var debugLeftEyeRegion: EyeRegion?
+    @Published var debugRightEyeRegion: EyeRegion?
+    @Published var debugImageSize: CGSize?
     
     // Computed gaze direction for UI overlay
     var gazeDirection: GazeDirection {
@@ -474,41 +490,33 @@ class EyeTrackingService: NSObject, ObservableObject {
         return result
     }
 
-    /// Non-isolated gaze ratio calculation
+    /// Non-isolated horizontal gaze ratio calculation
+    /// pupilPosition.y controls horizontal gaze (left-right) due to image orientation
+    /// Returns 0.0 for left edge, 1.0 for right edge, 0.5 for center
     nonisolated private func calculateGazeRatioSync(
         pupilPosition: PupilPosition, eyeRegion: EyeRegion
     ) -> Double {
-        let pupilX = Double(pupilPosition.x)
-        let eyeCenterX = Double(eyeRegion.center.x)
-
-        let denominator = (eyeCenterX * 2.0 - 10.0)
-
-        guard denominator > 0 else {
-            let eyeLeft = Double(eyeRegion.frame.minX)
-            let eyeRight = Double(eyeRegion.frame.maxX)
-            let eyeWidth = eyeRight - eyeLeft
-            guard eyeWidth > 0 else { return 0.5 }
-            return (pupilX - eyeLeft) / eyeWidth
-        }
-
-        let ratio = pupilX / denominator
+        let pupilY = Double(pupilPosition.y)
+        let eyeHeight = Double(eyeRegion.frame.height)
+        
+        guard eyeHeight > 0 else { return 0.5 }
+        
+        let ratio = pupilY / eyeHeight
         return max(0.0, min(1.0, ratio))
     }
     
     /// Non-isolated vertical gaze ratio calculation
-    /// Returns 0.0 for looking up, 1.0 for looking down, 0.5 for center
+    /// pupilPosition.x controls vertical gaze (up-down) due to image orientation
+    /// Returns 0.0 for top edge (looking up), 1.0 for bottom edge (looking down), 0.5 for center
     nonisolated private func calculateVerticalRatioSync(
         pupilPosition: PupilPosition, eyeRegion: EyeRegion
     ) -> Double {
-        let pupilY = Double(pupilPosition.y)
-        let eyeTop = Double(eyeRegion.frame.minY)
-        let eyeBottom = Double(eyeRegion.frame.maxY)
-        let eyeHeight = eyeBottom - eyeTop
+        let pupilX = Double(pupilPosition.x)
+        let eyeWidth = Double(eyeRegion.frame.width)
         
-        guard eyeHeight > 0 else { return 0.5 }
+        guard eyeWidth > 0 else { return 0.5 }
         
-        // Normalize: 0.0 = top of eye region, 1.0 = bottom
-        let ratio = (pupilY - eyeTop) / eyeHeight
+        let ratio = pupilX / eyeWidth
         return max(0.0, min(1.0, ratio))
     }
 
@@ -780,6 +788,29 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
                 self.debugRightVerticalRatio = result.debugRightVerticalRatio
                 self.debugYaw = result.debugYaw
                 self.debugPitch = result.debugPitch
+                
+                // Update debug eye images from PupilDetector
+                if let leftInput = PupilDetector.debugLeftEyeInput {
+                    self.debugLeftEyeInput = NSImage(cgImage: leftInput, size: NSSize(width: leftInput.width, height: leftInput.height))
+                }
+                if let rightInput = PupilDetector.debugRightEyeInput {
+                    self.debugRightEyeInput = NSImage(cgImage: rightInput, size: NSSize(width: rightInput.width, height: rightInput.height))
+                }
+                if let leftProcessed = PupilDetector.debugLeftEyeProcessed {
+                    self.debugLeftEyeProcessed = NSImage(cgImage: leftProcessed, size: NSSize(width: leftProcessed.width, height: leftProcessed.height))
+                }
+                if let rightProcessed = PupilDetector.debugRightEyeProcessed {
+                    self.debugRightEyeProcessed = NSImage(cgImage: rightProcessed, size: NSSize(width: rightProcessed.width, height: rightProcessed.height))
+                }
+                self.debugLeftPupilPosition = PupilDetector.debugLeftPupilPosition
+                self.debugRightPupilPosition = PupilDetector.debugRightPupilPosition
+                self.debugLeftEyeSize = PupilDetector.debugLeftEyeSize
+                self.debugRightEyeSize = PupilDetector.debugRightEyeSize
+                
+                // Update eye region positions for video overlay
+                self.debugLeftEyeRegion = PupilDetector.debugLeftEyeRegion
+                self.debugRightEyeRegion = PupilDetector.debugRightEyeRegion
+                self.debugImageSize = PupilDetector.debugImageSize
             }
         }
 

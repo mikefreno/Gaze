@@ -42,21 +42,21 @@ enum GazeDirection: String, Sendable, CaseIterable {
     case downLeft = "↙"
     case down = "↓"
     case downRight = "↘"
-    
+
     /// Thresholds for direction detection
     /// Horizontal: 0.0 = looking right (from camera POV), 1.0 = looking left
     /// Vertical: 0.0 = looking up, 1.0 = looking down
-    private static let horizontalLeftThreshold = 0.55   // Above this = looking left
+    private static let horizontalLeftThreshold = 0.55  // Above this = looking left
     private static let horizontalRightThreshold = 0.45  // Below this = looking right
-    private static let verticalUpThreshold = 0.40       // Below this = looking up
-    private static let verticalDownThreshold = 0.60     // Above this = looking down
-    
+    private static let verticalUpThreshold = 0.40  // Below this = looking up
+    private static let verticalDownThreshold = 0.60  // Above this = looking down
+
     static func from(horizontal: Double, vertical: Double) -> GazeDirection {
         let isLeft = horizontal > horizontalLeftThreshold
         let isRight = horizontal < horizontalRightThreshold
         let isUp = vertical < verticalUpThreshold
         let isDown = vertical > verticalDownThreshold
-        
+
         if isUp {
             if isLeft { return .upLeft }
             if isRight { return .upRight }
@@ -71,7 +71,7 @@ enum GazeDirection: String, Sendable, CaseIterable {
             return .center
         }
     }
-    
+
     /// Grid position (0-2 for x and y)
     var gridPosition: (x: Int, y: Int) {
         switch self {
@@ -226,6 +226,21 @@ final class PupilDetector: @unchecked Sendable {
             nil, nil
         )
     private nonisolated(unsafe) static var _metrics = PupilDetectorMetrics()
+    
+    // Debug images for UI display
+    nonisolated(unsafe) static var debugLeftEyeInput: CGImage?
+    nonisolated(unsafe) static var debugRightEyeInput: CGImage?
+    nonisolated(unsafe) static var debugLeftEyeProcessed: CGImage?
+    nonisolated(unsafe) static var debugRightEyeProcessed: CGImage?
+    nonisolated(unsafe) static var debugLeftPupilPosition: PupilPosition?
+    nonisolated(unsafe) static var debugRightPupilPosition: PupilPosition?
+    nonisolated(unsafe) static var debugLeftEyeSize: CGSize?
+    nonisolated(unsafe) static var debugRightEyeSize: CGSize?
+    
+    // Eye region positions in image coordinates (for drawing on video)
+    nonisolated(unsafe) static var debugLeftEyeRegion: EyeRegion?
+    nonisolated(unsafe) static var debugRightEyeRegion: EyeRegion?
+    nonisolated(unsafe) static var debugImageSize: CGSize?
 
     nonisolated(unsafe) static let calibration = PupilCalibration()
 
@@ -356,6 +371,14 @@ final class PupilDetector: @unchecked Sendable {
             }
             return nil
         }
+        
+        // Store eye region for debug overlay
+        if side == 0 {
+            debugLeftEyeRegion = eyeRegion
+        } else {
+            debugRightEyeRegion = eyeRegion
+        }
+        debugImageSize = imageSize
 
         let frameWidth = CVPixelBufferGetWidth(pixelBuffer)
         let frameHeight = CVPixelBufferGetHeight(pixelBuffer)
@@ -435,13 +458,15 @@ final class PupilDetector: @unchecked Sendable {
 
         // Debug: Save input eye image before processing
         if enableDebugImageSaving && debugImageCounter < 20 {
-            NSLog("📸 Saving eye_input_%d - %dx%d, side=%d, region=(%.0f,%.0f,%.0f,%.0f)", 
-                  debugImageCounter, eyeWidth, eyeHeight, side,
-                  eyeRegion.frame.origin.x, eyeRegion.frame.origin.y,
-                  eyeRegion.frame.width, eyeRegion.frame.height)
-            
+            NSLog(
+                "📸 Saving eye_input_%d - %dx%d, side=%d, region=(%.0f,%.0f,%.0f,%.0f)",
+                debugImageCounter, eyeWidth, eyeHeight, side,
+                eyeRegion.frame.origin.x, eyeRegion.frame.origin.y,
+                eyeRegion.frame.width, eyeRegion.frame.height)
+
             // Debug: Print pixel value statistics for input
-            var minVal: UInt8 = 255, maxVal: UInt8 = 0
+            var minVal: UInt8 = 255
+            var maxVal: UInt8 = 0
             var sum: Int = 0
             var darkCount = 0  // pixels <= 90
             for i in 0..<(eyeWidth * eyeHeight) {
@@ -452,8 +477,10 @@ final class PupilDetector: @unchecked Sendable {
                 if v <= 90 { darkCount += 1 }
             }
             let avgVal = Double(sum) / Double(eyeWidth * eyeHeight)
-            NSLog("📊 Eye input stats: min=%d, max=%d, avg=%.1f, darkPixels(<=90)=%d", minVal, maxVal, avgVal, darkCount)
-            
+            NSLog(
+                "📊 Eye input stats: min=%d, max=%d, avg=%.1f, darkPixels(<=90)=%d", minVal, maxVal,
+                avgVal, darkCount)
+
             saveDebugImage(
                 data: eyeBuf, width: eyeWidth, height: eyeHeight,
                 name: "eye_input_\(debugImageCounter)")
@@ -466,6 +493,20 @@ final class PupilDetector: @unchecked Sendable {
             height: eyeHeight,
             threshold: effectiveThreshold
         )
+        
+        // Capture debug images for UI display
+        let inputImage = createCGImage(from: eyeBuf, width: eyeWidth, height: eyeHeight)
+        let processedImage = createCGImage(from: tmpBuf, width: eyeWidth, height: eyeHeight)
+        let eyeSize = CGSize(width: eyeWidth, height: eyeHeight)
+        if side == 0 {
+            debugLeftEyeInput = inputImage
+            debugLeftEyeProcessed = processedImage
+            debugLeftEyeSize = eyeSize
+        } else {
+            debugRightEyeInput = inputImage
+            debugRightEyeProcessed = processedImage
+            debugRightEyeSize = eyeSize
+        }
 
         // Debug: Save processed images if enabled
         if enableDebugImageSaving && debugImageCounter < 10 {
@@ -473,11 +514,10 @@ final class PupilDetector: @unchecked Sendable {
             var darkCount = 0  // pixels == 0 (black)
             var whiteCount = 0  // pixels == 255 (white)
             for i in 0..<(eyeWidth * eyeHeight) {
-                if tmpBuf[i] == 0 { darkCount += 1 }
-                else if tmpBuf[i] == 255 { whiteCount += 1 }
+                if tmpBuf[i] == 0 { darkCount += 1 } else if tmpBuf[i] == 255 { whiteCount += 1 }
             }
             NSLog("📊 Processed output stats: darkPixels=%d, whitePixels=%d", darkCount, whiteCount)
-            
+
             saveDebugImage(
                 data: tmpBuf, width: eyeWidth, height: eyeHeight,
                 name: "processed_eye_\(debugImageCounter)")
@@ -493,22 +533,28 @@ final class PupilDetector: @unchecked Sendable {
             )
         else {
             if enableDiagnosticLogging {
-                logDebug("👁 PupilDetector: Failed - findPupilFromContours returned nil (not enough dark pixels) for side \(side)")
+                logDebug(
+                    "👁 PupilDetector: Failed - findPupilFromContours returned nil (not enough dark pixels) for side \(side)"
+                )
             }
             return nil
         }
 
         if enableDiagnosticLogging {
-            logDebug("👁 PupilDetector: Success side=\(side) - centroid at (\(String(format: "%.1f", centroidX)), \(String(format: "%.1f", centroidY))) in \(eyeWidth)x\(eyeHeight) region")
+            logDebug(
+                "👁 PupilDetector: Success side=\(side) - centroid at (\(String(format: "%.1f", centroidX)), \(String(format: "%.1f", centroidY))) in \(eyeWidth)x\(eyeHeight) region"
+            )
         }
 
         let pupilPosition = PupilPosition(x: CGFloat(centroidX), y: CGFloat(centroidY))
 
-        // Cache result
+        // Cache result and debug position
         if side == 0 {
             lastPupilPositions.left = pupilPosition
+            debugLeftPupilPosition = pupilPosition
         } else {
             lastPupilPositions.right = pupilPosition
+            debugRightPupilPosition = pupilPosition
         }
 
         return (pupilPosition, eyeRegion)

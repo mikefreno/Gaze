@@ -22,7 +22,7 @@ struct PostureReminderView: View {
         VStack {
             Image(systemName: "arrow.up.circle.fill")
                 .font(.system(size: scale))
-                .foregroundColor(.accentColor)
+                .foregroundStyle(Color.accentColor)
         }
         .opacity(opacity)
         .offset(y: yOffset)

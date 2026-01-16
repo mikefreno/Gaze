@@ -90,7 +90,8 @@ final class OnboardingWindowPresenter {
                 self?.windowController = nil
                 self?.removeCloseObserver()
             }
-            NotificationCenter.default.post(name: Notification.Name("OnboardingWindowDidClose"), object: nil)
+            NotificationCenter.default.post(
+                name: Notification.Name("OnboardingWindowDidClose"), object: nil)
         }
     }
 
@@ -142,9 +143,9 @@ struct OnboardingContainerView: View {
             }
         }
         #if APPSTORE
-        .frame(minWidth: 1000, minHeight: 700)
+            .frame(minWidth: 1000, minHeight: 700)
         #else
-        .frame(minWidth: 1000, minHeight: 900)
+            .frame(minWidth: 1000, minHeight: 900)
         #endif
     }
 
@@ -159,11 +160,12 @@ struct OnboardingContainerView: View {
                     }
                     .font(.headline)
                     .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
                     .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
-                .glassEffectIfAvailable(GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
             }
 
             Button(action: {
@@ -173,11 +175,14 @@ struct OnboardingContainerView: View {
                     currentPage += 1
                 }
             }) {
-                Text(currentPage == 0 ? "Let's Get Started" : currentPage == 5 ? "Get Started" : "Continue")
-                    .font(.headline)
-                    .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
-                    .foregroundColor(.white)
-                    .contentShape(RoundedRectangle(cornerRadius: 10))
+                Text(
+                    currentPage == 0
+                        ? "Let's Get Started" : currentPage == 5 ? "Get Started" : "Continue"
+                )
+                .font(.headline)
+                .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
+                .foregroundStyle(.white)
+                .contentShape(RoundedRectangle(cornerRadius: 10))
             }
             .buttonStyle(.plain)
             .glassEffectIfAvailable(

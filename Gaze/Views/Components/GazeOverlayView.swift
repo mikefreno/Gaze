@@ -9,7 +9,7 @@ import SwiftUI
 
 struct GazeOverlayView: View {
     @ObservedObject var eyeTrackingService: EyeTrackingService
-    
+
     var body: some View {
         VStack(spacing: 8) {
             inFrameIndicator
@@ -19,7 +19,7 @@ struct GazeOverlayView: View {
         }
         .padding(12)
     }
-    
+
     private var inFrameIndicator: some View {
         HStack(spacing: 6) {
             Circle()
@@ -28,7 +28,7 @@ struct GazeOverlayView: View {
             Text(eyeTrackingService.isInFrame ? "In Frame" : "No Face")
                 .font(.caption2)
                 .fontWeight(.semibold)
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -37,16 +37,18 @@ struct GazeOverlayView: View {
                 .fill(Color.black.opacity(0.6))
         )
     }
-    
+
     private var gazeDirectionGrid: some View {
         let currentDirection = eyeTrackingService.gazeDirection
         let currentPos = currentDirection.gridPosition
-        
+
         return VStack(spacing: 2) {
             ForEach(0..<3, id: \.self) { row in
                 HStack(spacing: 2) {
                     ForEach(0..<3, id: \.self) { col in
-                        let isActive = currentPos.x == col && currentPos.y == row && eyeTrackingService.isInFrame
+                        let isActive =
+                            currentPos.x == col && currentPos.y == row
+                            && eyeTrackingService.isInFrame
                         gridCell(row: row, col: col, isActive: isActive)
                     }
                 }
@@ -58,21 +60,21 @@ struct GazeOverlayView: View {
                 .fill(Color.black.opacity(0.5))
         )
     }
-    
+
     private func gridCell(row: Int, col: Int, isActive: Bool) -> some View {
         let direction = directionFor(row: row, col: col)
-        
+
         return ZStack {
             RoundedRectangle(cornerRadius: 4)
                 .fill(isActive ? Color.green : Color.white.opacity(0.2))
-            
+
             Text(direction.rawValue)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(isActive ? .white : .white.opacity(0.6))
+                .foregroundStyle(isActive ? .white : .white.opacity(0.6))
         }
         .frame(width: 28, height: 28)
     }
-    
+
     private func directionFor(row: Int, col: Int) -> GazeDirection {
         switch (col, row) {
         case (0, 0): return .upLeft
@@ -87,7 +89,7 @@ struct GazeOverlayView: View {
         default: return .center
         }
     }
-    
+
     private var ratioDebugView: some View {
         VStack(alignment: .leading, spacing: 2) {
             // Show individual L/R ratios
@@ -95,38 +97,39 @@ struct GazeOverlayView: View {
                 if let leftH = eyeTrackingService.debugLeftPupilRatio {
                     Text("L.H: \(String(format: "%.2f", leftH))")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
                 if let rightH = eyeTrackingService.debugRightPupilRatio {
                     Text("R.H: \(String(format: "%.2f", rightH))")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
             }
-            
+
             HStack(spacing: 8) {
                 if let leftV = eyeTrackingService.debugLeftVerticalRatio {
                     Text("L.V: \(String(format: "%.2f", leftV))")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
                 if let rightV = eyeTrackingService.debugRightVerticalRatio {
                     Text("R.V: \(String(format: "%.2f", rightV))")
                         .font(.system(size: 9, weight: .medium, design: .monospaced))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
             }
-            
+
             // Show averaged ratios
             if let leftH = eyeTrackingService.debugLeftPupilRatio,
-               let rightH = eyeTrackingService.debugRightPupilRatio,
-               let leftV = eyeTrackingService.debugLeftVerticalRatio,
-               let rightV = eyeTrackingService.debugRightVerticalRatio {
+                let rightH = eyeTrackingService.debugRightPupilRatio,
+                let leftV = eyeTrackingService.debugLeftVerticalRatio,
+                let rightV = eyeTrackingService.debugRightVerticalRatio
+            {
                 let avgH = (leftH + rightH) / 2.0
                 let avgV = (leftV + rightV) / 2.0
                 Text("Avg H:\(String(format: "%.2f", avgH)) V:\(String(format: "%.2f", avgV))")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundColor(.yellow)
+                    .foregroundStyle(.yellow)
             }
         }
         .padding(.horizontal, 8)
@@ -136,15 +139,15 @@ struct GazeOverlayView: View {
                 .fill(Color.black.opacity(0.5))
         )
     }
-    
+
     private var eyeImagesDebugView: some View {
         HStack(spacing: 12) {
             // Left eye
             VStack(spacing: 4) {
                 Text("Left")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.white)
-                
+                    .foregroundStyle(.white)
+
                 HStack(spacing: 4) {
                     eyeImageView(
                         image: eyeTrackingService.debugLeftEyeInput,
@@ -160,13 +163,13 @@ struct GazeOverlayView: View {
                     )
                 }
             }
-            
+
             // Right eye
             VStack(spacing: 4) {
                 Text("Right")
                     .font(.system(size: 8, weight: .bold))
-                    .foregroundColor(.white)
-                
+                    .foregroundStyle(.white)
+
                 HStack(spacing: 4) {
                     eyeImageView(
                         image: eyeTrackingService.debugRightEyeInput,
@@ -189,10 +192,12 @@ struct GazeOverlayView: View {
                 .fill(Color.black.opacity(0.5))
         )
     }
-    
-    private func eyeImageView(image: NSImage?, pupilPosition: PupilPosition?, eyeSize: CGSize?, label: String) -> some View {
+
+    private func eyeImageView(
+        image: NSImage?, pupilPosition: PupilPosition?, eyeSize: CGSize?, label: String
+    ) -> some View {
         let displaySize: CGFloat = 50
-        
+
         return VStack(spacing: 2) {
             ZStack {
                 if let nsImage = image {
@@ -201,15 +206,17 @@ struct GazeOverlayView: View {
                         .interpolation(.none)
                         .aspectRatio(contentMode: .fit)
                         .frame(width: displaySize, height: displaySize)
-                    
+
                     // Draw pupil position marker
-                    if let pupil = pupilPosition, let size = eyeSize, size.width > 0, size.height > 0 {
+                    if let pupil = pupilPosition, let size = eyeSize, size.width > 0,
+                        size.height > 0
+                    {
                         let scaleX = displaySize / size.width
                         let scaleY = displaySize / size.height
                         let scale = min(scaleX, scaleY)
                         let scaledWidth = size.width * scale
                         let scaledHeight = size.height * scale
-                        
+
                         Circle()
                             .fill(Color.red)
                             .frame(width: 4, height: 4)
@@ -224,15 +231,15 @@ struct GazeOverlayView: View {
                         .frame(width: displaySize, height: displaySize)
                     Text("--")
                         .font(.system(size: 10))
-                        .foregroundColor(.white.opacity(0.5))
+                        .foregroundStyle(.white.opacity(0.5))
                 }
             }
             .frame(width: displaySize, height: displaySize)
             .clipShape(RoundedRectangle(cornerRadius: 4))
-            
+
             Text(label)
                 .font(.system(size: 7))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundStyle(.white.opacity(0.7))
         }
     }
 }

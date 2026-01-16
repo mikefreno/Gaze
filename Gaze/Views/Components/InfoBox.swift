@@ -10,27 +10,27 @@ import SwiftUI
 struct InfoBox: View {
     let text: String
     let url: String?
-    
+
     var body: some View {
         HStack(spacing: 12) {
             if let url = url, let urlObj = URL(string: url) {
                 Button(action: {
                     #if os(iOS)
-                    UIApplication.shared.open(urlObj)
+                        UIApplication.shared.open(urlObj)
                     #elseif os(macOS)
-                    NSWorkspace.shared.open(urlObj)
+                        NSWorkspace.shared.open(urlObj)
                     #endif
                 }) {
                     Image(systemName: "info.circle")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }.buttonStyle(.plain)
             } else {
                 Image(systemName: "info.circle")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
             }
             Text(text)
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
         }
         .padding()
         .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
@@ -38,6 +38,10 @@ struct InfoBox: View {
 }
 
 #Preview {
-    InfoBox(text: "This is an informational message that provides helpful context to the user.", url: "https://www.healthline.com/health/eye-health/20-20-20-rule")
-        .padding()
+    InfoBox(
+        text: "This is an informational message that provides helpful context to the user.",
+        url: "https://www.healthline.com/health/eye-health/20-20-20-rule"
+    )
+    .padding()
 }
+

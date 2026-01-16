@@ -16,7 +16,7 @@ struct SetupHeader: View {
         VStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 60))
-                .foregroundColor(color)
+                .foregroundStyle(color)
             Text(title)
                 .font(.system(size: 28, weight: .bold))
         }

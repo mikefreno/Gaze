@@ -32,19 +32,19 @@ struct UserTimerOverlayReminderView: View {
             VStack(spacing: 40) {
                 Text(timer.title)
                     .font(.system(size: 64, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
 
                 if let message = timer.message, !message.isEmpty {
                     Text(message)
                         .font(.system(size: 28))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundStyle(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
                 }
 
                 Image(systemName: "clock.fill")
                     .font(.system(size: 120))
-                    .foregroundColor(timer.color)
+                    .foregroundStyle(timer.color)
                     .padding(.vertical, 30)
 
                 // Countdown display
@@ -62,13 +62,13 @@ struct UserTimerOverlayReminderView: View {
 
                     Text("\(remainingSeconds)")
                         .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .monospacedDigit()
                 }
 
                 Text("Press ESC or Space to dismiss")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.6))
             }
 
             // Dismiss button in corner
@@ -78,7 +78,7 @@ struct UserTimerOverlayReminderView: View {
                     Button(action: dismiss) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .padding(30)

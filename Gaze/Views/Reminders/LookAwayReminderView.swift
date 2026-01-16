@@ -33,11 +33,11 @@ struct LookAwayReminderView: View {
             VStack(spacing: 40) {
                 Text("Look Away")
                     .font(.system(size: 64, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
 
                 Text("Look at something 20 feet away")
                     .font(.system(size: 28))
-                    .foregroundColor(.white.opacity(0.9))
+                    .foregroundStyle(.white.opacity(0.9))
 
                 GazeLottieView(
                     animationName: AnimationAsset.lookAway.fileName,
@@ -62,14 +62,14 @@ struct LookAwayReminderView: View {
 
                     Text("\(remainingSeconds)")
                         .font(.system(size: 48, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .monospacedDigit()
                         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.countdownLabel)
                 }
 
                 Text("Press ESC or Space to skip")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundStyle(.white.opacity(0.6))
             }
 
             // Skip button in corner
@@ -79,7 +79,7 @@ struct LookAwayReminderView: View {
                     Button(action: dismiss) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 32))
-                            .foregroundColor(.white.opacity(0.7))
+                            .foregroundStyle(.white.opacity(0.7))
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.dismissButton)

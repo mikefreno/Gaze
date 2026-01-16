@@ -17,7 +17,7 @@ struct UserTimersView: View {
             VStack(spacing: 16) {
                 Image(systemName: "clock.badge.checkmark")
                     .font(.system(size: 60))
-                    .foregroundColor(.purple)
+                    .foregroundStyle(.purple)
                 Text("Custom Timers")
                     .font(.system(size: 28, weight: .bold))
             }
@@ -28,14 +28,14 @@ struct UserTimersView: View {
             VStack(spacing: 30) {
                 Text("Create your own reminder schedules")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 HStack(spacing: 12) {
                     Image(systemName: "info.circle")
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                     Text("Add up to 3 custom timers with your own intervals and messages")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                 }
                 .padding()
                 .glassEffectIfAvailable(
@@ -66,13 +66,13 @@ struct UserTimersView: View {
                         VStack(spacing: 12) {
                             Image(systemName: "clock.badge.questionmark")
                                 .font(.system(size: 40))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text("No custom timers yet")
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                             Text("Click 'Add Timer' to create your first custom reminder")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(40)
@@ -153,7 +153,7 @@ struct UserTimerRow: View {
                 .frame(width: 12, height: 12)
 
             Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
-                .foregroundColor(timer.color)
+                .foregroundStyle(timer.color)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -165,7 +165,7 @@ struct UserTimerRow: View {
                     "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
                 )
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -179,14 +179,14 @@ struct UserTimerRow: View {
                 Button(action: onEdit) {
                     Image(systemName: "pencil.circle.fill")
                         .font(.title3)
-                        .foregroundColor(.accentColor)
+                        .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
 
                 Button(action: { showingDeleteConfirmation = true }) {
                     Image(systemName: "trash.circle.fill")
                         .font(.title3)
-                        .foregroundColor(.red)
+                        .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
                 .confirmationDialog("Delete Timer", isPresented: $showingDeleteConfirmation) {
@@ -264,7 +264,7 @@ struct UserTimerEditSheet: View {
                         .textFieldStyle(.roundedBorder)
                     Text("Example: \"Stretch Break\", \"Eye Rest\", \"Water Break\"")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -318,7 +318,7 @@ struct UserTimerEditSheet: View {
                             : "Full screen reminder with animation"
                     )
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                 }
 
                 if type == .overlay {
@@ -359,7 +359,7 @@ struct UserTimerEditSheet: View {
                     }
                     Text("How often this reminder will appear (in minutes)")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -369,7 +369,7 @@ struct UserTimerEditSheet: View {
                         .textFieldStyle(.roundedBorder)
                     Text("Leave blank to show a default timer notification")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding()

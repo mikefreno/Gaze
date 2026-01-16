@@ -21,21 +21,27 @@ struct PostureSetupView: View {
             VStack(spacing: 30) {
                 HStack(spacing: 12) {
                     Button(action: {
-                        if let url = URL(string: "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence") {
+                        if let url = URL(
+                            string:
+                                "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence"
+                        ) {
                             NSWorkspace.shared.open(url)
                         }
                     }) {
                         Image(systemName: "info.circle")
-                            .foregroundColor(.white)
+                            .foregroundStyle(.white)
                     }
                     .buttonStyle(.plain)
-                    
-                    Text("Regular posture checks help prevent back and neck pain from prolonged sitting")
-                        .font(.headline)
-                        .foregroundColor(.white)
+
+                    Text(
+                        "Regular posture checks help prevent back and neck pain from prolonged sitting"
+                    )
+                    .font(.headline)
+                    .foregroundStyle(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 SliderSection(
                     intervalSettings: Binding(
@@ -46,7 +52,8 @@ struct PostureSetupView: View {
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.postureTimer.intervalSeconds = (newValue.val ?? 30) * 60
+                            settingsManager.settings.postureTimer.intervalSeconds =
+                                (newValue.val ?? 30) * 60
                         }
                     ),
                     countdownSettings: nil,
@@ -67,7 +74,9 @@ struct PostureSetupView: View {
         guard let screen = NSScreen.main else { return }
         previewWindowController = PreviewWindowHelper.showPreview(
             on: screen,
-            content: PostureReminderView(sizePercentage: settingsManager.settings.subtleReminderSize.percentage) { [weak previewWindowController] in
+            content: PostureReminderView(
+                sizePercentage: settingsManager.settings.subtleReminderSize.percentage
+            ) { [weak previewWindowController] in
                 previewWindowController?.window?.close()
             }
         )

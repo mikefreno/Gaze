@@ -42,7 +42,7 @@ struct SliderSection: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Remind me every:")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     HStack {
                         Slider(
                             value: Binding(
@@ -62,7 +62,7 @@ struct SliderSection: View {
                     if let range = countdownSettings.range {
                         Text("Look away for:")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         HStack {
                             Slider(
                                 value: Binding(
@@ -89,14 +89,14 @@ struct SliderSection: View {
                 reminderText
             )
             .font(.subheadline)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             .multilineTextAlignment(.center)
         } else {
             Text(
                 "\(type) reminders are currently disabled."
             )
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
 
         Button(action: {
@@ -104,10 +104,10 @@ struct SliderSection: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "eye")
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
                 Text("Preview Reminder")
                     .font(.headline)
-                    .foregroundColor(.white)
+                    .foregroundStyle(.white)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)

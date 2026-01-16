@@ -27,12 +27,12 @@ struct UserTimerReminderView: View {
             VStack(spacing: 12) {
                 Image(systemName: "clock.fill")
                     .font(.system(size: baseSize * 0.4))
-                    .foregroundColor(timer.color)
+                    .foregroundStyle(timer.color)
 
                 if let message = timer.message, !message.isEmpty {
                     Text(message)
                         .font(.system(size: baseSize * 0.24))
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                 }

@@ -14,10 +14,10 @@ struct SmartModeSetupView: View {
     var body: some View {
         VStack(spacing: 0) {
             SetupHeader(icon: "brain.fill", title: "Smart Mode", color: .purple)
-            
+
             Text("Automatically manage timers based on your activity")
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .padding(.bottom, 30)
 
             Spacer()
@@ -42,18 +42,21 @@ struct SmartModeSetupView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "arrow.up.left.and.arrow.down.right")
-                            .foregroundColor(.blue)
+                            .foregroundStyle(.blue)
                         Text("Auto-pause on Fullscreen")
                             .font(.headline)
                     }
-                    Text("Timers will automatically pause when you enter fullscreen mode (videos, games, presentations)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text(
+                        "Timers will automatically pause when you enter fullscreen mode (videos, games, presentations)"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle("", isOn: $settingsManager.settings.smartMode.autoPauseOnFullscreen)
                     .labelsHidden()
-                    .onChange(of: settingsManager.settings.smartMode.autoPauseOnFullscreen) { _, newValue in
+                    .onChange(of: settingsManager.settings.smartMode.autoPauseOnFullscreen) {
+                        _, newValue in
                         if newValue {
                             permissionManager.requestAuthorizationIfNeeded()
                         }
@@ -61,7 +64,8 @@ struct SmartModeSetupView: View {
             }
 
             if settingsManager.settings.smartMode.autoPauseOnFullscreen,
-               permissionManager.authorizationStatus != .authorized {
+                permissionManager.authorizationStatus != .authorized
+            {
                 permissionWarningView
             }
         }
@@ -81,7 +85,7 @@ struct SmartModeSetupView: View {
 
             Text("macOS requires Screen Recording permission to detect other apps in fullscreen.")
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
 
             HStack {
                 Button("Grant Access") {
@@ -107,13 +111,13 @@ struct SmartModeSetupView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "moon.zzz.fill")
-                            .foregroundColor(.indigo)
+                            .foregroundStyle(.indigo)
                         Text("Auto-pause on Idle")
                             .font(.headline)
                     }
                     Text("Timers will pause when you're inactive for more than the threshold below")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle("", isOn: $settingsManager.settings.smartMode.autoPauseOnIdle)
@@ -139,13 +143,15 @@ struct SmartModeSetupView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Image(systemName: "chart.line.uptrend.xyaxis")
-                            .foregroundColor(.green)
+                            .foregroundStyle(.green)
                         Text("Track Usage Statistics")
                             .font(.headline)
                     }
-                    Text("Monitor active and idle time, with automatic reset after the specified duration")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                    Text(
+                        "Monitor active and idle time, with automatic reset after the specified duration"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle("", isOn: $settingsManager.settings.smartMode.trackUsage)
@@ -182,7 +188,7 @@ struct ThresholdSlider: View {
                 Spacer()
                 Text("\(value) \(unit)")
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Slider(

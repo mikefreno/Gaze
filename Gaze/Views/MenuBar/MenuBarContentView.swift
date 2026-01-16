@@ -50,7 +50,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(isHovered ? .white : .primary)
+            .foregroundStyle(isHovered ? .white : .primary)
             .glassEffectIfAvailable(
                 isHovered
                     ? GlassStyle.regular.tint(.accentColor).interactive()
@@ -83,7 +83,7 @@ struct MenuBarContentView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Active Timers")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .padding(.horizontal)
                         .padding(.top, 8)
 
@@ -176,7 +176,7 @@ struct MenuBarContentView: View {
                     }) {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.accentColor)
+                                .foregroundStyle(Color.accentColor)
                             Text("Complete Onboarding")
                             Spacer()
                         }
@@ -193,7 +193,7 @@ struct MenuBarContentView: View {
                 Button(action: onQuit) {
                     HStack {
                         Image(systemName: "power")
-                            .foregroundColor(.red)
+                            .foregroundStyle(.red)
                         Text("Quit Gaze")
                         Spacer()
                     }
@@ -207,7 +207,7 @@ struct MenuBarContentView: View {
                     "v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")"
                 )
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -335,20 +335,20 @@ struct TimerStatusRowWithIndividualControls: View {
                 }
 
                 Image(systemName: iconName)
-                    .foregroundColor(isHoveredBody ? .white : color)
+                    .foregroundStyle(isHoveredBody ? .white : color)
                     .frame(width: 20)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(displayName)
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(isHoveredBody ? .white : .primary)
+                        .foregroundStyle(isHoveredBody ? .white : .primary)
                         .lineLimit(1)
 
                     if let state = state {
                         Text(state.remainingSeconds.asTimerDuration)
                             .font(.caption)
-                            .foregroundColor(isHoveredBody ? .white.opacity(0.8) : .secondary)
+                            .foregroundStyle(isHoveredBody ? .white.opacity(0.8) : .secondary)
                             .monospacedDigit()
                     }
                 }
@@ -365,7 +365,7 @@ struct TimerStatusRowWithIndividualControls: View {
                     Button(action: onDevTrigger) {
                         Image(systemName: "bolt.fill")
                             .font(.caption)
-                            .foregroundColor(isHoveredDevTrigger ? .white : .yellow)
+                            .foregroundStyle(isHoveredDevTrigger ? .white : .yellow)
                             .padding(6)
                             .contentShape(Circle())
                     }
@@ -394,7 +394,7 @@ struct TimerStatusRowWithIndividualControls: View {
                     systemName: isPaused ? "play.circle" : "pause.circle"
                 )
                 .font(.caption)
-                .foregroundColor(isHoveredPauseButton ? .white : .accentColor)
+                .foregroundStyle(isHoveredPauseButton ? .white : .accentColor)
                 .padding(6)
                 .contentShape(Circle())
             }
@@ -416,7 +416,7 @@ struct TimerStatusRowWithIndividualControls: View {
             Button(action: onSkip) {
                 Image(systemName: "forward.fill")
                     .font(.caption)
-                    .foregroundColor(isHoveredSkip ? .white : .accentColor)
+                    .foregroundStyle(isHoveredSkip ? .white : .accentColor)
                     .padding(6)
                     .contentShape(Circle())
             }

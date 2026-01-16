@@ -6,8 +6,8 @@
 //
 
 import AVFoundation
-import SwiftUI
 import Foundation
+import SwiftUI
 
 struct EnforceModeSetupView: View {
     @Bindable var settingsManager: SettingsManager
@@ -33,7 +33,7 @@ struct EnforceModeSetupView: View {
             VStack(spacing: 30) {
                 Text("Use your camera to ensure you take breaks")
                     .font(.title3)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 20) {
@@ -43,7 +43,7 @@ struct EnforceModeSetupView: View {
                                 .font(.headline)
                             Text("Camera activates 3 seconds before lookaway reminders")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         Spacer()
                         Toggle(
@@ -149,7 +149,7 @@ struct EnforceModeSetupView: View {
             HStack {
                 Image(systemName: "target")
                     .font(.title3)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
                 Text("Eye Tracking Calibration")
                     .font(.headline)
             }
@@ -158,7 +158,7 @@ struct EnforceModeSetupView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(calibrationManager.getCalibrationSummary())
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
 
                     if calibrationManager.needsRecalibration() {
                         Label(
@@ -166,17 +166,17 @@ struct EnforceModeSetupView: View {
                             systemImage: "exclamationmark.triangle.fill"
                         )
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                     } else {
                         Label("Calibration active and valid", systemImage: "checkmark.circle.fill")
                             .font(.caption)
-                            .foregroundColor(.green)
+                            .foregroundStyle(.green)
                     }
                 }
             } else {
                 Text("Not calibrated - using default thresholds")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Button(action: {
@@ -214,10 +214,10 @@ struct EnforceModeSetupView: View {
             if let layer = previewLayer {
                 ZStack {
                     CameraPreviewView(previewLayer: layer, borderColor: borderColor)
-                    
+
                     // Pupil detection overlay (drawn on video)
                     PupilOverlayView(eyeTrackingService: eyeTrackingService)
-                    
+
                     // Debug info overlay (top-right corner)
                     VStack {
                         HStack {
@@ -258,7 +258,7 @@ struct EnforceModeSetupView: View {
                 /*? "✓ Break compliance detected" : "⚠️ Please look away from screen"*/
                 /*)*/
                 /*.font(.caption)*/
-                /*.foregroundColor(lookingAway ? .green : .orange)*/
+                /*.foregroundStyle(lookingAway ? .green : .orange)*/
                 /*.frame(maxWidth: .infinity, alignment: .center)*/
                 /*.padding(.top, 4)*/
                 /*}*/
@@ -277,15 +277,15 @@ struct EnforceModeSetupView: View {
                 if cameraService.isCameraAuthorized {
                     Label("Authorized", systemImage: "checkmark.circle.fill")
                         .font(.caption)
-                        .foregroundColor(.green)
+                        .foregroundStyle(.green)
                 } else if let error = cameraService.cameraError {
                     Label(error.localizedDescription, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption)
-                        .foregroundColor(.orange)
+                        .foregroundStyle(.orange)
                 } else {
                     Label("Not authorized", systemImage: "xmark.circle.fill")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -337,14 +337,14 @@ struct EnforceModeSetupView: View {
         HStack {
             Image(systemName: "timer")
                 .font(.title2)
-                .foregroundColor(.orange)
+                .foregroundStyle(.orange)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Camera Ready")
                     .font(.headline)
                 Text("Will activate 3 seconds before lookaway reminder")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -357,11 +357,11 @@ struct EnforceModeSetupView: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.title2)
-                .foregroundColor(isActive ? .green : .secondary)
+                .foregroundStyle(isActive ? .green : .secondary)
 
             Text(title)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -372,7 +372,7 @@ struct EnforceModeSetupView: View {
             HStack {
                 Image(systemName: "lock.shield.fill")
                     .font(.title3)
-                    .foregroundColor(.blue)
+                    .foregroundStyle(.blue)
                 Text("Privacy Information")
                     .font(.headline)
             }
@@ -381,11 +381,10 @@ struct EnforceModeSetupView: View {
                 privacyBullet("All processing happens on-device")
                 privacyBullet("No images are stored or transmitted")
                 privacyBullet("Camera only active during lookaway reminders (3 second window)")
-                privacyBullet("Eyes closed does not affect countdown")
-                privacyBullet("You can disable at any time")
+                privacyBullet("You can always force quit with cmd+q")
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
         .padding()
         .glassEffectIfAvailable(
@@ -396,7 +395,7 @@ struct EnforceModeSetupView: View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "checkmark")
                 .font(.caption2)
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
             Text(text)
         }
     }
@@ -442,7 +441,7 @@ struct EnforceModeSetupView: View {
                         systemName: eyeTrackingService.enableDebugLogging
                             ? "ant.circle.fill" : "ant.circle"
                     )
-                    .foregroundColor(eyeTrackingService.enableDebugLogging ? .orange : .secondary)
+                    .foregroundStyle(eyeTrackingService.enableDebugLogging ? .orange : .secondary)
                 }
                 .buttonStyle(.plain)
                 .help("Toggle console debug logging")
@@ -461,7 +460,7 @@ struct EnforceModeSetupView: View {
                 Text("Live Values:")
                     .font(.caption)
                     .fontWeight(.semibold)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 if let leftRatio = eyeTrackingService.debugLeftPupilRatio,
                     let rightRatio = eyeTrackingService.debugRightPupilRatio
@@ -470,23 +469,23 @@ struct EnforceModeSetupView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Left Pupil: \(String(format: "%.3f", leftRatio))")
                                 .font(.caption2)
-                                .foregroundColor(
+                                .foregroundStyle(
                                     !EyeTrackingConstants.minPupilEnabled
                                         && !EyeTrackingConstants.maxPupilEnabled
                                         ? .secondary
                                         : (leftRatio < EyeTrackingConstants.minPupilRatio
                                             || leftRatio > EyeTrackingConstants.maxPupilRatio)
-                                            ? .orange : .green
+                                            ? Color.orange : Color.green
                                 )
                             Text("Right Pupil: \(String(format: "%.3f", rightRatio))")
                                 .font(.caption2)
-                                .foregroundColor(
+                                .foregroundStyle(
                                     !EyeTrackingConstants.minPupilEnabled
                                         && !EyeTrackingConstants.maxPupilEnabled
                                         ? .secondary
                                         : (rightRatio < EyeTrackingConstants.minPupilRatio
                                             || rightRatio > EyeTrackingConstants.maxPupilRatio)
-                                            ? .orange : .green
+                                            ? Color.orange : Color.green
                                 )
                         }
 
@@ -497,7 +496,7 @@ struct EnforceModeSetupView: View {
                                 "Range: \(String(format: "%.2f", EyeTrackingConstants.minPupilRatio)) - \(String(format: "%.2f", EyeTrackingConstants.maxPupilRatio))"
                             )
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             let bothEyesOut =
                                 (leftRatio < EyeTrackingConstants.minPupilRatio
                                     || leftRatio > EyeTrackingConstants.maxPupilRatio)
@@ -505,13 +504,13 @@ struct EnforceModeSetupView: View {
                                     || rightRatio > EyeTrackingConstants.maxPupilRatio)
                             Text(bothEyesOut ? "Both Out ⚠️" : "In Range ✓")
                                 .font(.caption2)
-                                .foregroundColor(bothEyesOut ? .orange : .green)
+                                .foregroundStyle(bothEyesOut ? .orange : .green)
                         }
                     }
                 } else {
                     Text("Pupil data unavailable")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 if let yaw = eyeTrackingService.debugYaw,
@@ -521,21 +520,21 @@ struct EnforceModeSetupView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Yaw: \(String(format: "%.3f", yaw))")
                                 .font(.caption2)
-                                .foregroundColor(
+                                .foregroundStyle(
                                     !EyeTrackingConstants.yawEnabled
                                         ? .secondary
                                         : abs(yaw) > EyeTrackingConstants.yawThreshold
-                                            ? .orange : .green
+                                            ? Color.orange : Color.green
                                 )
                             Text("Pitch: \(String(format: "%.3f", pitch))")
                                 .font(.caption2)
-                                .foregroundColor(
+                                .foregroundStyle(
                                     !EyeTrackingConstants.pitchUpEnabled
                                         && !EyeTrackingConstants.pitchDownEnabled
                                         ? .secondary
                                         : (pitch > EyeTrackingConstants.pitchUpThreshold
                                             || pitch < EyeTrackingConstants.pitchDownThreshold)
-                                            ? .orange : .green
+                                            ? Color.orange : Color.green
                                 )
                         }
 
@@ -546,12 +545,12 @@ struct EnforceModeSetupView: View {
                                 "Yaw Max: \(String(format: "%.2f", EyeTrackingConstants.yawThreshold))"
                             )
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             Text(
                                 "Pitch: \(String(format: "%.2f", EyeTrackingConstants.pitchDownThreshold)) to \(String(format: "%.2f", EyeTrackingConstants.pitchUpThreshold))"
                             )
                             .font(.caption2)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -565,48 +564,54 @@ struct EnforceModeSetupView: View {
                         Text("Current Threshold Values:")
                             .font(.caption)
                             .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-                        
+                            .foregroundStyle(.secondary)
+
                         HStack {
                             Text("Yaw Threshold:")
                             Spacer()
                             Text("\(String(format: "%.2f", EyeTrackingConstants.yawThreshold)) rad")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Pitch Up Threshold:")
                             Spacer()
-                            Text("\(String(format: "%.2f", EyeTrackingConstants.pitchUpThreshold)) rad")
-                                .foregroundColor(.secondary)
+                            Text(
+                                "\(String(format: "%.2f", EyeTrackingConstants.pitchUpThreshold)) rad"
+                            )
+                            .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Pitch Down Threshold:")
                             Spacer()
-                            Text("\(String(format: "%.2f", EyeTrackingConstants.pitchDownThreshold)) rad")
-                                .foregroundColor(.secondary)
+                            Text(
+                                "\(String(format: "%.2f", EyeTrackingConstants.pitchDownThreshold)) rad"
+                            )
+                            .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Min Pupil Ratio:")
                             Spacer()
                             Text("\(String(format: "%.2f", EyeTrackingConstants.minPupilRatio))")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Max Pupil Ratio:")
                             Spacer()
                             Text("\(String(format: "%.2f", EyeTrackingConstants.maxPupilRatio))")
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
-                        
+
                         HStack {
                             Text("Eye Closed Threshold:")
                             Spacer()
-                            Text("\(String(format: "%.3f", EyeTrackingConstants.eyeClosedThreshold))")
-                                .foregroundColor(.secondary)
+                            Text(
+                                "\(String(format: "%.3f", EyeTrackingConstants.eyeClosedThreshold))"
+                            )
+                            .foregroundStyle(.secondary)
                         }
                     }
                     .padding(.top, 8)
@@ -622,7 +627,7 @@ struct EnforceModeSetupView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Debug Eye Tracking Data")
                 .font(.headline)
-                .foregroundColor(.blue)
+                .foregroundStyle(.blue)
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Face Detected: \(eyeTrackingService.faceDetected ? "Yes" : "No")")
@@ -643,7 +648,7 @@ struct EnforceModeSetupView: View {
                 }
             }
             .font(.caption)
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
         }
         .padding()
         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))

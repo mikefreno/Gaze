@@ -8,7 +8,8 @@
 import Foundation
 
 /// Thread-safe configuration holder for eye tracking thresholds.
-enum EyeTrackingConstants {
+/// All properties are Sendable constants, safe for use in any concurrency context.
+enum EyeTrackingConstants: Sendable {
     // MARK: - Logging
     /// Interval between log messages in seconds
     static let logInterval: TimeInterval = 0.5

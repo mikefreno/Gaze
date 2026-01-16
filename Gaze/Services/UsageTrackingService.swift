@@ -75,8 +75,9 @@ class UsageTrackingService: ObservableObject {
     
     private func startTracking() {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
-                self?.tick()
+                self.tick()
             }
         }
     }

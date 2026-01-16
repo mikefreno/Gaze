@@ -86,8 +86,10 @@ final class OnboardingWindowPresenter {
             object: window,
             queue: .main
         ) { [weak self] _ in
-            self?.windowController = nil
-            self?.removeCloseObserver()
+            Task { @MainActor in
+                self?.windowController = nil
+                self?.removeCloseObserver()
+            }
             NotificationCenter.default.post(name: Notification.Name("OnboardingWindowDidClose"), object: nil)
         }
     }

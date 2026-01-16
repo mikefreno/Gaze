@@ -68,6 +68,24 @@ class EyeTrackingService: NSObject, ObservableObject {
         var debugRightPupilRatio: Double?
         var debugYaw: Double?
         var debugPitch: Double?
+        
+        nonisolated init(
+            faceDetected: Bool = false,
+            isEyesClosed: Bool = false,
+            userLookingAtScreen: Bool = true,
+            debugLeftPupilRatio: Double? = nil,
+            debugRightPupilRatio: Double? = nil,
+            debugYaw: Double? = nil,
+            debugPitch: Double? = nil
+        ) {
+            self.faceDetected = faceDetected
+            self.isEyesClosed = isEyesClosed
+            self.userLookingAtScreen = userLookingAtScreen
+            self.debugLeftPupilRatio = debugLeftPupilRatio
+            self.debugRightPupilRatio = debugRightPupilRatio
+            self.debugYaw = debugYaw
+            self.debugPitch = debugPitch
+        }
     }
 
     func startEyeTracking() async throws {
@@ -277,6 +295,20 @@ class EyeTrackingService: NSObject, ObservableObject {
         var rightPupilRatio: Double?
         var yaw: Double?
         var pitch: Double?
+        
+        nonisolated init(
+            lookingAway: Bool = false,
+            leftPupilRatio: Double? = nil,
+            rightPupilRatio: Double? = nil,
+            yaw: Double? = nil,
+            pitch: Double? = nil
+        ) {
+            self.lookingAway = lookingAway
+            self.leftPupilRatio = leftPupilRatio
+            self.rightPupilRatio = rightPupilRatio
+            self.yaw = yaw
+            self.pitch = pitch
+        }
     }
 
     /// Non-isolated gaze direction detection

@@ -111,7 +111,12 @@ final class ServiceContainer {
     }
     
     /// Creates a new container configured for testing with default mock settings
-    static func forTesting(settings: AppSettings = .defaults) -> ServiceContainer {
+    static func forTesting() -> ServiceContainer {
+        forTesting(settings: AppSettings())
+    }
+    
+    /// Creates a new container configured for testing with custom settings
+    static func forTesting(settings: AppSettings) -> ServiceContainer {
         let mockSettings = MockSettingsManager(settings: settings)
         return ServiceContainer(settingsManager: mockSettings)
     }
@@ -138,7 +143,11 @@ final class MockSettingsManager: SettingsProviding {
         .posture: \.postureTimer,
     ]
     
-    init(settings: AppSettings = .defaults) {
+    convenience init() {
+        self.init(settings: AppSettings())
+    }
+    
+    init(settings: AppSettings) {
         self.settings = settings
         self._settingsSubject = CurrentValueSubject(settings)
     }

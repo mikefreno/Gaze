@@ -38,13 +38,13 @@ final class PupilCalibration: @unchecked Sendable {
     private var thresholdsLeft: [Int] = []
     private var thresholdsRight: [Int] = []
 
-    var isComplete: Bool {
+    nonisolated var isComplete: Bool {
         lock.lock()
         defer { lock.unlock() }
         return thresholdsLeft.count >= targetFrames && thresholdsRight.count >= targetFrames
     }
 
-    func threshold(forSide side: Int) -> Int {
+    nonisolated func threshold(forSide side: Int) -> Int {
         lock.lock()
         defer { lock.unlock() }
         let thresholds = side == 0 ? thresholdsLeft : thresholdsRight
@@ -52,7 +52,7 @@ final class PupilCalibration: @unchecked Sendable {
         return thresholds.reduce(0, +) / thresholds.count
     }
 
-    func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
+    nonisolated func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
         let bestThreshold = findBestThreshold(eyeData: eyeData, width: width, height: height)
         lock.lock()
         defer { lock.unlock() }
@@ -63,7 +63,7 @@ final class PupilCalibration: @unchecked Sendable {
         }
     }
 
-    private func findBestThreshold(eyeData: UnsafePointer<UInt8>, width: Int, height: Int) -> Int {
+    private nonisolated func findBestThreshold(eyeData: UnsafePointer<UInt8>, width: Int, height: Int) -> Int {
         let averageIrisSize = 0.48
         var bestThreshold = 50
         var bestDiff = Double.greatestFiniteMagnitude
@@ -91,7 +91,7 @@ final class PupilCalibration: @unchecked Sendable {
         return bestThreshold
     }
 
-    private static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int) -> Double {
+    private nonisolated static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int) -> Double {
         let margin = 5
         guard width > margin * 2, height > margin * 2 else { return 0 }
 
@@ -112,7 +112,7 @@ final class PupilCalibration: @unchecked Sendable {
         return totalCount > 0 ? Double(blackCount) / Double(totalCount) : 0
     }
 
-    func reset() {
+    nonisolated func reset() {
         lock.lock()
         defer { lock.unlock() }
         thresholdsLeft.removeAll()
@@ -143,46 +143,46 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    static var enableDebugImageSaving = false
-    static var enablePerformanceLogging = false
-    static var frameSkipCount = 10  // Process every Nth frame
+    nonisolated(unsafe) static var enableDebugImageSaving = false
+    nonisolated(unsafe) static var enablePerformanceLogging = false
+    nonisolated(unsafe) static var frameSkipCount = 10  // Process every Nth frame
 
     // MARK: - State (protected by lock)
 
-    private static var _debugImageCounter = 0
-    private static var _frameCounter = 0
-    private static var _lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) = (
+    private nonisolated(unsafe) static var _debugImageCounter = 0
+    private nonisolated(unsafe) static var _frameCounter = 0
+    private nonisolated(unsafe) static var _lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) = (
         nil, nil
     )
-    private static var _metrics = PupilDetectorMetrics()
+    private nonisolated(unsafe) static var _metrics = PupilDetectorMetrics()
 
-    static let calibration = PupilCalibration()
+    nonisolated(unsafe) static let calibration = PupilCalibration()
 
     // MARK: - Convenience Properties
 
-    private static var debugImageCounter: Int {
+    private nonisolated static var debugImageCounter: Int {
         get { _debugImageCounter }
         set { _debugImageCounter = newValue }
     }
 
-    private static var frameCounter: Int {
+    private nonisolated static var frameCounter: Int {
         get { _frameCounter }
         set { _frameCounter = newValue }
     }
 
-    private static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) {
+    private nonisolated static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?) {
         get { _lastPupilPositions }
         set { _lastPupilPositions = newValue }
     }
 
-    private static var metrics: PupilDetectorMetrics {
+    private nonisolated static var metrics: PupilDetectorMetrics {
         get { _metrics }
         set { _metrics = newValue }
     }
 
     // MARK: - Precomputed Tables
 
-    private static let spatialWeightsLUT: [[Float]] = {
+    private nonisolated(unsafe) static let spatialWeightsLUT: [[Float]] = {
         let d = 10
         let radius = d / 2
         let sigmaSpace: Float = 15.0
@@ -197,7 +197,7 @@ final class PupilDetector: @unchecked Sendable {
         return weights
     }()
 
-    private static let colorWeightsLUT: [Float] = {
+    private nonisolated(unsafe) static let colorWeightsLUT: [Float] = {
         let sigmaColor: Float = 15.0
         var lut = [Float](repeating: 0, count: 256)
         for diff in 0..<256 {
@@ -209,12 +209,12 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Reusable Buffers
 
-    private static var grayscaleBuffer: UnsafeMutablePointer<UInt8>?
-    private static var grayscaleBufferSize = 0
-    private static var eyeBuffer: UnsafeMutablePointer<UInt8>?
-    private static var eyeBufferSize = 0
-    private static var tempBuffer: UnsafeMutablePointer<UInt8>?
-    private static var tempBufferSize = 0
+    private nonisolated(unsafe) static var grayscaleBuffer: UnsafeMutablePointer<UInt8>?
+    private nonisolated(unsafe) static var grayscaleBufferSize = 0
+    private nonisolated(unsafe) static var eyeBuffer: UnsafeMutablePointer<UInt8>?
+    private nonisolated(unsafe) static var eyeBufferSize = 0
+    private nonisolated(unsafe) static var tempBuffer: UnsafeMutablePointer<UInt8>?
+    private nonisolated(unsafe) static var tempBufferSize = 0
 
     // MARK: - Public API
 
@@ -369,7 +369,9 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Buffer Management
 
-    private static func ensureBufferCapacity(frameSize: Int, eyeSize: Int) {
+    // MARK: - Buffer Management
+
+    private nonisolated static func ensureBufferCapacity(frameSize: Int, eyeSize: Int) {
         if grayscaleBufferSize < frameSize {
             grayscaleBuffer?.deallocate()
             grayscaleBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: frameSize)
@@ -388,7 +390,7 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Optimized Grayscale Conversion (vImage)
 
-    private static func extractGrayscaleDataOptimized(
+    private nonisolated static func extractGrayscaleDataOptimized(
         from pixelBuffer: CVPixelBuffer,
         to output: UnsafeMutablePointer<UInt8>,
         width: Int,
@@ -476,7 +478,7 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Optimized Eye Isolation
 
-    private static func isolateEyeWithMaskOptimized(
+    private nonisolated static func isolateEyeWithMaskOptimized(
         frameData: UnsafePointer<UInt8>,
         frameWidth: Int,
         frameHeight: Int,
@@ -526,7 +528,7 @@ final class PupilDetector: @unchecked Sendable {
     }
 
     @inline(__always)
-    private static func pointInPolygonFast(
+    private nonisolated static func pointInPolygonFast(
         px: Float, py: Float, edges: [(x1: Float, y1: Float, x2: Float, y2: Float)]
     ) -> Bool {
         var inside = false
@@ -542,7 +544,7 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Optimized Image Processing
 
-    static func imageProcessingOptimized(
+    nonisolated static func imageProcessingOptimized(
         input: UnsafePointer<UInt8>,
         output: UnsafeMutablePointer<UInt8>,
         width: Int,
@@ -569,7 +571,7 @@ final class PupilDetector: @unchecked Sendable {
         }
     }
 
-    private static func gaussianBlurOptimized(
+    private nonisolated static func gaussianBlurOptimized(
         input: UnsafePointer<UInt8>,
         output: UnsafeMutablePointer<UInt8>,
         width: Int,
@@ -607,7 +609,7 @@ final class PupilDetector: @unchecked Sendable {
         )
     }
 
-    private static func erodeOptimized(
+    private nonisolated static func erodeOptimized(
         input: UnsafePointer<UInt8>,
         output: UnsafeMutablePointer<UInt8>,
         width: Int,
@@ -668,7 +670,7 @@ final class PupilDetector: @unchecked Sendable {
 
     /// Optimized centroid-of-dark-pixels approach - much faster than union-find
     /// Returns the centroid of the largest dark region
-    private static func findPupilFromContoursOptimized(
+    private nonisolated static func findPupilFromContoursOptimized(
         data: UnsafePointer<UInt8>,
         width: Int,
         height: Int
@@ -722,7 +724,7 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Helper Methods
 
-    private static func landmarksToPixelCoordinates(
+    private nonisolated static func landmarksToPixelCoordinates(
         landmarks: VNFaceLandmarkRegion2D,
         faceBoundingBox: CGRect,
         imageSize: CGSize
@@ -736,7 +738,7 @@ final class PupilDetector: @unchecked Sendable {
         }
     }
 
-    private static func createEyeRegion(from points: [CGPoint], imageSize: CGSize) -> EyeRegion? {
+    private nonisolated static func createEyeRegion(from points: [CGPoint], imageSize: CGSize) -> EyeRegion? {
         guard !points.isEmpty else { return nil }
 
         let margin: CGFloat = 5
@@ -777,7 +779,7 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Debug Helpers
 
-    private static func saveDebugImage(
+    private nonisolated static func saveDebugImage(
         data: UnsafePointer<UInt8>, width: Int, height: Int, name: String
     ) {
         guard let cgImage = createCGImage(from: data, width: width, height: height) else { return }
@@ -793,7 +795,7 @@ final class PupilDetector: @unchecked Sendable {
         print("💾 Saved debug image: \(url.path)")
     }
 
-    private static func createCGImage(from data: UnsafePointer<UInt8>, width: Int, height: Int)
+    private nonisolated static func createCGImage(from data: UnsafePointer<UInt8>, width: Int, height: Int)
         -> CGImage?
     {
         let mutableData = UnsafeMutablePointer<UInt8>.allocate(capacity: width * height)
@@ -817,7 +819,7 @@ final class PupilDetector: @unchecked Sendable {
     }
 
     /// Clean up allocated buffers (call on app termination if needed)
-    static func cleanup() {
+    nonisolated static func cleanup() {
         grayscaleBuffer?.deallocate()
         grayscaleBuffer = nil
         grayscaleBufferSize = 0

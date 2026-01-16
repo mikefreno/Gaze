@@ -42,6 +42,7 @@ final class ServiceContainerTests: XCTestCase {
         let mockSettings = EnhancedMockSettingsManager(settings: .shortIntervals)
         let customEngine = TimerEngine(
             settingsManager: mockSettings,
+            enforceModeService: nil,
             timeProvider: MockTimeProvider()
         )
         

@@ -71,14 +71,21 @@ final class FullscreenDetectionService: ObservableObject {
     private let permissionManager: ScreenCapturePermissionManaging
     private let environmentProvider: FullscreenEnvironmentProviding
 
-    // This initializer is only for use within main actor contexts
     init(
-        permissionManager: ScreenCapturePermissionManaging = ScreenCapturePermissionManager.shared,
-        environmentProvider: FullscreenEnvironmentProviding = SystemFullscreenEnvironmentProvider()
+        permissionManager: ScreenCapturePermissionManaging,
+        environmentProvider: FullscreenEnvironmentProviding
     ) {
         self.permissionManager = permissionManager
         self.environmentProvider = environmentProvider
         setupObservers()
+    }
+    
+    /// Convenience initializer using default services
+    convenience init() {
+        self.init(
+            permissionManager: ScreenCapturePermissionManager.shared,
+            environmentProvider: SystemFullscreenEnvironmentProvider()
+        )
     }
     
     // Factory method to safely create instances from non-main actor contexts
@@ -109,7 +116,9 @@ final class FullscreenDetectionService: ObservableObject {
             object: workspace,
             queue: .main
         ) { [weak self] _ in
-            self?.checkFullscreenState()
+            Task { @MainActor in
+                self?.checkFullscreenState()
+            }
         }
         observers.append(spaceObserver)
 
@@ -118,7 +127,9 @@ final class FullscreenDetectionService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.checkFullscreenState()
+            Task { @MainActor in
+                self?.checkFullscreenState()
+            }
         }
         observers.append(transitionObserver)
 
@@ -127,7 +138,9 @@ final class FullscreenDetectionService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.checkFullscreenState()
+            Task { @MainActor in
+                self?.checkFullscreenState()
+            }
         }
         observers.append(fullscreenObserver)
 
@@ -136,7 +149,9 @@ final class FullscreenDetectionService: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.checkFullscreenState()
+            Task { @MainActor in
+                self?.checkFullscreenState()
+            }
         }
         observers.append(exitFullscreenObserver)
 

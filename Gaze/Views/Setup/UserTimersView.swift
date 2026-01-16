@@ -304,7 +304,7 @@ struct UserTimerEditSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .onChange(of: type) { newType in
+                    .onChange(of: type) { _, newType in
                         if newType == .subtle {
                             timeOnScreen = 3
                         } else if timeOnScreen == 3 {

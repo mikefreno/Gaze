@@ -33,8 +33,9 @@ class IdleMonitoringService: ObservableObject {
     
     private func startMonitoring() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
             Task { @MainActor in
-                self?.checkIdleState()
+                self.checkIdleState()
             }
         }
     }

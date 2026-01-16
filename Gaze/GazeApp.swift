@@ -31,8 +31,7 @@ struct GazeApp: App {
                     }
             } else {
                 OnboardingContainerView(settingsManager: settingsManager)
-                    .onChange(of: settingsManager.settings.hasCompletedOnboarding) {
-                        completed in
+                    .onChange(of: settingsManager.settings.hasCompletedOnboarding) { _, completed in
                         if completed {
                             closeAllWindows()
                             appDelegate.onboardingCompleted()

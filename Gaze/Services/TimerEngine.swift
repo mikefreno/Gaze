@@ -32,10 +32,21 @@ class TimerEngine: ObservableObject {
     // Logging manager
     private let logger = LoggingManager.shared.timerLogger
 
+    convenience init(
+        settingsManager: any SettingsProviding,
+        enforceModeService: EnforceModeService? = nil
+    ) {
+        self.init(
+            settingsManager: settingsManager,
+            enforceModeService: enforceModeService,
+            timeProvider: SystemTimeProvider()
+        )
+    }
+
     init(
         settingsManager: any SettingsProviding,
-        enforceModeService: EnforceModeService? = nil,
-        timeProvider: TimeProviding = SystemTimeProvider()
+        enforceModeService: EnforceModeService?,
+        timeProvider: TimeProviding
     ) {
         self.settingsProvider = settingsManager
         self.enforceModeService = enforceModeService ?? EnforceModeService.shared

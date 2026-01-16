@@ -41,6 +41,7 @@ final class TimerEngineTests: XCTestCase {
         let timeProvider = MockTimeProvider()
         let engine = TimerEngine(
             settingsManager: testEnv.settingsManager,
+            enforceModeService: nil,
             timeProvider: timeProvider
         )
         

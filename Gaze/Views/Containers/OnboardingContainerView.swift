@@ -1,3 +1,10 @@
+//
+//  OnboardingContainerView.swift
+//  Gaze
+//
+//  Created by Mike Freno on 1/7/26.
+//
+
 import AppKit
 import SwiftUI
 
@@ -27,9 +34,7 @@ final class OnboardingWindowPresenter {
     private var closeObserver: NSObjectProtocol?
 
     func show(settingsManager: SettingsManager) {
-        if activateIfPresent() {
-            return
-        }
+        if activateIfPresent() { return }
         createWindow(settingsManager: settingsManager)
     }
 
@@ -39,26 +44,16 @@ final class OnboardingWindowPresenter {
             windowController = nil
             return false
         }
-        
-        // Ensure the window is brought to front and focused properly for menu bar apps
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        
-        // Additional focus handling for menu bar applications
-        if let window = windowController?.window {
-            window.makeMain()
-        }
-        
+        window.makeMain()
         return true
     }
 
     func close() {
         windowController?.close()
         windowController = nil
-        if let closeObserver {
-            NotificationCenter.default.removeObserver(closeObserver)
-            self.closeObserver = nil
-        }
+        removeCloseObserver()
     }
 
     private func createWindow(settingsManager: SettingsManager) {
@@ -85,34 +80,29 @@ final class OnboardingWindowPresenter {
 
         windowController = controller
 
-        closeObserver.map(NotificationCenter.default.removeObserver)
+        removeCloseObserver()
         closeObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,
             queue: .main
         ) { [weak self] _ in
             self?.windowController = nil
-            if let closeObserver = self?.closeObserver {
-                NotificationCenter.default.removeObserver(closeObserver)
-            }
-            self?.closeObserver = nil
-            
-            // Notify AppDelegate that onboarding window closed
+            self?.removeCloseObserver()
             NotificationCenter.default.post(name: Notification.Name("OnboardingWindowDidClose"), object: nil)
         }
     }
 
-    deinit {
-        if let closeObserver {
-            NotificationCenter.default.removeObserver(closeObserver)
+    private func removeCloseObserver() {
+        if let observer = closeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            closeObserver = nil
         }
     }
 }
 
 struct OnboardingContainerView: View {
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @State private var currentPage = 0
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
@@ -122,127 +112,87 @@ struct OnboardingContainerView: View {
                 TabView(selection: $currentPage) {
                     WelcomeView()
                         .tag(0)
-                        .tabItem {
-                            Image(systemName: "hand.wave.fill")
-                        }
+                        .tabItem { Image(systemName: "hand.wave.fill") }
 
                     LookAwaySetupView(settingsManager: settingsManager)
                         .tag(1)
-                        .tabItem {
-                            Image(systemName: "eye.fill")
-                        }
+                        .tabItem { Image(systemName: "eye.fill") }
 
                     BlinkSetupView(settingsManager: settingsManager)
                         .tag(2)
-                        .tabItem {
-                            Image(systemName: "eye.circle.fill")
-                        }
+                        .tabItem { Image(systemName: "eye.circle.fill") }
 
                     PostureSetupView(settingsManager: settingsManager)
                         .tag(3)
-                        .tabItem {
-                            Image(systemName: "figure.stand")
-                        }
+                        .tabItem { Image(systemName: "figure.stand") }
 
-                    GeneralSetupView(
-                        settingsManager: settingsManager,
-                        isOnboarding: true
-                    )
-                    .tag(4)
-                    .tabItem {
-                        Image(systemName: "gearshape.fill")
-                    }
+                    GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
+                        .tag(4)
+                        .tabItem { Image(systemName: "gearshape.fill") }
 
                     CompletionView()
                         .tag(5)
-                        .tabItem {
-                            Image(systemName: "checkmark.circle.fill")
-                        }
+                        .tabItem { Image(systemName: "checkmark.circle.fill") }
                 }
                 .tabViewStyle(.automatic)
 
-                if currentPage >= 0 {
-                    HStack(spacing: 12) {
-                        if currentPage > 0 {
-                            Button(action: { currentPage -= 1 }) {
-                                HStack {
-                                    Image(systemName: "chevron.left")
-                                    Text("Back")
-                                }
-                                .font(.headline)
-                                .frame(
-                                    minWidth: 100, maxWidth: .infinity, minHeight: 44,
-                                    maxHeight: 44, alignment: .center
-                                )
-                                .foregroundColor(.primary)
-                                .contentShape(RoundedRectangle(cornerRadius: 10))
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffectIfAvailable(
-                                GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
-                        }
-
-                        Button(action: {
-                            if currentPage == 5 {
-                                completeOnboarding()
-                            } else {
-                                currentPage += 1
-                            }
-                        }) {
-                            Text(
-                                currentPage == 0
-                                    ? "Let's Get Started"
-                                    : currentPage == 5 ? "Get Started" : "Continue"
-                            )
-                            .font(.headline)
-                            .frame(
-                                minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44,
-                                alignment: .center
-                            )
-                            .foregroundColor(.white)
-                            .contentShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffectIfAvailable(
-                            GlassStyle.regular.tint(currentPage == 5 ? .green : .accentColor)
-                                .interactive(),
-                            in: .rect(cornerRadius: 10))
-                    }
-                    .padding(.horizontal, 40)
-                    .padding(.bottom, 20)
-                }
+                navigationButtons
             }
         }
         #if APPSTORE
-            .frame(
-                minWidth: 1000,
-                minHeight: 700
-            )
+        .frame(minWidth: 1000, minHeight: 700)
         #else
-            .frame(
-                minWidth: 1000,
-                minHeight: 900
-            )
+        .frame(minWidth: 1000, minHeight: 900)
         #endif
     }
 
-    private func completeOnboarding() {
-        // Mark onboarding as complete - settings are already being updated in real-time
-        settingsManager.settings.hasCompletedOnboarding = true
-
-        dismiss()
-
-        DispatchQueue.main.asyncAfter(deadline: .now()) {
-            if let menuBarWindow = NSApp.windows.first(where: {
-                $0.className.contains("MenuBarExtra") || $0.className.contains("StatusBar")
-            }),
-                let statusItem = menuBarWindow.value(forKey: "statusItem") as? NSStatusItem
-            {
-                statusItem.button?.performClick(nil)
+    @ViewBuilder
+    private var navigationButtons: some View {
+        HStack(spacing: 12) {
+            if currentPage > 0 {
+                Button(action: { currentPage -= 1 }) {
+                    HStack {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                    .font(.headline)
+                    .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
+                    .foregroundColor(.primary)
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .glassEffectIfAvailable(GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10))
             }
+
+            Button(action: {
+                if currentPage == 5 {
+                    completeOnboarding()
+                } else {
+                    currentPage += 1
+                }
+            }) {
+                Text(currentPage == 0 ? "Let's Get Started" : currentPage == 5 ? "Get Started" : "Continue")
+                    .font(.headline)
+                    .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
+                    .foregroundColor(.white)
+                    .contentShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+            .glassEffectIfAvailable(
+                GlassStyle.regular.tint(currentPage == 5 ? .green : .accentColor).interactive(),
+                in: .rect(cornerRadius: 10)
+            )
         }
+        .padding(.horizontal, 40)
+        .padding(.bottom, 20)
+    }
+
+    private func completeOnboarding() {
+        settingsManager.settings.hasCompletedOnboarding = true
+        OnboardingWindowPresenter.shared.close()
     }
 }
+
 #Preview("Onboarding Container") {
     OnboardingContainerView(settingsManager: SettingsManager.shared)
 }

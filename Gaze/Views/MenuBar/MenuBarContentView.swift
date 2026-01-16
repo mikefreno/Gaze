@@ -7,10 +7,9 @@
 
 import SwiftUI
 
-// Wrapper to properly observe AppDelegate changes in MenuBarExtra
 struct MenuBarContentWrapper: View {
     @ObservedObject var appDelegate: AppDelegate
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
     var onOpenSettingsTab: (Int) -> Void
@@ -71,7 +70,7 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
 
 struct MenuBarContentView: View {
     var timerEngine: TimerEngine?
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @Environment(\.dismiss) private var dismiss
     var onQuit: () -> Void
     var onOpenSettings: () -> Void
@@ -251,7 +250,7 @@ struct MenuBarContentView: View {
 struct TimerStatusRowWithIndividualControls: View {
     let identifier: TimerIdentifier
     @ObservedObject var timerEngine: TimerEngine
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     var onSkip: () -> Void
     var onDevTrigger: (() -> Void)? = nil
     var onTogglePause: (Bool) -> Void

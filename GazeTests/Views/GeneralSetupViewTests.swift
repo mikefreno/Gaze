@@ -23,10 +23,8 @@ final class GeneralSetupViewTests: XCTestCase {
     }
     
     func testGeneralSetupInitialization() {
-        let view = GeneralSetupView(
-            settingsManager: testEnv.settingsManager as! SettingsManager,
-            isOnboarding: true
-        )
+        // Use real SettingsManager for view initialization test since @Bindable requires concrete type
+        let view = GeneralSetupView(settingsManager: SettingsManager.shared, isOnboarding: true)
         XCTAssertNotNil(view)
     }
     

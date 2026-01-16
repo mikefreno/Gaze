@@ -10,7 +10,7 @@ import SwiftUI
 import Foundation
 
 struct EnforceModeSetupView: View {
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @ObservedObject var cameraService = CameraAccessService.shared
     @ObservedObject var eyeTrackingService = EyeTrackingService.shared
     @ObservedObject var enforceModeService = EnforceModeService.shared
@@ -26,15 +26,7 @@ struct EnforceModeSetupView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
-                Image(systemName: "video.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
-                Text("Enforce Mode")
-                    .font(.system(size: 28, weight: .bold))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
+            SetupHeader(icon: "video.fill", title: "Enforce Mode", color: .accentColor)
 
             Spacer()
 

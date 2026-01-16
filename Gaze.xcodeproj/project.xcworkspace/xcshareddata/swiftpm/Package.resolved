@@ -1,15 +1,24 @@
 {
-  "originHash": "513d974fbede884a919977d3446360023f6e3239ac314f4fbd9657e80aca7560",
-  "pins": [
+  "originHash" : "513d974fbede884a919977d3446360023f6e3239ac314f4fbd9657e80aca7560",
+  "pins" : [
     {
-      "identity": "lottie-spm",
-      "kind": "remoteSourceControl",
-      "location": "https://github.com/airbnb/lottie-spm.git",
-      "state": {
-        "revision": "69faaefa7721fba9e434a52c16adf4329c9084db",
-        "version": "4.6.0"
+      "identity" : "lottie-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/airbnb/lottie-spm.git",
+      "state" : {
+        "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
+        "version" : "4.6.0"
+      }
+    },
+    {
+      "identity" : "sparkle",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/sparkle-project/Sparkle",
+      "state" : {
+        "revision" : "5581748cef2bae787496fe6d61139aebe0a451f6",
+        "version" : "2.8.1"
       }
     }
   ],
-  "version": 3
+  "version" : 3
 }

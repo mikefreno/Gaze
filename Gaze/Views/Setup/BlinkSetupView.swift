@@ -9,58 +9,36 @@ import AppKit
 import SwiftUI
 
 struct BlinkSetupView: View {
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed header section
-            VStack(spacing: 16) {
-                Image(systemName: "eye.circle")
-                    .font(.system(size: 60))
-                    .foregroundColor(.green)
+            SetupHeader(icon: "eye.circle", title: "Blink Reminder", color: .green)
 
-                Text("Blink Reminder")
-                    .font(.system(size: 28, weight: .bold))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
-
-            // Vertically centered content
             Spacer()
 
             VStack(spacing: 30) {
                 HStack(spacing: 12) {
                     Button(action: {
-                        if let url = URL(
-                            string:
-                                "https://www.aao.org/eye-health/tips-prevention/computer-usage#:~:text=Humans normally blink about 15 times in one minute. However, studies show that we only blink about 5 to 7 times in a minute while using computers and other digital screen devices."
-                        ) {
-                            #if os(iOS)
-                                UIApplication.shared.open(url)
-                            #elseif os(macOS)
-                                NSWorkspace.shared.open(url)
-                            #endif
+                        if let url = URL(string: "https://www.aao.org/eye-health/tips-prevention/computer-usage#:~:text=Humans normally blink about 15 times in one minute. However, studies show that we only blink about 5 to 7 times in a minute while using computers and other digital screen devices.") {
+                            NSWorkspace.shared.open(url)
                         }
                     }) {
                         Image(systemName: "info.circle")
                             .foregroundColor(.white)
-                    }.buttonStyle(.plain)
-                    Text(
-                        "We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes."
-                    )
-                    .font(.headline)
-                    .foregroundColor(.white)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("We blink much less when focusing on screens. Regular blink reminders help prevent dry eyes.")
+                        .font(.headline)
+                        .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 20) {
-                    Toggle("Enable Blink Reminders", isOn: Binding(
-                        get: { settingsManager.settings.blinkTimer.enabled },
-                        set: { settingsManager.settings.blinkTimer.enabled = $0 }
-                    ))
+                    Toggle("Enable Blink Reminders", isOn: $settingsManager.settings.blinkTimer.enabled)
                         .font(.headline)
 
                     if settingsManager.settings.blinkTimer.enabled {
@@ -74,7 +52,10 @@ struct BlinkSetupView: View {
                                     value: Binding(
                                         get: { Double(settingsManager.settings.blinkTimer.intervalSeconds / 60) },
                                         set: { settingsManager.settings.blinkTimer.intervalSeconds = Int($0) * 60 }
-                                    ), in: 1...20, step: 1)
+                                    ),
+                                    in: 1...20,
+                                    step: 1
+                                )
 
                                 Text("\(settingsManager.settings.blinkTimer.intervalSeconds / 60) min")
                                     .frame(width: 60, alignment: .trailing)
@@ -87,23 +68,16 @@ struct BlinkSetupView: View {
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                 if settingsManager.settings.blinkTimer.enabled {
-                    Text(
-                        "You will be subtly reminded every \(settingsManager.settings.blinkTimer.intervalSeconds / 60) minutes to blink"
-                    )
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    Text("You will be subtly reminded every \(settingsManager.settings.blinkTimer.intervalSeconds / 60) minutes to blink")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                 } else {
-                    Text(
-                        "Blink reminders are currently disabled."
-                    )
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    Text("Blink reminders are currently disabled.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
-                // Preview button
-                Button(action: {
-                    showPreviewWindow()
-                }) {
+                Button(action: showPreviewWindow) {
                     HStack(spacing: 8) {
                         Image(systemName: "eye")
                             .foregroundColor(.white)
@@ -116,9 +90,7 @@ struct BlinkSetupView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
-                .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10)
-                )
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -130,35 +102,12 @@ struct BlinkSetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-
-        let window = NSWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
+        previewWindowController = PreviewWindowHelper.showPreview(
+            on: screen,
+            content: BlinkReminderView(sizePercentage: settingsManager.settings.subtleReminderSize.percentage) { [weak previewWindowController] in
+                previewWindowController?.window?.close()
+            }
         )
-
-        window.level = .floating
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.acceptsMouseMovedEvents = true
-
-        let contentView = BlinkReminderView(
-            sizePercentage: settingsManager.settings.subtleReminderSize.percentage
-        ) {
-            [weak window] in
-            window?.close()
-        }
-
-        window.contentView = NSHostingView(rootView: contentView)
-        window.makeFirstResponder(window.contentView)
-
-        let windowController = NSWindowController(window: window)
-        windowController.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
-
-        previewWindowController = windowController
     }
 }
 

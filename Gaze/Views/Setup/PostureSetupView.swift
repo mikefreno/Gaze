@@ -9,55 +9,33 @@ import AppKit
 import SwiftUI
 
 struct PostureSetupView: View {
-    @ObservedObject var settingsManager: SettingsManager
-
+    @Bindable var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed header section
-            VStack(spacing: 16) {
-                Image(systemName: "figure.stand")
-                    .font(.system(size: 60))
-                    .foregroundColor(.orange)
+            SetupHeader(icon: "figure.stand", title: "Posture Reminder", color: .orange)
 
-                Text("Posture Reminder")
-                    .font(.system(size: 28, weight: .bold))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
-
-            // Vertically centered content
             Spacer()
 
             VStack(spacing: 30) {
                 HStack(spacing: 12) {
                     Button(action: {
-                        // Using properly URL-encoded text fragment
-                        // Points to key findings about sitting posture and behavior relationship with LBP
-                        if let url = URL(
-                            string:
-                                "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence"
-                        ) {
-                            #if os(iOS)
-                                UIApplication.shared.open(url)
-                            #elseif os(macOS)
-                                NSWorkspace.shared.open(url)
-                            #endif
+                        if let url = URL(string: "https://pubmed.ncbi.nlm.nih.gov/40111906/#:~:text=For%20studies%20exploring%20sitting%20posture%2C%20seven%20found%20a%20relationship%20with%20LBP.%20Regarding%20studies%20on%20sitting%20behavior%2C%20only%20one%20showed%20no%20relationship%20between%20LBP%20prevalence") {
+                            NSWorkspace.shared.open(url)
                         }
                     }) {
                         Image(systemName: "info.circle")
                             .foregroundColor(.white)
-                    }.buttonStyle(.plain)
-                    Text(
-                        "Regular posture checks help prevent back and neck pain from prolonged sitting"
-                    )
-                    .font(.headline)
-                    .foregroundColor(.white)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("Regular posture checks help prevent back and neck pain from prolonged sitting")
+                        .font(.headline)
+                        .foregroundColor(.white)
                 }
                 .padding()
-                .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
+                .glassEffectIfAvailable(GlassStyle.regular.tint(.accentColor), in: .rect(cornerRadius: 8))
 
                 SliderSection(
                     intervalSettings: Binding(
@@ -72,10 +50,7 @@ struct PostureSetupView: View {
                         }
                     ),
                     countdownSettings: nil,
-                    enabled: Binding(
-                        get: { settingsManager.settings.postureTimer.enabled },
-                        set: { settingsManager.settings.postureTimer.enabled = $0 }
-                    ),
+                    enabled: $settingsManager.settings.postureTimer.enabled,
                     type: "Posture",
                     previewFunc: showPreviewWindow
                 )
@@ -90,35 +65,12 @@ struct PostureSetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-
-        let window = NSWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
+        previewWindowController = PreviewWindowHelper.showPreview(
+            on: screen,
+            content: PostureReminderView(sizePercentage: settingsManager.settings.subtleReminderSize.percentage) { [weak previewWindowController] in
+                previewWindowController?.window?.close()
+            }
         )
-
-        window.level = .floating
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.acceptsMouseMovedEvents = true
-
-        let contentView = PostureReminderView(
-            sizePercentage: settingsManager.settings.subtleReminderSize.percentage
-        ) {
-            [weak window] in
-            window?.close()
-        }
-
-        window.contentView = NSHostingView(rootView: contentView)
-        window.makeFirstResponder(window.contentView)
-
-        let windowController = NSWindowController(window: window)
-        windowController.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
-
-        previewWindowController = windowController
     }
 }
 

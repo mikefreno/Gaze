@@ -15,9 +15,7 @@ final class SettingsWindowPresenter {
     private var closeObserver: NSObjectProtocol?
 
     func show(settingsManager: SettingsManager, initialTab: Int = 0) {
-        if focusExistingWindow(tab: initialTab) {
-            return
-        }
+        if focusExistingWindow(tab: initialTab) { return }
         createWindow(settingsManager: settingsManager, initialTab: initialTab)
     }
 
@@ -67,15 +65,12 @@ final class SettingsWindowPresenter {
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
 
-        let contentView = SettingsWindowView(
-            settingsManager: settingsManager,
-            initialTab: initialTab
+        window.contentView = NSHostingView(
+            rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: initialTab)
         )
-        window.contentView = NSHostingView(rootView: contentView)
 
         let controller = NSWindowController(window: window)
         controller.showWindow(nil)
-
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
 
@@ -90,32 +85,21 @@ final class SettingsWindowPresenter {
             Task { @MainActor [weak self] in
                 self?.windowController = nil
                 self?.removeCloseObserver()
-                
-                // Notify AppDelegate that settings window closed
                 NotificationCenter.default.post(name: Notification.Name("SettingsWindowDidClose"), object: nil)
             }
         }
     }
 
-    @MainActor
     private func removeCloseObserver() {
-        if let closeObserver {
-            NotificationCenter.default.removeObserver(closeObserver)
-            self.closeObserver = nil
-        }
-    }
-
-    deinit {
-        // Capture observer locally to avoid actor isolation issues
-        // NotificationCenter.removeObserver is thread-safe
         if let observer = closeObserver {
             NotificationCenter.default.removeObserver(observer)
+            closeObserver = nil
         }
     }
 }
 
 struct SettingsWindowView: View {
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @State private var selectedSection: SettingsSection
 
     init(settingsManager: SettingsManager, initialTab: Int = 0) {
@@ -140,42 +124,31 @@ struct SettingsWindowView: View {
                     ScrollView {
                         detailView(for: selectedSection)
                     }
-                }.onReceive(
-                    NotificationCenter.default.publisher(
-                        for: Notification.Name("SwitchToSettingsTab"))
-                ) { notification in
+                }
+                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))) { notification in
                     if let tab = notification.object as? Int,
-                        let section = SettingsSection(rawValue: tab)
-                    {
+                       let section = SettingsSection(rawValue: tab) {
                         selectedSection = section
                     }
                 }
 
                 #if DEBUG
-                    Divider()
-
-                    HStack {
-                        Button("Retrigger Onboarding") {
-                            retriggerOnboarding()
-                        }
-                        .buttonStyle(.bordered)
-
-                        Spacer()
+                Divider()
+                HStack {
+                    Button("Retrigger Onboarding") {
+                        retriggerOnboarding()
                     }
-                    .padding()
+                    .buttonStyle(.bordered)
+                    Spacer()
+                }
+                .padding()
                 #endif
             }
         }
         #if APPSTORE
-            .frame(
-                minWidth: 1000,
-                minHeight: 700
-            )
+        .frame(minWidth: 1000, minHeight: 700)
         #else
-            .frame(
-                minWidth: 1000,
-                minHeight: 900
-            )
+        .frame(minWidth: 1000, minHeight: 900)
         #endif
     }
 
@@ -183,10 +156,7 @@ struct SettingsWindowView: View {
     private func detailView(for section: SettingsSection) -> some View {
         switch section {
         case .general:
-            GeneralSetupView(
-                settingsManager: settingsManager,
-                isOnboarding: false
-            )
+            GeneralSetupView(settingsManager: settingsManager, isOnboarding: false)
         case .lookAway:
             LookAwaySetupView(settingsManager: settingsManager)
         case .blink:
@@ -208,13 +178,12 @@ struct SettingsWindowView: View {
     }
 
     #if DEBUG
-        private func retriggerOnboarding() {
-            SettingsWindowPresenter.shared.close()
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                settingsManager.settings.hasCompletedOnboarding = false
-            }
+    private func retriggerOnboarding() {
+        SettingsWindowPresenter.shared.close()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            settingsManager.settings.hasCompletedOnboarding = false
         }
+    }
     #endif
 }
 

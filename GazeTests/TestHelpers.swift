@@ -13,13 +13,18 @@ import XCTest
 
 /// Enhanced mock settings manager with full control over state
 @MainActor
-final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
-    @Published var settings: AppSettings
+@Observable
+final class EnhancedMockSettingsManager: SettingsProviding {
+    var settings: AppSettings
     
-    var settingsPublisher: Published<AppSettings>.Publisher {
-        $settings
+    @ObservationIgnored
+    private let _settingsSubject: CurrentValueSubject<AppSettings, Never>
+    
+    var settingsPublisher: AnyPublisher<AppSettings, Never> {
+        _settingsSubject.eraseToAnyPublisher()
     }
     
+    @ObservationIgnored
     private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] = [
         .lookAway: \.lookAwayTimer,
         .blink: \.blinkTimer,
@@ -27,13 +32,18 @@ final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
     ]
     
     // Track method calls for verification
+    @ObservationIgnored
     private(set) var saveCallCount = 0
+    @ObservationIgnored
     private(set) var saveImmediatelyCallCount = 0
+    @ObservationIgnored
     private(set) var loadCallCount = 0
+    @ObservationIgnored
     private(set) var resetToDefaultsCallCount = 0
     
     init(settings: AppSettings = .defaults) {
         self.settings = settings
+        self._settingsSubject = CurrentValueSubject(settings)
     }
     
     func timerConfiguration(for type: TimerType) -> TimerConfiguration {
@@ -48,6 +58,7 @@ final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
             preconditionFailure("Unknown timer type: \(type)")
         }
         settings[keyPath: keyPath] = configuration
+        _settingsSubject.send(settings)
     }
     
     func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
@@ -60,10 +71,12 @@ final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
     
     func save() {
         saveCallCount += 1
+        _settingsSubject.send(settings)
     }
     
     func saveImmediately() {
         saveImmediatelyCallCount += 1
+        _settingsSubject.send(settings)
     }
     
     func load() {
@@ -73,6 +86,7 @@ final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
     func resetToDefaults() {
         resetToDefaultsCallCount += 1
         settings = .defaults
+        _settingsSubject.send(settings)
     }
     
     // Test helpers
@@ -82,6 +96,7 @@ final class EnhancedMockSettingsManager: ObservableObject, SettingsProviding {
         loadCallCount = 0
         resetToDefaultsCallCount = 0
         settings = .defaults
+        _settingsSubject.send(settings)
     }
 }
 

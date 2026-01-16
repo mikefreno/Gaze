@@ -120,13 +120,18 @@ final class ServiceContainer {
 /// A mock settings manager for use in ServiceContainer.forTesting()
 /// This is a minimal implementation - use the full MockSettingsManager from tests for more features
 @MainActor
-final class MockSettingsManager: ObservableObject, SettingsProviding {
-    @Published var settings: AppSettings
+@Observable
+final class MockSettingsManager: SettingsProviding {
+    var settings: AppSettings
     
-    var settingsPublisher: Published<AppSettings>.Publisher {
-        $settings
+    @ObservationIgnored
+    private let _settingsSubject: CurrentValueSubject<AppSettings, Never>
+    
+    var settingsPublisher: AnyPublisher<AppSettings, Never> {
+        _settingsSubject.eraseToAnyPublisher()
     }
     
+    @ObservationIgnored
     private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] = [
         .lookAway: \.lookAwayTimer,
         .blink: \.blinkTimer,
@@ -135,6 +140,7 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
     
     init(settings: AppSettings = .defaults) {
         self.settings = settings
+        self._settingsSubject = CurrentValueSubject(settings)
     }
     
     func timerConfiguration(for type: TimerType) -> TimerConfiguration {
@@ -149,6 +155,7 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
             preconditionFailure("Unknown timer type: \(type)")
         }
         settings[keyPath: keyPath] = configuration
+        _settingsSubject.send(settings)
     }
     
     func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
@@ -159,8 +166,11 @@ final class MockSettingsManager: ObservableObject, SettingsProviding {
         return configs
     }
     
-    func save() {}
-    func saveImmediately() {}
+    func save() { _settingsSubject.send(settings) }
+    func saveImmediately() { _settingsSubject.send(settings) }
     func load() {}
-    func resetToDefaults() { settings = .defaults }
+    func resetToDefaults() { 
+        settings = .defaults 
+        _settingsSubject.send(settings)
+    }
 }

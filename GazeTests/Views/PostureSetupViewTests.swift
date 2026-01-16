@@ -23,9 +23,8 @@ final class PostureSetupViewTests: XCTestCase {
     }
     
     func testPostureSetupInitialization() {
-        let view = PostureSetupView(
-            settingsManager: testEnv.settingsManager as! SettingsManager
-        )
+        // Use real SettingsManager for view initialization test since @Bindable requires concrete type
+        let view = PostureSetupView(settingsManager: SettingsManager.shared)
         XCTAssertNotNil(view)
     }
     

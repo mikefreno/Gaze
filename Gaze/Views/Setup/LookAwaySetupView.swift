@@ -8,38 +8,22 @@
 import AppKit
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#endif
-
 struct LookAwaySetupView: View {
-    @ObservedObject var settingsManager: SettingsManager
+    @Bindable var settingsManager: SettingsManager
     @State private var previewWindowController: NSWindowController?
-    @ObservedObject var cameraAccess = CameraAccessService.shared
+    var cameraAccess = CameraAccessService.shared
     @State private var failedCameraAccess = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Fixed header section
-            VStack(spacing: 16) {
-                Image(systemName: "eye.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.accentColor)
-
-                Text("Look Away Reminder")
-                    .font(.system(size: 28, weight: .bold))
-            }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
+            SetupHeader(icon: "eye.fill", title: "Look Away Reminder", color: .accentColor)
 
             Spacer()
 
             VStack(spacing: 30) {
-
                 InfoBox(
                     text: "Suggested: 20-20-20 rule",
-                    url:
-                        "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
+                    url: "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
                 )
 
                 SliderSection(
@@ -51,8 +35,7 @@ struct LookAwaySetupView: View {
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.lookAwayTimer.intervalSeconds =
-                                (newValue.val ?? 20) * 60
+                            settingsManager.settings.lookAwayTimer.intervalSeconds = (newValue.val ?? 20) * 60
                         }
                     ),
                     countdownSettings: Binding(
@@ -66,41 +49,26 @@ struct LookAwaySetupView: View {
                             settingsManager.settings.lookAwayCountdownSeconds = newValue.val ?? 20
                         }
                     ),
-                    enabled: Binding(
-                        get: { settingsManager.settings.lookAwayTimer.enabled },
-                        set: { settingsManager.settings.lookAwayTimer.enabled = $0 }
-                    ),
+                    enabled: $settingsManager.settings.lookAwayTimer.enabled,
                     type: "Look away",
                     previewFunc: showPreviewWindow
                 )
-                Toggle(
-                    "Enable enforcement mode",
-                    isOn: Binding(
-                        get: { settingsManager.settings.enforcementMode },
-                        set: { settingsManager.settings.enforcementMode = $0 }
-                    )
-                )
-                .onChange(
-                    of: settingsManager.settings.enforcementMode,
-                ) { newMode in
-                    if newMode && !cameraAccess.isCameraAuthorized {
-                        Task {
-                            do {
-                                try await cameraAccess.requestCameraAccess()
-                            } catch {
-                                failedCameraAccess = true
-                                settingsManager.settings.enforcementMode = false
+                
+                Toggle("Enable enforcement mode", isOn: $settingsManager.settings.enforcementMode)
+                    .onChange(of: settingsManager.settings.enforcementMode) { _, newMode in
+                        if newMode && !cameraAccess.isCameraAuthorized {
+                            Task {
+                                do {
+                                    try await cameraAccess.requestCameraAccess()
+                                } catch {
+                                    failedCameraAccess = true
+                                    settingsManager.settings.enforcementMode = false
+                                }
                             }
                         }
                     }
-
-                }
             }
-            #if failedCameraAccess
-                Text(
-                    "Camera access denied. Please enable camera access in System Settings if you want to use enforcement mode."
-                )
-            #endif
+            
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -110,35 +78,12 @@ struct LookAwaySetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-
-        let window = NSWindow(
-            contentRect: screen.frame,
-            styleMask: [.borderless, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
+        previewWindowController = PreviewWindowHelper.showPreview(
+            on: screen,
+            content: LookAwayReminderView(countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds) { [weak previewWindowController] in
+                previewWindowController?.window?.close()
+            }
         )
-
-        window.level = .floating
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        window.acceptsMouseMovedEvents = true
-
-        let contentView = LookAwayReminderView(
-            countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds
-        ) {
-            [weak window] in
-            window?.close()
-        }
-
-        window.contentView = NSHostingView(rootView: contentView)
-        window.makeFirstResponder(window.contentView)
-
-        let windowController = NSWindowController(window: window)
-        windowController.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
-
-        previewWindowController = windowController
     }
 }
 

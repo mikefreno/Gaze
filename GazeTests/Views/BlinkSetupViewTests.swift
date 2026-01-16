@@ -23,9 +23,8 @@ final class BlinkSetupViewTests: XCTestCase {
     }
     
     func testBlinkSetupInitialization() {
-        let view = BlinkSetupView(
-            settingsManager: testEnv.settingsManager as! SettingsManager
-        )
+        // Use real SettingsManager for view initialization test since @Bindable requires concrete type
+        let view = BlinkSetupView(settingsManager: SettingsManager.shared)
         XCTAssertNotNil(view)
     }
     

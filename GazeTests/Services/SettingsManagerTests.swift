@@ -39,7 +39,7 @@ final class SettingsManagerTests: XCTestCase {
         let defaults = AppSettings.defaults
         
         XCTAssertTrue(defaults.lookAwayTimer.enabled)
-        XCTAssertTrue(defaults.blinkTimer.enabled)
+        XCTAssertFalse(defaults.blinkTimer.enabled)  // Blink timer is disabled by default
         XCTAssertTrue(defaults.postureTimer.enabled)
         XCTAssertFalse(defaults.hasCompletedOnboarding)
     }
@@ -92,7 +92,7 @@ final class SettingsManagerTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Settings changed")
         var receivedSettings: AppSettings?
         
-        settingsManager.$settings
+        settingsManager.settingsPublisher
             .dropFirst()  // Skip initial value
             .sink { settings in
                 receivedSettings = settings
@@ -102,6 +102,7 @@ final class SettingsManagerTests: XCTestCase {
         
         // Trigger change
         settingsManager.settings.playSounds = !settingsManager.settings.playSounds
+        settingsManager.save()
         
         await fulfillment(of: [expectation], timeout: 1.0)
         XCTAssertNotNil(receivedSettings)

@@ -27,7 +27,8 @@ final class OnboardingNavigationTests: XCTestCase {
     // MARK: - Navigation Tests
     
     func testOnboardingStartsAtWelcomePage() {
-        let onboarding = OnboardingContainerView(settingsManager: testEnv.settingsManager as! SettingsManager)
+        // Use real SettingsManager for view initialization test since @Bindable requires concrete type
+        let onboarding = OnboardingContainerView(settingsManager: SettingsManager.shared)
         
         // Verify initial state
         XCTAssertFalse(testEnv.settingsManager.settings.hasCompletedOnboarding)

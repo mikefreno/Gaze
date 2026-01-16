@@ -23,9 +23,8 @@ final class LookAwaySetupViewTests: XCTestCase {
     }
     
     func testLookAwaySetupInitialization() {
-        let view = LookAwaySetupView(
-            settingsManager: testEnv.settingsManager as! SettingsManager
-        )
+        // Use real SettingsManager for view initialization test since @Bindable requires concrete type
+        let view = LookAwaySetupView(settingsManager: SettingsManager.shared)
         XCTAssertNotNil(view)
     }
     

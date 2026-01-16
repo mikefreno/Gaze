@@ -59,8 +59,26 @@ private struct EyeOverlayShape: View {
     let label: String
     
     private var transformedCoordinates: (eyeRect: CGRect, pupilPoint: CGPoint) {
-        // Calculate the aspect-fit scaling
-        let imageAspect = imageSize.width / imageSize.height
+        // Standard macOS Camera Coordinate System (Landscape):
+        // Raw Buffer:
+        //   - Origin (0,0) is Top-Left
+        //   - X increases Right
+        //   - Y increases Down
+        //
+        // Preview Layer (Mirrored):
+        //   - Appears like a mirror
+        //   - Screen X increases Right
+        //   - Screen Y increases Down
+        //   - BUT the image content is flipped horizontally
+        //     (Raw Left is Screen Right, Raw Right is Screen Left)
+        
+        // Use dimensions directly (no rotation swap)
+        let rawImageWidth = imageSize.width
+        let rawImageHeight = imageSize.height
+        
+        // Calculate aspect-fill scaling
+        // We compare the raw aspect ratio to the view aspect ratio
+        let imageAspect = rawImageWidth / rawImageHeight
         let viewAspect = viewSize.width / viewSize.height
         
         let scale: CGFloat
@@ -68,36 +86,47 @@ private struct EyeOverlayShape: View {
         let offsetY: CGFloat
         
         if imageAspect > viewAspect {
-            // Image is wider - letterbox top/bottom
-            scale = viewSize.width / imageSize.width
-            offsetX = 0
-            offsetY = (viewSize.height - imageSize.height * scale) / 2
-        } else {
-            // Image is taller - pillarbox left/right
-            scale = viewSize.height / imageSize.height
-            offsetX = (viewSize.width - imageSize.width * scale) / 2
+            // Image is wider than view - crop sides (pillarbox behavior in aspect fill)
+            // Wait, aspect fill means we fill the view, so we crop the excess.
+            // If image is wider, we scale by height to fill height, and crop width.
+            scale = viewSize.height / rawImageHeight
+            offsetX = (viewSize.width - rawImageWidth * scale) / 2
             offsetY = 0
+        } else {
+            // Image is taller than view (or view is wider) - scale by width, crop height
+            scale = viewSize.width / rawImageWidth
+            offsetX = 0
+            offsetY = (viewSize.height - rawImageHeight * scale) / 2
         }
         
-        // Convert eye region frame from image coordinates to view coordinates
-        // Note: The image is mirrored horizontally in the preview
-        let mirroredX = imageSize.width - eyeRegion.frame.origin.x - eyeRegion.frame.width
+        // Transform Eye Region
+        // Mirroring X: The 'left' of the raw image becomes the 'right' of the screen
+        // Raw Rect: x, y, w, h
+        // Mirrored X = ImageWidth - (x + w)
+        let eyeRawX = eyeRegion.frame.origin.x
+        let eyeRawY = eyeRegion.frame.origin.y
+        let eyeRawW = eyeRegion.frame.width
+        let eyeRawH = eyeRegion.frame.height
         
-        let eyeViewX = mirroredX * scale + offsetX
-        let eyeViewY = eyeRegion.frame.origin.y * scale + offsetY
-        let eyeViewWidth = eyeRegion.frame.width * scale
-        let eyeViewHeight = eyeRegion.frame.height * scale
+        // Calculate Screen Coordinates
+        let eyeScreenX = (rawImageWidth - (eyeRawX + eyeRawW)) * scale + offsetX
+        let eyeScreenY = eyeRawY * scale + offsetY
+        let eyeScreenW = eyeRawW * scale
+        let eyeScreenH = eyeRawH * scale
         
-        // Calculate pupil position in view coordinates
-        // pupilPosition is in local eye region coordinates (0 to eyeWidth, 0 to eyeHeight)
-        // Need to mirror the X coordinate within the eye region
-        let mirroredPupilX = eyeRegion.frame.width - pupilPosition.x
-        let pupilViewX = eyeViewX + mirroredPupilX * scale
-        let pupilViewY = eyeViewY + pupilPosition.y * scale
+        // Transform Pupil Position
+        // Global Raw Pupil X = eyeRawX + pupilPosition.x
+        // Global Raw Pupil Y = eyeRawY + pupilPosition.y
+        let pupilGlobalRawX = eyeRawX + pupilPosition.x
+        let pupilGlobalRawY = eyeRawY + pupilPosition.y
+        
+        // Mirror X for Pupil
+        let pupilScreenX = (rawImageWidth - pupilGlobalRawX) * scale + offsetX
+        let pupilScreenY = pupilGlobalRawY * scale + offsetY
         
         return (
-            eyeRect: CGRect(x: eyeViewX, y: eyeViewY, width: eyeViewWidth, height: eyeViewHeight),
-            pupilPoint: CGPoint(x: pupilViewX, y: pupilViewY)
+            eyeRect: CGRect(x: eyeScreenX, y: eyeScreenY, width: eyeScreenW, height: eyeScreenH),
+            pupilPoint: CGPoint(x: pupilScreenX, y: pupilScreenY)
         )
     }
     
@@ -133,6 +162,13 @@ private struct EyeOverlayShape: View {
                 .font(.system(size: 10, weight: .bold))
                 .foregroundColor(color)
                 .position(x: eyeRect.minX + 8, y: eyeRect.minY - 8)
+            
+            // Debug: Show raw coordinates
+            Text("\(label): (\(Int(pupilPosition.x)), \(Int(pupilPosition.y)))")
+                .font(.system(size: 8, design: .monospaced))
+                .foregroundColor(.white)
+                .background(Color.black.opacity(0.7))
+                .position(x: eyeRect.midX, y: eyeRect.maxY + 10)
         }
     }
 }

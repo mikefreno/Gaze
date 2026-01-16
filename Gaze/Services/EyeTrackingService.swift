@@ -824,7 +824,7 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
 
         let imageRequestHandler = VNImageRequestHandler(
             cvPixelBuffer: pixelBuffer,
-            orientation: .leftMirrored,
+            orientation: .upMirrored,
             options: [:]
         )
 

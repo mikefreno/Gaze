@@ -32,7 +32,7 @@ final class ExampleUITests: XCTestCase {
         // For example:
         // XCTAssertEqual(app.windows.count, 1)
         // XCTAssertTrue(app.buttons["Start"].exists)
-        
+
         XCTAssertTrue(true, "UI testing example - this would verify UI elements")
     }
 
@@ -44,3 +44,4 @@ final class ExampleUITests: XCTestCase {
         }
     }
 }
+

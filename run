@@ -107,6 +107,32 @@ print_errors() {
     echo "================================================================================"
 }
 
+# Pretty prints diagnostic warnings from output (LSP and compiler warnings)
+print_warnings() {
+    local output="$1"
+    
+    echo ""
+    echo "⚠️  Diagnostic Warnings:"
+    echo "================================================================================"
+    
+    # Extract Swift compiler warnings in the format: /path/file.swift:line:col: warning: message
+    local warnings
+    warnings=$(echo "$output" | grep -E "\.swift:[0-9]+:[0-9]+: warning:" | sed 's/^/  /')
+    
+    if [ -n "$warnings" ]; then
+        # Count total warnings
+        local count
+        count=$(echo "$warnings" | wc -l | tr -d ' ')
+        echo "  Found $count warning(s):"
+        echo ""
+        echo "$warnings"
+    else
+        echo "  No warnings found."
+    fi
+    
+    echo "================================================================================"
+}
+
 # Launches the built application
 launch_app() {
     local build_dir
@@ -235,6 +261,11 @@ case "$ACTION" in
         if [ $? -eq 0 ]; then
             handle_build_success
             echo "💡 The app is located at: build/Debug/Gaze.app"
+            
+            # Show warnings in verbose mode
+            if [ "$VERBOSE" = true ]; then
+                print_warnings "$COMMAND_OUTPUT"
+            fi
         else
             echo "❌ Build failed!"
             print_errors "$COMMAND_OUTPUT" "Build"
@@ -248,6 +279,11 @@ case "$ACTION" in
         
         if [ $? -eq 0 ]; then
             echo "✅ Tests passed!"
+            
+            # Show warnings in verbose mode
+            if [ "$VERBOSE" = true ]; then
+                print_warnings "$COMMAND_OUTPUT"
+            fi
         else
             echo "❌ Tests failed!"
             print_errors "$COMMAND_OUTPUT" "Test"
@@ -264,6 +300,12 @@ case "$ACTION" in
         
         if [ $? -eq 0 ]; then
             handle_build_success
+            
+            # Show warnings in verbose mode
+            if [ "$VERBOSE" = true ]; then
+                print_warnings "$COMMAND_OUTPUT"
+            fi
+            
             launch_app
         else
             echo "❌ Build failed!"

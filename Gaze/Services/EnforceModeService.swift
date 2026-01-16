@@ -55,38 +55,38 @@ class EnforceModeService: ObservableObject {
         // If settings say it's enabled AND camera is authorized, mark as enabled
         if settingsEnabled && cameraService.isCameraAuthorized {
             isEnforceModeEnabled = true
-            print("✓ Enforce mode initialized as enabled (camera authorized)")
+            logDebug("✓ Enforce mode initialized as enabled (camera authorized)")
         } else {
             isEnforceModeEnabled = false
-            print("🔒 Enforce mode initialized as disabled")
+            logDebug("🔒 Enforce mode initialized as disabled")
         }
     }
 
     func enableEnforceMode() async {
-        print("🔒 enableEnforceMode called")
+        logDebug("🔒 enableEnforceMode called")
         guard !isEnforceModeEnabled else {
-            print("⚠️ Enforce mode already enabled")
+            logError("⚠️ Enforce mode already enabled")
             return
         }
 
         let cameraService = CameraAccessService.shared
         if !cameraService.isCameraAuthorized {
             do {
-                print("🔒 Requesting camera permission...")
+                logDebug("🔒 Requesting camera permission...")
                 try await cameraService.requestCameraAccess()
             } catch {
-                print("⚠️ Failed to get camera permission: \(error.localizedDescription)")
+                logError("⚠️ Failed to get camera permission: \(error.localizedDescription)")
                 return
             }
         }
 
         guard cameraService.isCameraAuthorized else {
-            print("❌ Camera permission denied")
+            logError("❌ Camera permission denied")
             return
         }
 
         isEnforceModeEnabled = true
-        print("✓ Enforce mode enabled (camera will activate before lookaway reminders)")
+        logDebug("✓ Enforce mode enabled (camera will activate before lookaway reminders)")
     }
 
     func disableEnforceMode() {
@@ -95,7 +95,7 @@ class EnforceModeService: ObservableObject {
         stopCamera()
         isEnforceModeEnabled = false
         userCompliedWithBreak = false
-        print("✓ Enforce mode disabled")
+        logDebug("✓ Enforce mode disabled")
     }
 
     func setTimerEngine(_ engine: TimerEngine) {
@@ -118,23 +118,23 @@ class EnforceModeService: ObservableObject {
         guard isEnforceModeEnabled else { return }
         guard !isCameraActive else { return }
 
-        print("👁️ Starting camera for lookaway reminder (T-\(secondsRemaining)s)")
+        logDebug("👁️ Starting camera for lookaway reminder (T-\(secondsRemaining)s)")
 
         do {
             try await eyeTrackingService.startEyeTracking()
             isCameraActive = true
             lastFaceDetectionTime = Date()  // Reset grace period
             startFaceDetectionTimer()
-            print("✓ Camera active")
+            logDebug("✓ Camera active")
         } catch {
-            print("⚠️ Failed to start camera: \(error.localizedDescription)")
+            logError("⚠️ Failed to start camera: \(error.localizedDescription)")
         }
     }
 
     func stopCamera() {
         guard isCameraActive else { return }
 
-        print("👁️ Stopping camera")
+        logDebug("👁️ Stopping camera")
         eyeTrackingService.stopEyeTracking()
         isCameraActive = false
         userCompliedWithBreak = false
@@ -191,7 +191,7 @@ class EnforceModeService: ObservableObject {
 
         // If person has not been detected for too long, temporarily disable enforce mode
         if timeSinceLastDetection > faceDetectionTimeout {
-            print(
+            logDebug(
                 "⏰ Person not detected for \(faceDetectionTimeout)s. Temporarily disabling enforce mode."
             )
             disableEnforceMode()
@@ -210,7 +210,7 @@ class EnforceModeService: ObservableObject {
         guard isEnforceModeEnabled else { return }
         guard !isCameraActive else { return }
 
-        print("🧪 Starting test mode")
+        logDebug("🧪 Starting test mode")
         isTestMode = true
 
         do {
@@ -218,9 +218,9 @@ class EnforceModeService: ObservableObject {
             isCameraActive = true
             lastFaceDetectionTime = Date()  // Reset grace period
             startFaceDetectionTimer()
-            print("✓ Test mode camera active")
+            logDebug("✓ Test mode camera active")
         } catch {
-            print("⚠️ Failed to start test mode camera: \(error.localizedDescription)")
+            logError("⚠️ Failed to start test mode camera: \(error.localizedDescription)")
             isTestMode = false
         }
     }
@@ -228,7 +228,7 @@ class EnforceModeService: ObservableObject {
     func stopTestMode() {
         guard isTestMode else { return }
 
-        print("🧪 Stopping test mode")
+        logDebug("🧪 Stopping test mode")
         stopCamera()
         isTestMode = false
     }

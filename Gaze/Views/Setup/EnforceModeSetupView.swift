@@ -212,14 +212,18 @@ struct EnforceModeSetupView: View {
             let previewLayer = eyeTrackingService.previewLayer ?? cachedPreviewLayer
 
             if let layer = previewLayer {
-                CameraPreviewView(previewLayer: layer, borderColor: borderColor)
-                    .frame(height: 300)
-                    .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-                    .onAppear {
-                        if cachedPreviewLayer == nil {
-                            cachedPreviewLayer = eyeTrackingService.previewLayer
-                        }
+                ZStack(alignment: .topTrailing) {
+                    CameraPreviewView(previewLayer: layer, borderColor: borderColor)
+                    
+                    GazeOverlayView(eyeTrackingService: eyeTrackingService)
+                }
+                .frame(height: 300)
+                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
+                .onAppear {
+                    if cachedPreviewLayer == nil {
+                        cachedPreviewLayer = eyeTrackingService.previewLayer
                     }
+                }
 
                 /*VStack(alignment: .leading, spacing: 12) {*/
                 /*Text("Live Tracking Status")*/

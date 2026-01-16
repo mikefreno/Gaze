@@ -22,6 +22,8 @@ class EyeTrackingService: NSObject, ObservableObject {
     // Debug properties for UI display
     @Published var debugLeftPupilRatio: Double?
     @Published var debugRightPupilRatio: Double?
+    @Published var debugLeftVerticalRatio: Double?
+    @Published var debugRightVerticalRatio: Double?
     @Published var debugYaw: Double?
     @Published var debugPitch: Double?
     @Published var enableDebugLogging: Bool = false {
@@ -29,6 +31,25 @@ class EyeTrackingService: NSObject, ObservableObject {
             // Sync with PupilDetector's diagnostic logging
             PupilDetector.enableDiagnosticLogging = enableDebugLogging
         }
+    }
+    
+    // Computed gaze direction for UI overlay
+    var gazeDirection: GazeDirection {
+        guard let leftH = debugLeftPupilRatio,
+              let rightH = debugRightPupilRatio,
+              let leftV = debugLeftVerticalRatio,
+              let rightV = debugRightVerticalRatio else {
+            return .center
+        }
+        
+        let avgHorizontal = (leftH + rightH) / 2.0
+        let avgVertical = (leftV + rightV) / 2.0
+        
+        return GazeDirection.from(horizontal: avgHorizontal, vertical: avgVertical)
+    }
+    
+    var isInFrame: Bool {
+        faceDetected
     }
 
     // Throttle for debug logging
@@ -71,6 +92,8 @@ class EyeTrackingService: NSObject, ObservableObject {
         var userLookingAtScreen: Bool = true
         var debugLeftPupilRatio: Double?
         var debugRightPupilRatio: Double?
+        var debugLeftVerticalRatio: Double?
+        var debugRightVerticalRatio: Double?
         var debugYaw: Double?
         var debugPitch: Double?
         
@@ -80,6 +103,8 @@ class EyeTrackingService: NSObject, ObservableObject {
             userLookingAtScreen: Bool = true,
             debugLeftPupilRatio: Double? = nil,
             debugRightPupilRatio: Double? = nil,
+            debugLeftVerticalRatio: Double? = nil,
+            debugRightVerticalRatio: Double? = nil,
             debugYaw: Double? = nil,
             debugPitch: Double? = nil
         ) {
@@ -88,6 +113,8 @@ class EyeTrackingService: NSObject, ObservableObject {
             self.userLookingAtScreen = userLookingAtScreen
             self.debugLeftPupilRatio = debugLeftPupilRatio
             self.debugRightPupilRatio = debugRightPupilRatio
+            self.debugLeftVerticalRatio = debugLeftVerticalRatio
+            self.debugRightVerticalRatio = debugRightVerticalRatio
             self.debugYaw = debugYaw
             self.debugPitch = debugPitch
         }
@@ -260,6 +287,8 @@ class EyeTrackingService: NSObject, ObservableObject {
         result.userLookingAtScreen = !gazeResult.lookingAway
         result.debugLeftPupilRatio = gazeResult.leftPupilRatio
         result.debugRightPupilRatio = gazeResult.rightPupilRatio
+        result.debugLeftVerticalRatio = gazeResult.leftVerticalRatio
+        result.debugRightVerticalRatio = gazeResult.rightVerticalRatio
         result.debugYaw = gazeResult.yaw
         result.debugPitch = gazeResult.pitch
 
@@ -302,6 +331,8 @@ class EyeTrackingService: NSObject, ObservableObject {
         var lookingAway: Bool = false
         var leftPupilRatio: Double?
         var rightPupilRatio: Double?
+        var leftVerticalRatio: Double?
+        var rightVerticalRatio: Double?
         var yaw: Double?
         var pitch: Double?
         
@@ -309,12 +340,16 @@ class EyeTrackingService: NSObject, ObservableObject {
             lookingAway: Bool = false,
             leftPupilRatio: Double? = nil,
             rightPupilRatio: Double? = nil,
+            leftVerticalRatio: Double? = nil,
+            rightVerticalRatio: Double? = nil,
             yaw: Double? = nil,
             pitch: Double? = nil
         ) {
             self.lookingAway = lookingAway
             self.leftPupilRatio = leftPupilRatio
             self.rightPupilRatio = rightPupilRatio
+            self.leftVerticalRatio = leftVerticalRatio
+            self.rightVerticalRatio = rightVerticalRatio
             self.yaw = yaw
             self.pitch = pitch
         }
@@ -371,6 +406,8 @@ class EyeTrackingService: NSObject, ObservableObject {
          {
             var leftGazeRatio: Double? = nil
             var rightGazeRatio: Double? = nil
+            var leftVerticalRatio: Double? = nil
+            var rightVerticalRatio: Double? = nil
 
             // Detect left pupil (side = 0)
             if let leftResult = PupilDetector.detectPupil(
@@ -381,6 +418,10 @@ class EyeTrackingService: NSObject, ObservableObject {
                 side: 0
             ) {
                 leftGazeRatio = calculateGazeRatioSync(
+                    pupilPosition: leftResult.pupilPosition,
+                    eyeRegion: leftResult.eyeRegion
+                )
+                leftVerticalRatio = calculateVerticalRatioSync(
                     pupilPosition: leftResult.pupilPosition,
                     eyeRegion: leftResult.eyeRegion
                 )
@@ -398,10 +439,16 @@ class EyeTrackingService: NSObject, ObservableObject {
                     pupilPosition: rightResult.pupilPosition,
                     eyeRegion: rightResult.eyeRegion
                 )
+                rightVerticalRatio = calculateVerticalRatioSync(
+                    pupilPosition: rightResult.pupilPosition,
+                    eyeRegion: rightResult.eyeRegion
+                )
             }
 
             result.leftPupilRatio = leftGazeRatio
             result.rightPupilRatio = rightGazeRatio
+            result.leftVerticalRatio = leftVerticalRatio
+            result.rightVerticalRatio = rightVerticalRatio
 
             // Connect to CalibrationManager on main thread
             if let leftRatio = leftGazeRatio,
@@ -445,6 +492,23 @@ class EyeTrackingService: NSObject, ObservableObject {
         }
 
         let ratio = pupilX / denominator
+        return max(0.0, min(1.0, ratio))
+    }
+    
+    /// Non-isolated vertical gaze ratio calculation
+    /// Returns 0.0 for looking up, 1.0 for looking down, 0.5 for center
+    nonisolated private func calculateVerticalRatioSync(
+        pupilPosition: PupilPosition, eyeRegion: EyeRegion
+    ) -> Double {
+        let pupilY = Double(pupilPosition.y)
+        let eyeTop = Double(eyeRegion.frame.minY)
+        let eyeBottom = Double(eyeRegion.frame.maxY)
+        let eyeHeight = eyeBottom - eyeTop
+        
+        guard eyeHeight > 0 else { return 0.5 }
+        
+        // Normalize: 0.0 = top of eye region, 1.0 = bottom
+        let ratio = (pupilY - eyeTop) / eyeHeight
         return max(0.0, min(1.0, ratio))
     }
 
@@ -660,11 +724,22 @@ class EyeTrackingService: NSObject, ObservableObject {
 }
 
 extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
+    // DEBUG: Frame counter for periodic logging (nonisolated for video callback)
+    private nonisolated(unsafe) static var debugFrameCount = 0
+    
     nonisolated func captureOutput(
         _ output: AVCaptureOutput,
         didOutput sampleBuffer: CMSampleBuffer,
         from connection: AVCaptureConnection
     ) {
+        // DEBUG: Print every 30 frames to show we're receiving video
+        #if DEBUG
+        EyeTrackingService.debugFrameCount += 1
+        if EyeTrackingService.debugFrameCount % 30 == 0 {
+            NSLog("🎥 EyeTrackingService: Received frame %d", EyeTrackingService.debugFrameCount)
+        }
+        #endif
+        
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
             return
         }
@@ -701,6 +776,8 @@ extension EyeTrackingService: AVCaptureVideoDataOutputSampleBufferDelegate {
                 self.userLookingAtScreen = result.userLookingAtScreen
                 self.debugLeftPupilRatio = result.debugLeftPupilRatio
                 self.debugRightPupilRatio = result.debugRightPupilRatio
+                self.debugLeftVerticalRatio = result.debugLeftVerticalRatio
+                self.debugRightVerticalRatio = result.debugRightVerticalRatio
                 self.debugYaw = result.debugYaw
                 self.debugPitch = result.debugPitch
             }

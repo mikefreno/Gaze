@@ -69,6 +69,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
+        
+        // DEBUG: Auto-start eye tracking test mode if launch argument is present
+        #if DEBUG
+        if CommandLine.arguments.contains("--debug-eye-tracking") {
+            NSLog("🔬 DEBUG: Auto-starting eye tracking test mode")
+            Task { @MainActor in
+                // Enable enforce mode if not already
+                if !settingsManager.settings.enforcementMode {
+                    settingsManager.settings.enforcementMode = true
+                }
+                // Start test mode after a brief delay
+                try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second
+                NSLog("🔬 DEBUG: Starting test mode now...")
+                await EnforceModeService.shared.startTestMode()
+                NSLog("🔬 DEBUG: Test mode started")
+            }
+        }
+        #endif
     }
 
     // Note: Smart mode setup is now handled by ServiceContainer

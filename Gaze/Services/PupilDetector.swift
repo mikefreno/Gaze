@@ -31,6 +31,63 @@ struct EyeRegion: Sendable {
     let origin: CGPoint
 }
 
+/// 9-point gaze direction grid
+enum GazeDirection: String, Sendable, CaseIterable {
+    case upLeft = "↖"
+    case up = "↑"
+    case upRight = "↗"
+    case left = "←"
+    case center = "●"
+    case right = "→"
+    case downLeft = "↙"
+    case down = "↓"
+    case downRight = "↘"
+    
+    /// Thresholds for direction detection
+    /// Horizontal: 0.0 = looking right (from camera POV), 1.0 = looking left
+    /// Vertical: 0.0 = looking up, 1.0 = looking down
+    private static let horizontalLeftThreshold = 0.55   // Above this = looking left
+    private static let horizontalRightThreshold = 0.45  // Below this = looking right
+    private static let verticalUpThreshold = 0.40       // Below this = looking up
+    private static let verticalDownThreshold = 0.60     // Above this = looking down
+    
+    static func from(horizontal: Double, vertical: Double) -> GazeDirection {
+        let isLeft = horizontal > horizontalLeftThreshold
+        let isRight = horizontal < horizontalRightThreshold
+        let isUp = vertical < verticalUpThreshold
+        let isDown = vertical > verticalDownThreshold
+        
+        if isUp {
+            if isLeft { return .upLeft }
+            if isRight { return .upRight }
+            return .up
+        } else if isDown {
+            if isLeft { return .downLeft }
+            if isRight { return .downRight }
+            return .down
+        } else {
+            if isLeft { return .left }
+            if isRight { return .right }
+            return .center
+        }
+    }
+    
+    /// Grid position (0-2 for x and y)
+    var gridPosition: (x: Int, y: Int) {
+        switch self {
+        case .upLeft: return (0, 0)
+        case .up: return (1, 0)
+        case .upRight: return (2, 0)
+        case .left: return (0, 1)
+        case .center: return (1, 1)
+        case .right: return (2, 1)
+        case .downLeft: return (0, 2)
+        case .down: return (1, 2)
+        case .downRight: return (2, 2)
+        }
+    }
+}
+
 /// Calibration state for adaptive thresholding (matches Python Calibration class)
 final class PupilCalibration: @unchecked Sendable {
     private let lock = NSLock()
@@ -48,7 +105,8 @@ final class PupilCalibration: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let thresholds = side == 0 ? thresholdsLeft : thresholdsRight
-        guard !thresholds.isEmpty else { return 50 }
+        // DEBUG: Use higher default threshold (was 50)
+        guard !thresholds.isEmpty else { return 90 }
         return thresholds.reduce(0, +) / thresholds.count
     }
 
@@ -147,9 +205,16 @@ final class PupilDetector: @unchecked Sendable {
 
     // MARK: - Configuration
 
-    nonisolated(unsafe) static var enableDebugImageSaving = false
+    nonisolated(unsafe) static var enableDebugImageSaving: Bool = false  // Disabled - causes sandbox errors
     nonisolated(unsafe) static var enablePerformanceLogging = false
-    nonisolated(unsafe) static var enableDiagnosticLogging = false
+    nonisolated(unsafe) static var enableDiagnosticLogging = false  // Disabled - pupil detection now working
+    nonisolated(unsafe) static var enableDebugLogging: Bool {
+        #if DEBUG
+            return true
+        #else
+            return false
+        #endif
+    }
     nonisolated(unsafe) static var frameSkipCount = 10  // Process every Nth frame
 
     // MARK: - State (protected by lock)
@@ -240,7 +305,6 @@ final class PupilDetector: @unchecked Sendable {
         side: Int = 0,
         threshold: Int? = nil
     ) -> (pupilPosition: PupilPosition, eyeRegion: EyeRegion)? {
-
         // Frame skipping - return cached result
         if frameCounter % frameSkipCount != 0 {
             let cachedPosition = side == 0 ? lastPupilPositions.left : lastPupilPositions.right
@@ -363,6 +427,38 @@ final class PupilDetector: @unchecked Sendable {
         }
 
         // Step 7: Process image (bilateral filter + erosion + threshold)
+        if enableDiagnosticLogging {
+            logDebug(
+                "👁 PupilDetector: Using threshold=\(effectiveThreshold) for \(eyeWidth)x\(eyeHeight) eye region"
+            )
+        }
+
+        // Debug: Save input eye image before processing
+        if enableDebugImageSaving && debugImageCounter < 20 {
+            NSLog("📸 Saving eye_input_%d - %dx%d, side=%d, region=(%.0f,%.0f,%.0f,%.0f)", 
+                  debugImageCounter, eyeWidth, eyeHeight, side,
+                  eyeRegion.frame.origin.x, eyeRegion.frame.origin.y,
+                  eyeRegion.frame.width, eyeRegion.frame.height)
+            
+            // Debug: Print pixel value statistics for input
+            var minVal: UInt8 = 255, maxVal: UInt8 = 0
+            var sum: Int = 0
+            var darkCount = 0  // pixels <= 90
+            for i in 0..<(eyeWidth * eyeHeight) {
+                let v = eyeBuf[i]
+                if v < minVal { minVal = v }
+                if v > maxVal { maxVal = v }
+                sum += Int(v)
+                if v <= 90 { darkCount += 1 }
+            }
+            let avgVal = Double(sum) / Double(eyeWidth * eyeHeight)
+            NSLog("📊 Eye input stats: min=%d, max=%d, avg=%.1f, darkPixels(<=90)=%d", minVal, maxVal, avgVal, darkCount)
+            
+            saveDebugImage(
+                data: eyeBuf, width: eyeWidth, height: eyeHeight,
+                name: "eye_input_\(debugImageCounter)")
+        }
+
         imageProcessingOptimized(
             input: eyeBuf,
             output: tmpBuf,
@@ -373,6 +469,15 @@ final class PupilDetector: @unchecked Sendable {
 
         // Debug: Save processed images if enabled
         if enableDebugImageSaving && debugImageCounter < 10 {
+            // Debug: Print pixel value statistics for output
+            var darkCount = 0  // pixels == 0 (black)
+            var whiteCount = 0  // pixels == 255 (white)
+            for i in 0..<(eyeWidth * eyeHeight) {
+                if tmpBuf[i] == 0 { darkCount += 1 }
+                else if tmpBuf[i] == 255 { whiteCount += 1 }
+            }
+            NSLog("📊 Processed output stats: darkPixels=%d, whitePixels=%d", darkCount, whiteCount)
+            
             saveDebugImage(
                 data: tmpBuf, width: eyeWidth, height: eyeHeight,
                 name: "processed_eye_\(debugImageCounter)")
@@ -388,17 +493,13 @@ final class PupilDetector: @unchecked Sendable {
             )
         else {
             if enableDiagnosticLogging {
-                logDebug(
-                    "👁 PupilDetector: Failed - findPupilFromContours returned nil (not enough dark pixels)"
-                )
+                logDebug("👁 PupilDetector: Failed - findPupilFromContours returned nil (not enough dark pixels) for side \(side)")
             }
             return nil
         }
 
         if enableDiagnosticLogging {
-            logDebug(
-                "👁 PupilDetector: Success - centroid at (\(String(format: "%.1f", centroidX)), \(String(format: "%.1f", centroidY))) in \(eyeWidth)x\(eyeHeight) region"
-            )
+            logDebug("👁 PupilDetector: Success side=\(side) - centroid at (\(String(format: "%.1f", centroidX)), \(String(format: "%.1f", centroidY))) in \(eyeWidth)x\(eyeHeight) region")
         }
 
         let pupilPosition = PupilPosition(x: CGFloat(centroidX), y: CGFloat(centroidY))
@@ -539,7 +640,7 @@ final class PupilDetector: @unchecked Sendable {
 
         guard eyeWidth > 0, eyeHeight > 0 else { return false }
 
-        // Initialize to white (masked out)
+        // Initialize to WHITE (255) - masked pixels should be bright so they don't affect pupil detection
         memset(output, 255, eyeWidth * eyeHeight)
 
         // Convert eye points to local coordinates
@@ -600,20 +701,10 @@ final class PupilDetector: @unchecked Sendable {
         let size = width * height
         guard size > 0 else { return }
 
-        // Use a working buffer for intermediate results
-        let workBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: size)
-        defer { workBuffer.deallocate() }
-
-        // 1. Fast Gaussian blur using vImage (replaces expensive bilateral filter)
-        gaussianBlurOptimized(input: input, output: workBuffer, width: width, height: height)
-
-        // 2. Erosion with vImage (3 iterations)
-        erodeOptimized(
-            input: workBuffer, output: output, width: width, height: height, iterations: 3)
-
-        // 3. Simple binary threshold (no vDSP overhead for small buffers)
+        // SIMPLIFIED: Skip blur to avoid contaminating dark pupil pixels with bright mask pixels
+        // Apply binary threshold directly to input
         for i in 0..<size {
-            output[i] = output[i] > UInt8(threshold) ? 255 : 0
+            output[i] = input[i] > UInt8(threshold) ? 255 : 0
         }
     }
 
@@ -722,45 +813,35 @@ final class PupilDetector: @unchecked Sendable {
         height: Int
     ) -> (x: Double, y: Double)? {
 
-        // Optimized approach: find centroid of all black pixels with early exit
+        // Optimized approach: find centroid of all black pixels
         // This works well for pupil detection since the pupil is the main dark blob
 
-        // Use a more efficient approach that doesn't iterate through entire image
         var sumX: Int = 0
         var sumY: Int = 0
         var count: Int = 0
 
-        // Early exit if we already know this isn't going to be useful
-        let threshold = UInt8(5)  // Only consider pixels that are quite dark
+        // After binary thresholding, pixels are 0 (black/pupil) or 255 (white/background)
+        // Use threshold of 128 to catch any pixels that are closer to black
+        let threshold = UInt8(128)
 
-        // Process in chunks for better cache performance
-        let chunkSize = 16
-        var rowsProcessed = 0
-
-        while rowsProcessed < height {
-            let endRow = min(rowsProcessed + chunkSize, height)
-
-            for y in rowsProcessed..<endRow {
-                let rowOffset = y * width
-                for x in 0..<width {
-                    // Only process dark pixels that are likely to be pupil
-                    if data[rowOffset + x] <= threshold {
-                        sumX += x
-                        sumY += y
-                        count += 1
-                    }
+        // Process entire image to get accurate centroid
+        for y in 0..<height {
+            let rowOffset = y * width
+            for x in 0..<width {
+                if data[rowOffset + x] < threshold {
+                    sumX += x
+                    sumY += y
+                    count += 1
                 }
-            }
-
-            rowsProcessed = endRow
-
-            // Early exit if we've found enough pixels for a reasonable estimate
-            if count > 25 {  // Early termination condition
-                break
             }
         }
 
-        guard count > 10 else { return nil }  // Need minimum pixels for valid pupil
+        if enableDiagnosticLogging && count < 5 {
+            logDebug("👁 PupilDetector: Dark pixel count = \(count) (need >= 5)")
+        }
+
+        // Minimum 5 pixels for valid pupil (reduced from 10 for small eye regions)
+        guard count >= 5 else { return nil }
 
         return (
             x: Double(sumX) / Double(count),
@@ -775,11 +856,14 @@ final class PupilDetector: @unchecked Sendable {
         faceBoundingBox: CGRect,
         imageSize: CGSize
     ) -> [CGPoint] {
+        // Vision uses bottom-left origin (normalized 0-1), CVPixelBuffer uses top-left
+        // We need to flip Y: flippedY = 1.0 - y
         return landmarks.normalizedPoints.map { point in
             let imageX =
                 (faceBoundingBox.origin.x + point.x * faceBoundingBox.width) * imageSize.width
-            let imageY =
-                (faceBoundingBox.origin.y + point.y * faceBoundingBox.height) * imageSize.height
+            // Flip Y coordinate for pixel buffer coordinate system
+            let flippedY = 1.0 - (faceBoundingBox.origin.y + point.y * faceBoundingBox.height)
+            let imageY = flippedY * imageSize.height
             return CGPoint(x: imageX, y: imageY)
         }
     }
@@ -830,17 +914,27 @@ final class PupilDetector: @unchecked Sendable {
     private nonisolated static func saveDebugImage(
         data: UnsafePointer<UInt8>, width: Int, height: Int, name: String
     ) {
-        guard let cgImage = createCGImage(from: data, width: width, height: height) else { return }
+        guard let cgImage = createCGImage(from: data, width: width, height: height) else {
+            NSLog("⚠️ PupilDetector: createCGImage failed for %@ (%dx%d)", name, width, height)
+            return
+        }
 
-        let url = URL(fileURLWithPath: "/tmp/\(name).png")
+        let url = URL(fileURLWithPath: "/tmp/gaze_debug/\(name).png")
         guard
             let destination = CGImageDestinationCreateWithURL(
                 url as CFURL, UTType.png.identifier as CFString, 1, nil)
-        else { return }
+        else {
+            NSLog("⚠️ PupilDetector: CGImageDestinationCreateWithURL failed for %@", url.path)
+            return
+        }
 
         CGImageDestinationAddImage(destination, cgImage, nil)
-        CGImageDestinationFinalize(destination)
-        logDebug("💾 Saved debug image: \(url.path)")
+        let success = CGImageDestinationFinalize(destination)
+        if success {
+            NSLog("💾 Saved debug image: %@", url.path)
+        } else {
+            NSLog("⚠️ PupilDetector: CGImageDestinationFinalize failed for %@", url.path)
+        }
     }
 
     private nonisolated static func createCGImage(
@@ -848,24 +942,39 @@ final class PupilDetector: @unchecked Sendable {
     )
         -> CGImage?
     {
-        let mutableData = UnsafeMutablePointer<UInt8>.allocate(capacity: width * height)
-        defer { mutableData.deallocate() }
-        memcpy(mutableData, data, width * height)
-
-        guard
-            let context = CGContext(
-                data: mutableData,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: width,
-                space: CGColorSpaceCreateDeviceGray(),
-                bitmapInfo: CGImageAlphaInfo.none.rawValue
-            )
-        else {
+        guard width > 0 && height > 0 else {
+            print("⚠️ PupilDetector: Invalid dimensions \(width)x\(height)")
             return nil
         }
-        return context.makeImage()
+
+        // Create a Data object that copies the pixel data
+        let pixelData = Data(bytes: data, count: width * height)
+
+        // Create CGImage from the data using CGDataProvider
+        guard let provider = CGDataProvider(data: pixelData as CFData) else {
+            print("⚠️ PupilDetector: CGDataProvider creation failed")
+            return nil
+        }
+
+        let cgImage = CGImage(
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bitsPerPixel: 8,
+            bytesPerRow: width,
+            space: CGColorSpaceCreateDeviceGray(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.none.rawValue),
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        )
+
+        if cgImage == nil {
+            print("⚠️ PupilDetector: CGImage creation failed")
+        }
+
+        return cgImage
     }
 
     /// Clean up allocated buffers (call on app termination if needed)

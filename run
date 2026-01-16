@@ -147,7 +147,7 @@ launch_app() {
 
         sleep 2
         echo "================================================================"
-        /usr/bin/log stream --predicate "subsystem contains \"$APP_SUBSYSTEM\"" \
+        /usr/bin/log stream --level debug --predicate "subsystem contains \"$APP_SUBSYSTEM\"" \
             --style compact 2>/dev/null
     else
         echo "⚠️  App not found at expected location, trying fallback..."

@@ -58,28 +58,28 @@ final class LoggingManager {
     func debug(_ message: String, category: String = "General") {
         guard isLoggingEnabled else { return }
         let logger = Logger(subsystem: subsystem, category: category)
-        logger.debug("\(message)")
+        logger.debug("\(message, privacy: .public)")
     }
 
     /// Convenience method for info logging
     func info(_ message: String, category: String = "General") {
         guard isLoggingEnabled else { return }
         let logger = Logger(subsystem: subsystem, category: category)
-        logger.info("\(message)")
+        logger.info("\(message, privacy: .public)")
     }
 
     /// Convenience method for error logging
     func error(_ message: String, category: String = "General") {
         guard isLoggingEnabled else { return }
         let logger = Logger(subsystem: subsystem, category: category)
-        logger.error("\(message)")
+        logger.error("\(message, privacy: .public)")
     }
 
     /// Convenience method for warning logging
     func warning(_ message: String, category: String = "General") {
         guard isLoggingEnabled else { return }
         let logger = Logger(subsystem: subsystem, category: category)
-        logger.warning("\(message)")
+        logger.warning("\(message, privacy: .public)")
     }
 }
 

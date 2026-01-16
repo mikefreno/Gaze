@@ -88,24 +88,27 @@ struct MenuBarContentView: View {
                         .padding(.horizontal)
                         .padding(.top, 8)
 
-                    ForEach(getSortedTimerIdentifiers(timerEngine: timerEngine), id: \.self) {
+                    ForEach(
+                        timerEngine.map { getSortedTimerIdentifiers(timerEngine: $0) } ?? [],
+                        id: \.self
+                    ) {
                         identifier in
-                        if timerEngine.timerStates[identifier] != nil {
+                        if let engine = timerEngine, engine.timerStates[identifier] != nil {
                             TimerStatusRowWithIndividualControls(
                                 identifier: identifier,
-                                timerEngine: timerEngine,
+                                timerEngine: engine,
                                 settingsManager: settingsManager,
                                 onSkip: {
-                                    timerEngine.skipNext(identifier: identifier)
+                                    engine.skipNext(identifier: identifier)
                                 },
                                 onDevTrigger: {
-                                    timerEngine.triggerReminder(for: identifier)
+                                    engine.triggerReminder(for: identifier)
                                 },
                                 onTogglePause: { isPaused in
                                     if isPaused {
-                                        timerEngine.pauseTimer(identifier: identifier)
+                                        engine.pauseTimer(identifier: identifier)
                                     } else {
-                                        timerEngine.resumeTimer(identifier: identifier)
+                                        engine.resumeTimer(identifier: identifier)
                                     }
                                 },
                                 onTap: {
@@ -127,18 +130,21 @@ struct MenuBarContentView: View {
                 // Controls
                 VStack(spacing: 4) {
                     Button(action: {
-                        if isAllPaused(timerEngine: timerEngine) {
-                            timerEngine.resume()
-                        } else {
-                            timerEngine.pause()
+                        if let engine = timerEngine {
+                            if isAllPaused(timerEngine: engine) {
+                                engine.resume()
+                            } else {
+                                engine.pause()
+                            }
                         }
                     }) {
                         HStack {
                             Image(
-                                systemName: isAllPaused(timerEngine: timerEngine)
+                                systemName: timerEngine.map { isAllPaused(timerEngine: $0) }
+                                    ?? false
                                     ? "play.circle" : "pause.circle")
                             Text(
-                                isAllPaused(timerEngine: timerEngine)
+                                timerEngine.map { isAllPaused(timerEngine: $0) } ?? false
                                     ? "Resume All Timers" : "Pause All Timers")
                             Spacer()
                         }
@@ -217,14 +223,16 @@ struct MenuBarContentView: View {
         }
     }
 
-    private func isAllPaused(timerEngine: TimerEngine) -> Bool {
+    private func isAllPaused(timerEngine: TimerEngine?) -> Bool {
         // Check if all timers are paused
-        let activeStates = timerEngine.timerStates.values.filter { $0.isActive }
+        guard let engine = timerEngine else { return false }
+        let activeStates = engine.timerStates.values.filter { $0.isActive }
         return !activeStates.isEmpty && activeStates.allSatisfy { $0.isPaused }
     }
 
-    private func getSortedTimerIdentifiers(timerEngine: TimerEngine) -> [TimerIdentifier] {
-        return timerEngine.timerStates.keys.sorted { id1, id2 in
+    private func getSortedTimerIdentifiers(timerEngine: TimerEngine?) -> [TimerIdentifier] {
+        guard let engine = timerEngine else { return [] }
+        return engine.timerStates.keys.sorted { id1, id2 in
             // Sort built-in timers before user timers
             switch (id1, id2) {
             case (.builtIn(let t1), .builtIn(let t2)):

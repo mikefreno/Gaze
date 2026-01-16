@@ -90,6 +90,9 @@ final class SettingsWindowPresenter {
             Task { @MainActor [weak self] in
                 self?.windowController = nil
                 self?.removeCloseObserver()
+                
+                // Notify AppDelegate that settings window closed
+                NotificationCenter.default.post(name: Notification.Name("SettingsWindowDidClose"), object: nil)
             }
         }
     }
@@ -206,11 +209,10 @@ struct SettingsWindowView: View {
 
     #if DEBUG
         private func retriggerOnboarding() {
-            OnboardingWindowPresenter.shared.close()
             SettingsWindowPresenter.shared.close()
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                OnboardingWindowPresenter.shared.show(settingsManager: self.settingsManager)
+                settingsManager.settings.hasCompletedOnboarding = false
             }
         }
     #endif

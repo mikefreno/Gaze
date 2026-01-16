@@ -39,8 +39,16 @@ final class OnboardingWindowPresenter {
             windowController = nil
             return false
         }
+        
+        // Ensure the window is brought to front and focused properly for menu bar apps
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+        
+        // Additional focus handling for menu bar applications
+        if let window = windowController?.window {
+            window.makeMain()
+        }
+        
         return true
     }
 
@@ -88,6 +96,9 @@ final class OnboardingWindowPresenter {
                 NotificationCenter.default.removeObserver(closeObserver)
             }
             self?.closeObserver = nil
+            
+            // Notify AppDelegate that onboarding window closed
+            NotificationCenter.default.post(name: Notification.Name("OnboardingWindowDidClose"), object: nil)
         }
     }
 

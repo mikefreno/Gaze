@@ -102,20 +102,13 @@ launch_app() {
     if [ -d "$app_path" ]; then
         echo "🚀 Launching: $app_path"
         
-        if [ "$VERBOSE" = true ]; then
-            echo "📝 Capturing application logs in terminal (Ctrl+C to stop)..."
-            open "$app_path" &
-            sleep 2
-            
-            echo "Logs from Gaze.app will appear below (Ctrl+C to stop):"
-            echo "================================================================"
-            /usr/bin/log stream --predicate "subsystem contains \"$APP_SUBSYSTEM\"" \
-                --style compact 2>/dev/null
-            echo "================================================================"
-            echo "Application runtime logging stopped."
-        else
-            open "$app_path"
-        fi
+        echo "📝 Capturing application logs (Ctrl+C to stop - won't kill app)..."
+        open "$app_path" &
+
+        sleep 2
+        echo "================================================================"
+        /usr/bin/log stream --predicate "subsystem contains \"$APP_SUBSYSTEM\"" \
+            --style compact 2>/dev/null
     else
         echo "⚠️  App not found at expected location, trying fallback..."
         open "$HOME/Library/Developer/Xcode/DerivedData/Gaze-*/Build/Products/Debug/Gaze.app"
@@ -205,8 +198,6 @@ done
 # Default to run if no action specified
 if [ -z "$ACTION" ]; then
     ACTION="run"
-    # Default run action is always verbose with full logging
-    VERBOSE=true
 fi
 
 # Main execution

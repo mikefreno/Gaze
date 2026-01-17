@@ -144,7 +144,7 @@ struct GazeThresholds: Codable {
             screenRightBound: 0.20,  // Right edge of screen
             screenTopBound: 0.35,    // Top edge of screen
             screenBottomBound: 0.55, // Bottom edge of screen
-            referenceFaceWidth: 0.0  // 0.0 means unused/uncalibrated
+            referenceFaceWidth: 0.4566  // Measured from test videos (avg of inner/outer)
         )
     }
 }

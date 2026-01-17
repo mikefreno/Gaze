@@ -32,9 +32,12 @@ final class OnboardingWindowPresenter {
 
     private weak var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
+    private var isShowingWindow = false
 
     func show(settingsManager: SettingsManager) {
         if activateIfPresent() { return }
+        guard !isShowingWindow else { return }
+        isShowingWindow = true
         createWindow(settingsManager: settingsManager)
     }
 
@@ -44,15 +47,26 @@ final class OnboardingWindowPresenter {
             windowController = nil
             return false
         }
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
-        window.makeMain()
+        
+        DispatchQueue.main.async {
+            NSApp.unhide(nil)
+            NSApp.activate(ignoringOtherApps: true)
+
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            window.makeMain()
+        }
         return true
     }
 
     func close() {
         windowController?.close()
         windowController = nil
+        isShowingWindow = false
         removeCloseObserver()
     }
 
@@ -69,14 +83,18 @@ final class OnboardingWindowPresenter {
         window.titlebarAppearsTransparent = true
         window.center()
         window.isReleasedWhenClosed = true
+        window.collectionBehavior = [.managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary]
+
         window.contentView = NSHostingView(
             rootView: OnboardingContainerView(settingsManager: settingsManager)
         )
 
         let controller = NSWindowController(window: window)
         controller.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
+        NSApp.unhide(nil)
         NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
 
         windowController = controller
 
@@ -88,6 +106,7 @@ final class OnboardingWindowPresenter {
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.windowController = nil
+                self?.isShowingWindow = false
                 self?.removeCloseObserver()
             }
             NotificationCenter.default.post(

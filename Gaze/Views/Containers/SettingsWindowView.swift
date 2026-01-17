@@ -13,9 +13,12 @@ final class SettingsWindowPresenter {
 
     private weak var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
+    private var isShowingWindow = false
 
     func show(settingsManager: SettingsManager, initialTab: Int = 0) {
         if focusExistingWindow(tab: initialTab) { return }
+        guard !isShowingWindow else { return }
+        isShowingWindow = true
         createWindow(settingsManager: settingsManager, initialTab: initialTab)
     }
 
@@ -26,6 +29,7 @@ final class SettingsWindowPresenter {
     func close() {
         windowController?.close()
         windowController = nil
+        isShowingWindow = false
         removeCloseObserver()
     }
 
@@ -36,15 +40,24 @@ final class SettingsWindowPresenter {
             return false
         }
 
-        if let tab {
-            NotificationCenter.default.post(
-                name: Notification.Name("SwitchToSettingsTab"),
-                object: tab
-            )
-        }
+        DispatchQueue.main.async {
+            if let tab {
+                NotificationCenter.default.post(
+                    name: Notification.Name("SwitchToSettingsTab"),
+                    object: tab
+                )
+            }
 
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+            NSApp.unhide(nil)
+            NSApp.activate(ignoringOtherApps: true)
+
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+        }
         return true
     }
 
@@ -65,14 +78,18 @@ final class SettingsWindowPresenter {
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
 
+        window.collectionBehavior = [.managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary]
+        
         window.contentView = NSHostingView(
             rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: initialTab)
         )
 
         let controller = NSWindowController(window: window)
         controller.showWindow(nil)
-        window.makeKeyAndOrderFront(nil)
+        NSApp.unhide(nil)
         NSApp.activate(ignoringOtherApps: true)
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
 
         windowController = controller
 
@@ -84,10 +101,12 @@ final class SettingsWindowPresenter {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.windowController = nil
+                self?.isShowingWindow = false
                 self?.removeCloseObserver()
                 NotificationCenter.default.post(
                     name: Notification.Name("SettingsWindowDidClose"), object: nil)
             }
+            self?.isShowingWindow = false
         }
     }
 

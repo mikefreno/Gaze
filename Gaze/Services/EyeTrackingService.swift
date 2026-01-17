@@ -535,8 +535,23 @@ class EyeTrackingService: NSObject, ObservableObject {
                     
                 } else {
                     // Fallback to default constants (no calibration)
-                    let lookingRight = avgH <= EyeTrackingConstants.pixelGazeMinRatio
-                    let lookingLeft = avgH >= EyeTrackingConstants.pixelGazeMaxRatio
+                    // Still apply distance scaling using default reference
+                    let currentFaceWidth = face.boundingBox.width
+                    let refFaceWidth = EyeTrackingConstants.defaultReferenceFaceWidth
+                    
+                    var distanceScale = 1.0
+                    if refFaceWidth > 0 && currentFaceWidth > 0 {
+                        let rawScale = refFaceWidth / currentFaceWidth
+                        distanceScale = 1.0 + (rawScale - 1.0) * EyeTrackingConstants.distanceSensitivity
+                        distanceScale = max(0.5, min(2.0, distanceScale))
+                    }
+                    
+                    // Center is assumed at midpoint of the thresholds
+                    let centerH = (EyeTrackingConstants.pixelGazeMinRatio + EyeTrackingConstants.pixelGazeMaxRatio) / 2.0
+                    let normalizedH = centerH + (avgH - centerH) * distanceScale
+                    
+                    let lookingRight = normalizedH <= EyeTrackingConstants.pixelGazeMinRatio
+                    let lookingLeft = normalizedH >= EyeTrackingConstants.pixelGazeMaxRatio
                     eyesLookingAway = lookingRight || lookingLeft
                 }
             }

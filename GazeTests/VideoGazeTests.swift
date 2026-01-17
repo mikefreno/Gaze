@@ -18,6 +18,13 @@ final class VideoGazeTests: XCTestCase {
         logLines.append(message)
     }
     
+    private func attachLogs() {
+        let attachment = XCTAttachment(string: logLines.joined(separator: "\n"))
+        attachment.name = "Test Logs"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+    
     /// Process the outer video (looking away from screen) - should detect "looking away"
     func testOuterVideoGazeDetection() async throws {
         logLines = []
@@ -34,6 +41,9 @@ final class VideoGazeTests: XCTestCase {
         log("🎯 OUTER video: \(String(format: "%.1f%%", nonCenterRatio * 100)) frames detected as non-center (expected: >50%)")
         log("   H-range: \(String(format: "%.3f", stats.minH)) to \(String(format: "%.3f", stats.maxH))")
         log("   V-range: \(String(format: "%.3f", stats.minV)) to \(String(format: "%.3f", stats.maxV))")
+        log("   Face width: \(String(format: "%.3f", stats.avgFaceWidth)) (range: \(String(format: "%.3f", stats.minFaceWidth))-\(String(format: "%.3f", stats.maxFaceWidth)))")
+        
+        attachLogs()
         
         // At least 50% should be detected as non-center when looking away
         XCTAssertGreaterThan(nonCenterRatio, 0.5, "Looking away video should have >50% non-center detections. Log:\n\(logLines.joined(separator: "\n"))")
@@ -55,6 +65,9 @@ final class VideoGazeTests: XCTestCase {
         log("🎯 INNER video: \(String(format: "%.1f%%", centerRatio * 100)) frames detected as center (expected: >50%)")
         log("   H-range: \(String(format: "%.3f", stats.minH)) to \(String(format: "%.3f", stats.maxH))")
         log("   V-range: \(String(format: "%.3f", stats.minV)) to \(String(format: "%.3f", stats.maxV))")
+        log("   Face width: \(String(format: "%.3f", stats.avgFaceWidth)) (range: \(String(format: "%.3f", stats.minFaceWidth))-\(String(format: "%.3f", stats.maxFaceWidth)))")
+        
+        attachLogs()
         
         // At least 50% should be detected as center when looking at screen
         XCTAssertGreaterThan(centerRatio, 0.5, "Looking at screen video should have >50% center detections. Log:\n\(logLines.joined(separator: "\n"))")
@@ -70,6 +83,14 @@ final class VideoGazeTests: XCTestCase {
         var maxH = -Double.greatestFiniteMagnitude
         var minV = Double.greatestFiniteMagnitude
         var maxV = -Double.greatestFiniteMagnitude
+        var minFaceWidth = Double.greatestFiniteMagnitude
+        var maxFaceWidth = -Double.greatestFiniteMagnitude
+        var totalFaceWidth = 0.0
+        var faceWidthCount = 0
+        
+        var avgFaceWidth: Double {
+            faceWidthCount > 0 ? totalFaceWidth / Double(faceWidthCount) : 0
+        }
     }
     
     private func processVideo(at url: URL, expectLookingAway: Bool) async throws -> VideoStats {
@@ -159,6 +180,13 @@ final class VideoGazeTests: XCTestCase {
             
             stats.faceDetectedFrames += 1
             
+            // Track face width (bounding box width as ratio of image width)
+            let faceWidth = face.boundingBox.width
+            stats.minFaceWidth = min(stats.minFaceWidth, faceWidth)
+            stats.maxFaceWidth = max(stats.maxFaceWidth, faceWidth)
+            stats.totalFaceWidth += faceWidth
+            stats.faceWidthCount += 1
+            
             let imageSize = CGSize(
                 width: CVPixelBufferGetWidth(pixelBuffer),
                 height: CVPixelBufferGetHeight(pixelBuffer)
@@ -220,6 +248,7 @@ final class VideoGazeTests: XCTestCase {
         log(String(repeating: "=", count: 75))
         log("Summary: \(stats.totalFrames) frames sampled, \(stats.faceDetectedFrames) with face, \(stats.pupilDetectedFrames) with pupils")
         log("Center frames: \(stats.centerFrames), Non-center: \(stats.nonCenterFrames)")
+        log("Face width: avg=\(String(format: "%.3f", stats.avgFaceWidth)), range=\(String(format: "%.3f", stats.minFaceWidth)) to \(String(format: "%.3f", stats.maxFaceWidth))")
         log("Processing complete\n")
         
         return stats

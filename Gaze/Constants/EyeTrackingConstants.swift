@@ -76,6 +76,11 @@ enum EyeTrackingConstants: Sendable {
     /// > 1.0 = More aggressive scaling
     static let distanceSensitivity: Double = 1.0
     
+    /// Default reference face width for distance scaling when uncalibrated.
+    /// Measured from test videos at typical laptop distance (~60cm).
+    /// Face bounding box width as ratio of image width.
+    static let defaultReferenceFaceWidth: Double = 0.4566
+    
     /// Minimum confidence required for a valid pupil detection before updating the gaze average.
     /// Helps filter out blinks or noisy frames.
     static let minimumGazeConfidence: Int = 3 // consecutive valid frames

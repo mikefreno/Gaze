@@ -17,8 +17,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var updateManager: UpdateManager?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
-    private var isSettingsWindowOpen = false
-    private var isOnboardingWindowOpen = false
 
     // Convenience accessor for settings
     private var settingsManager: any SettingsProviding {
@@ -51,11 +49,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         serviceContainer.setupSmartModeServices()
 
-        // Check if onboarding needs to be shown automatically
-        if !settingsManager.settings.hasCompletedOnboarding {
-            // Set the flag to indicate we expect an onboarding window
-            isOnboardingWindowOpen = true
-        }
 
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
@@ -228,45 +221,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
 
+    private let menuDismissalDelay: TimeInterval = 0.1
+
     func openSettings(tab: Int = 0) {
-        // If settings window is already open, focus it instead of opening new one
-        if isSettingsWindowOpen {
-            // Try to focus existing window
-            DispatchQueue.main.async {
-                NotificationCenter.default.post(
-                    name: Notification.Name("SwitchToSettingsTab"),
-                    object: tab
-                )
-            }
-            return
-        }
-
-        handleMenuDismissal()
-        isSettingsWindowOpen = true
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        performAfterMenuDismissal { [weak self] in
             guard let self else { return }
-            windowManager.showSettings(settingsManager: self.settingsManager, initialTab: tab)
+            self.windowManager.showSettings(settingsManager: self.settingsManager, initialTab: tab)
         }
     }
 
     func openOnboarding() {
-        // If onboarding window is already open, focus it instead of opening new one
-        if isOnboardingWindowOpen {
-            // Try to activate existing window
-            DispatchQueue.main.async {
-                OnboardingWindowPresenter.shared.activateIfPresent()
-            }
-            return
-        }
-
-        handleMenuDismissal()
-        // Explicitly set the flag to true when we're about to show the onboarding window
-        isOnboardingWindowOpen = true
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        performAfterMenuDismissal { [weak self] in
             guard let self else { return }
-            windowManager.showOnboarding(settingsManager: self.settingsManager)
+            self.windowManager.showOnboarding(settingsManager: self.settingsManager)
         }
     }
 
@@ -275,8 +242,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         windowManager.dismissOverlayReminder()
     }
 
+    private func performAfterMenuDismissal(_ action: @escaping () -> Void) {
+        handleMenuDismissal()
+        DispatchQueue.main.asyncAfter(deadline: .now() + menuDismissalDelay) {
+            action()
+        }
+    }
+
     private func setupWindowCloseObservers() {
-        // Observe settings window closing
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(settingsWindowDidClose),
@@ -284,7 +257,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             object: nil
         )
 
-        // Observe onboarding window closing
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(onboardingWindowDidClose),
@@ -293,13 +265,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         )
     }
 
-    @objc private func settingsWindowDidClose() {
-        isSettingsWindowOpen = false
-    }
+    @objc private func settingsWindowDidClose() {}
 
-    @objc private func onboardingWindowDidClose() {
-        // Reset the flag when we receive the close notification
-        isOnboardingWindowOpen = false
-    }
+    @objc private func onboardingWindowDidClose() {}
 
 }

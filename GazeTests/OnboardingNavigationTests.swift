@@ -41,11 +41,12 @@ final class OnboardingNavigationTests: XCTestCase {
         // Simulate moving through pages
         let pages = [
             "Welcome",  // 0
-            "LookAway",  // 1
-            "Blink",  // 2
-            "Posture",  // 3
-            "General",  // 4
-            "Completion",  // 5
+            "MenuBar",  // 1
+            "LookAway",  // 2
+            "Blink",  // 3
+            "Posture",  // 4
+            "General",  // 5
+            "Completion",  // 6
         ]
 
         for (index, pageName) in pages.enumerated() {
@@ -177,7 +178,9 @@ final class OnboardingNavigationTests: XCTestCase {
 
         // Page 0: Welcome - no configuration needed
 
-        // Page 1: LookAway Setup
+        // Page 1: MenuBar Welcome - no configuration needed
+
+        // Page 2: LookAway Setup
         var lookAwayConfig = testEnv.settingsManager.settings.lookAwayTimer
         lookAwayConfig.enabled = true
         lookAwayConfig.intervalSeconds = 1200

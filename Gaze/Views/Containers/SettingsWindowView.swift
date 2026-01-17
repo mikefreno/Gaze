@@ -11,7 +11,7 @@ import SwiftUI
 final class SettingsWindowPresenter {
     static let shared = SettingsWindowPresenter()
 
-    private weak var windowController: NSWindowController?
+    private var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
     private var isShowingWindow = false
 
@@ -78,8 +78,10 @@ final class SettingsWindowPresenter {
         window.setFrameAutosaveName("SettingsWindow")
         window.isReleasedWhenClosed = false
 
-        window.collectionBehavior = [.managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary]
-        
+        window.collectionBehavior = [
+            .managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary,
+        ]
+
         window.contentView = NSHostingView(
             rootView: SettingsWindowView(settingsManager: settingsManager, initialTab: initialTab)
         )
@@ -204,8 +206,9 @@ struct SettingsWindowView: View {
     #if DEBUG
         private func retriggerOnboarding() {
             SettingsWindowPresenter.shared.close()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                settingsManager.settings.hasCompletedOnboarding = false
+            settingsManager.settings.hasCompletedOnboarding = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                OnboardingWindowPresenter.shared.show(settingsManager: settingsManager)
             }
         }
     #endif

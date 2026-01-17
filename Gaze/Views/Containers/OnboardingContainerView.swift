@@ -5,7 +5,6 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
-import AppKit
 import SwiftUI
 
 struct VisualEffectView: NSViewRepresentable {
@@ -30,7 +29,7 @@ struct VisualEffectView: NSViewRepresentable {
 final class OnboardingWindowPresenter {
     static let shared = OnboardingWindowPresenter()
 
-    private weak var windowController: NSWindowController?
+    private var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
     private var isShowingWindow = false
 
@@ -43,36 +42,41 @@ final class OnboardingWindowPresenter {
 
     @discardableResult
     func activateIfPresent() -> Bool {
-        guard let window = windowController?.window else {
-            windowController = nil
+        guard let window = windowController?.window, window.isVisible else {
             return false
         }
 
-        DispatchQueue.main.async {
-            NSApp.unhide(nil)
-            NSApp.activate(ignoringOtherApps: true)
+        NSApp.unhide(nil)
+        NSApp.activate(ignoringOtherApps: true)
 
-            if window.isMiniaturized {
-                window.deminiaturize(nil)
-            }
-
-            window.makeKeyAndOrderFront(nil)
-            window.orderFrontRegardless()
-            window.makeMain()
+        if window.isMiniaturized {
+            window.deminiaturize(nil)
         }
+
+        window.makeKeyAndOrderFront(nil)
+        window.orderFrontRegardless()
+        window.makeMain()
         return true
     }
 
     func close() {
-        windowController?.close()
+        removeCloseObserver()
+        windowController?.window?.close()
         windowController = nil
         isShowingWindow = false
-        removeCloseObserver()
     }
 
     private func createWindow(settingsManager: SettingsManager) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+            contentRect: NSRect(
+                x: 0, y: 0, width: 1000,
+                height: {
+                    #if APPSTORE
+                        return 700
+                    #else
+                        return 1000
+                    #endif
+                }()),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -82,7 +86,7 @@ final class OnboardingWindowPresenter {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.center()
-        window.isReleasedWhenClosed = true
+        window.isReleasedWhenClosed = false
         window.collectionBehavior = [
             .managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary,
         ]
@@ -128,6 +132,8 @@ struct OnboardingContainerView: View {
     @Bindable var settingsManager: SettingsManager
     @State private var currentPage = 0
 
+    private let lastPageIndex = 6
+
     var body: some View {
         ZStack {
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
@@ -138,36 +144,53 @@ struct OnboardingContainerView: View {
                         .tag(0)
                         .tabItem { Image(systemName: "hand.wave.fill") }
 
-                    LookAwaySetupView(settingsManager: settingsManager)
+                    MenuBarWelcomeView()
                         .tag(1)
+                        .tabItem { Image(systemName: "menubar.rectangle") }
+
+                    LookAwaySetupView(settingsManager: settingsManager)
+                        .tag(2)
                         .tabItem { Image(systemName: "eye.fill") }
 
                     BlinkSetupView(settingsManager: settingsManager)
-                        .tag(2)
+                        .tag(3)
                         .tabItem { Image(systemName: "eye.circle.fill") }
 
                     PostureSetupView(settingsManager: settingsManager)
-                        .tag(3)
+                        .tag(4)
                         .tabItem { Image(systemName: "figure.stand") }
 
                     GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
-                        .tag(4)
+                        .tag(5)
                         .tabItem { Image(systemName: "gearshape.fill") }
 
                     CompletionView()
-                        .tag(5)
+                        .tag(6)
                         .tabItem { Image(systemName: "checkmark.circle.fill") }
                 }
                 .tabViewStyle(.automatic)
+                .onChange(of: currentPage) { _, newValue in
+                    MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: newValue == 1)
+                }
 
                 navigationButtons
             }
         }
-        #if APPSTORE
-            .frame(minWidth: 1000, minHeight: 700)
-        #else
-            .frame(minWidth: 1000, minHeight: 900)
-        #endif
+        .frame(
+            minWidth: 1000,
+            minHeight: {
+                #if APPSTORE
+                    return 700
+                #else
+                    return 1000
+                #endif
+            }())
+        .onAppear {
+            MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: currentPage == 1)
+        }
+        .onDisappear {
+            MenuBarGuideOverlayPresenter.shared.hide()
+        }
     }
 
     @ViewBuilder
@@ -190,7 +213,7 @@ struct OnboardingContainerView: View {
             }
 
             Button(action: {
-                if currentPage == 5 {
+                if currentPage == lastPageIndex {
                     completeOnboarding()
                 } else {
                     currentPage += 1
@@ -198,7 +221,8 @@ struct OnboardingContainerView: View {
             }) {
                 Text(
                     currentPage == 0
-                        ? "Let's Get Started" : currentPage == 5 ? "Get Started" : "Continue"
+                        ? "Let's Get Started"
+                        : currentPage == lastPageIndex ? "Get Started" : "Continue"
                 )
                 .font(.headline)
                 .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)

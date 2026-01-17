@@ -12,41 +12,7 @@ struct GazeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @State private var settingsManager = SettingsManager.shared
 
-    init() {
-        // Handle test launch arguments
-        if TestingEnvironment.shouldSkipOnboarding {
-            SettingsManager.shared.settings.hasCompletedOnboarding = true
-        } else if TestingEnvironment.shouldResetOnboarding {
-            SettingsManager.shared.settings.hasCompletedOnboarding = false
-        }
-    }
-
     var body: some Scene {
-        // Onboarding window (only shown when not completed)
-        WindowGroup {
-            if settingsManager.settings.hasCompletedOnboarding {
-                EmptyView()
-                    .onAppear {
-                        closeAllWindows()
-                    }
-            } else {
-                OnboardingContainerView(settingsManager: settingsManager)
-                    .onChange(of: settingsManager.settings.hasCompletedOnboarding) { _, completed in
-                        if completed {
-                            closeAllWindows()
-                            appDelegate.onboardingCompleted()
-                        }
-                    }
-            }
-        }
-        .windowStyle(.hiddenTitleBar)
-        .windowResizability(.contentSize)
-        .defaultSize(width: 1000, height: 700)
-        .commands {
-            CommandGroup(replacing: .newItem) {}
-        }
-
-        // Menu bar extra (always present)
         MenuBarExtra("Gaze", systemImage: "eye.fill") {
             MenuBarContentWrapper(
                 appDelegate: appDelegate,
@@ -58,11 +24,8 @@ struct GazeApp: App {
             )
         }
         .menuBarExtraStyle(.window)
-    }
-
-    private func closeAllWindows() {
-        for window in NSApplication.shared.windows {
-            window.close()
+        .commands {
+            CommandGroup(replacing: .newItem) {}
         }
     }
 }

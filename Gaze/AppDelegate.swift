@@ -18,7 +18,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
 
-    // Convenience accessor for settings
     private var settingsManager: any SettingsProviding {
         serviceContainer.settingsManager
     }
@@ -39,6 +38,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.accessory)
 
+        // Handle test launch arguments
+        if TestingEnvironment.shouldSkipOnboarding {
+            SettingsManager.shared.settings.hasCompletedOnboarding = true
+        } else if TestingEnvironment.shouldResetOnboarding {
+            SettingsManager.shared.settings.hasCompletedOnboarding = false
+        }
+
         timerEngine = serviceContainer.timerEngine
 
         serviceContainer.setupSmartModeServices()
@@ -54,6 +60,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
+        } else {
+            showOnboardingOnLaunch()
+        }
+    }
+
+    private func showOnboardingOnLaunch() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.windowManager.showOnboarding(settingsManager: self.settingsManager)
         }
     }
 
@@ -97,7 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         settingsManager.settingsPublisher
             .sink { [weak self] settings in
                 if settings.hasCompletedOnboarding && self?.hasStartedTimers == false {
-                    self?.startTimers()
+                    self?.onboardingCompleted()
                 } else if self?.hasStartedTimers == true {
                     // Defer timer restart to next runloop to ensure settings are fully propagated
                     DispatchQueue.main.async {

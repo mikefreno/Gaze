@@ -73,27 +73,15 @@ struct EnforceModeSetupView: View {
 
                     if enforceModeService.isEnforceModeEnabled {
                         testModeButton
-                        calibrationSection
                     }
-
                     if isTestModeActive && enforceModeService.isCameraActive {
                         testModePreviewView
                         trackingConstantsView
-                    } else {
-                        if enforceModeService.isCameraActive && !isTestModeActive {
-                            trackingConstantsView
-                            eyeTrackingStatusView
-                            #if DEBUG
-                                if showDebugView {
-                                    debugEyeTrackingView
-                                }
-                            #endif
-                        } else if enforceModeService.isEnforceModeEnabled {
-                            cameraPendingView
-                        }
-
-                        privacyInfoView
+                    } else if enforceModeService.isCameraActive && !isTestModeActive {
+                        eyeTrackingStatusView
+                        trackingConstantsView
                     }
+                    privacyInfoView
                 }
             }
 
@@ -328,26 +316,6 @@ struct EnforceModeSetupView: View {
                     icon: "arrow.turn.up.right"
                 )
             }
-        }
-        .padding()
-        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-    }
-
-    private var cameraPendingView: some View {
-        HStack {
-            Image(systemName: "timer")
-                .font(.title2)
-                .foregroundStyle(.orange)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Camera Ready")
-                    .font(.headline)
-                Text("Will activate 3 seconds before lookaway reminder")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
         }
         .padding()
         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))

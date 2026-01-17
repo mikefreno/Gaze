@@ -44,12 +44,15 @@ enum GazeDirection: String, Sendable, CaseIterable {
     case downRight = "↘"
 
     /// Thresholds for direction detection
-    /// Horizontal: 0.0 = looking right (from camera POV), 1.0 = looking left
+    /// Based on actual video test data:
+    /// - Looking at screen (center): H ≈ 0.29-0.35
+    /// - Looking left (away): H ≈ 0.62-0.70
+    /// Horizontal: Lower values = center/right, Higher values = left
     /// Vertical: 0.0 = looking up, 1.0 = looking down
-    private static let horizontalLeftThreshold = 0.55  // Above this = looking left
-    private static let horizontalRightThreshold = 0.45  // Below this = looking right
-    private static let verticalUpThreshold = 0.40  // Below this = looking up
-    private static let verticalDownThreshold = 0.60  // Above this = looking down
+    private static let horizontalLeftThreshold = 0.50  // Above this = looking left (away)
+    private static let horizontalRightThreshold = 0.20  // Below this = looking right
+    private static let verticalUpThreshold = 0.35  // Below this = looking up
+    private static let verticalDownThreshold = 0.55  // Above this = looking down
 
     static func from(horizontal: Double, vertical: Double) -> GazeDirection {
         let isLeft = horizontal > horizontalLeftThreshold

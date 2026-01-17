@@ -50,7 +50,7 @@ final class SettingsWindowPresenter {
 
     private func createWindow(settingsManager: SettingsManager, initialTab: Int) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 700),
+            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 900),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -85,7 +85,8 @@ final class SettingsWindowPresenter {
             Task { @MainActor [weak self] in
                 self?.windowController = nil
                 self?.removeCloseObserver()
-                NotificationCenter.default.post(name: Notification.Name("SettingsWindowDidClose"), object: nil)
+                NotificationCenter.default.post(
+                    name: Notification.Name("SettingsWindowDidClose"), object: nil)
             }
         }
     }
@@ -125,30 +126,34 @@ struct SettingsWindowView: View {
                         detailView(for: selectedSection)
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: Notification.Name("SwitchToSettingsTab"))) { notification in
+                .onReceive(
+                    NotificationCenter.default.publisher(
+                        for: Notification.Name("SwitchToSettingsTab"))
+                ) { notification in
                     if let tab = notification.object as? Int,
-                       let section = SettingsSection(rawValue: tab) {
+                        let section = SettingsSection(rawValue: tab)
+                    {
                         selectedSection = section
                     }
                 }
 
                 #if DEBUG
-                Divider()
-                HStack {
-                    Button("Retrigger Onboarding") {
-                        retriggerOnboarding()
+                    Divider()
+                    HStack {
+                        Button("Retrigger Onboarding") {
+                            retriggerOnboarding()
+                        }
+                        .buttonStyle(.bordered)
+                        Spacer()
                     }
-                    .buttonStyle(.bordered)
-                    Spacer()
-                }
-                .padding()
+                    .padding()
                 #endif
             }
         }
         #if APPSTORE
-        .frame(minWidth: 1000, minHeight: 700)
+            .frame(minWidth: 1000, minHeight: 700)
         #else
-        .frame(minWidth: 1000, minHeight: 900)
+            .frame(minWidth: 1000, minHeight: 900)
         #endif
     }
 
@@ -178,12 +183,12 @@ struct SettingsWindowView: View {
     }
 
     #if DEBUG
-    private func retriggerOnboarding() {
-        SettingsWindowPresenter.shared.close()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            settingsManager.settings.hasCompletedOnboarding = false
+        private func retriggerOnboarding() {
+            SettingsWindowPresenter.shared.close()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                settingsManager.settings.hasCompletedOnboarding = false
+            }
         }
-    }
     #endif
 }
 

@@ -27,30 +27,12 @@ struct MenuBarContentWrapper: View {
     }
 }
 
-// Hover button style for menubar items
-struct MenuBarButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(
-                        configuration.isPressed
-                            ? Color.accentColor.opacity(0.2) : Color.gray.opacity(0.1)
-                    )
-                    .opacity(configuration.isPressed ? 1 : 0)
-            )
-            .contentShape(Rectangle())
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
-    }
-}
-
 struct MenuBarHoverButtonStyle: ButtonStyle {
     @Environment(\.colorScheme) private var colorScheme
     @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(isHovered ? .white : .primary)
             .glassEffectIfAvailable(
                 isHovered
                     ? GlassStyle.regular.tint(.accentColor).interactive()
@@ -64,7 +46,6 @@ struct MenuBarHoverButtonStyle: ButtonStyle {
             }
             .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: isHovered)
-            .animation(.easeInOut(duration: 0.05), value: configuration.isPressed)
     }
 }
 

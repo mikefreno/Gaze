@@ -54,13 +54,14 @@ enum EyeTrackingConstants: Sendable {
     static let maxPupilEnabled: Bool = true
 
     // MARK: - Pixel-Based Gaze Detection Thresholds
-    /// Python GazeTracking thresholds for pixel-based pupil detection
-    /// Formula: pupilX / (eyeCenterX * 2 - 10)
-    /// Looking right: ratio ≤ 0.35
-    /// Looking center: 0.35 < ratio < 0.65
-    /// Looking left: ratio ≥ 0.65
-    static let pixelGazeMinRatio: Double = 0.35  // Looking right threshold
-    static let pixelGazeMaxRatio: Double = 0.65  // Looking left threshold
+    /// Thresholds for pupil-based gaze detection
+    /// Based on video test data:
+    /// - Looking at screen (center): H ≈ 0.20-0.50
+    /// - Looking left (away): H ≈ 0.50+
+    /// - Looking right (away): H ≈ 0.20-
+    /// Coordinate system: Lower values = right, Higher values = left
+    static let pixelGazeMinRatio: Double = 0.20  // Below this = looking right (away)
+    static let pixelGazeMaxRatio: Double = 0.50  // Above this = looking left (away)
     static let pixelGazeEnabled: Bool = true
     
     // MARK: - Screen Boundary Detection (New)

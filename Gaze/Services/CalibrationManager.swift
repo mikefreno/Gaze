@@ -15,6 +15,7 @@ class CalibrationManager: ObservableObject {
     // MARK: - Published Properties
     
     @Published var isCalibrating = false
+    @Published var isCollectingSamples = false  // True when actively collecting (after countdown)
     @Published var currentStep: CalibrationStep?
     @Published var currentStepIndex = 0
     @Published var samplesCollected = 0
@@ -22,9 +23,8 @@ class CalibrationManager: ObservableObject {
     
     // MARK: - Configuration
     
-    private let samplesPerStep = 20  // Collect 20 samples per calibration point (~1 second at 30fps)
+    private let samplesPerStep = 30  // Collect 30 samples per calibration point (~1 second at 30fps)
     private let userDefaultsKey = "eyeTrackingCalibration"
-    private let calibrationValidityDays = 30
     
     // Calibration sequence (9 steps)
     private let calibrationSteps: [CalibrationStep] = [
@@ -50,14 +50,27 @@ class CalibrationManager: ObservableObject {
     func startCalibration() {
         print("🎯 Starting calibration...")
         isCalibrating = true
+        isCollectingSamples = false
         currentStepIndex = 0
         currentStep = calibrationSteps[0]
         samplesCollected = 0
         calibrationData = CalibrationData()
     }
     
+    /// Reset state for a new calibration attempt (clears isComplete flag from previous calibration)
+    func resetForNewCalibration() {
+        print("🔄 Resetting for new calibration...")
+        calibrationData = CalibrationData()
+    }
+    
+    func startCollectingSamples() {
+        guard isCalibrating, currentStep != nil else { return }
+        print("📊 Started collecting samples for step: \(currentStep?.displayName ?? "unknown")")
+        isCollectingSamples = true
+    }
+    
     func collectSample(leftRatio: Double?, rightRatio: Double?, leftVertical: Double? = nil, rightVertical: Double? = nil, faceWidthRatio: Double? = nil) {
-        guard isCalibrating, let step = currentStep else { return }
+        guard isCalibrating, isCollectingSamples, let step = currentStep else { return }
         
         let sample = GazeSample(
             leftRatio: leftRatio,
@@ -76,6 +89,7 @@ class CalibrationManager: ObservableObject {
     }
     
     private func advanceToNextStep() {
+        isCollectingSamples = false
         currentStepIndex += 1
         
         if currentStepIndex < calibrationSteps.count {
@@ -108,6 +122,7 @@ class CalibrationManager: ObservableObject {
         applyCalibration()
         
         isCalibrating = false
+        isCollectingSamples = false
         currentStep = nil
         currentStepIndex = 0
         samplesCollected = 0
@@ -118,6 +133,7 @@ class CalibrationManager: ObservableObject {
     func cancelCalibration() {
         print("❌ Calibration cancelled")
         isCalibrating = false
+        isCollectingSamples = false
         currentStep = nil
         currentStepIndex = 0
         samplesCollected = 0
@@ -183,15 +199,7 @@ class CalibrationManager: ObservableObject {
               thresholds.isValid else {
             return false
         }
-        
-        // Check if calibration is not too old
-        let daysSinceCalibration = Calendar.current.dateComponents(
-            [.day],
-            from: calibrationData.calibrationDate,
-            to: Date()
-        ).day ?? 0
-        
-        return daysSinceCalibration < calibrationValidityDays
+        return true
     }
     
     func needsRecalibration() -> Bool {

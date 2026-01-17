@@ -18,7 +18,7 @@ final class VideoGazeTests: XCTestCase {
         logLines.append(message)
     }
     
-    /// Process the outer video and log gaze detection results
+    /// Process the outer video (looking away from screen) - should detect "looking away"
     func testOuterVideoGazeDetection() async throws {
         logLines = []
         
@@ -27,10 +27,19 @@ final class VideoGazeTests: XCTestCase {
             XCTFail("Video file not found at: \(projectPath)")
             return
         }
-        try await processVideo(at: URL(fileURLWithPath: projectPath))
+        let stats = try await processVideo(at: URL(fileURLWithPath: projectPath), expectLookingAway: true)
+        
+        // For outer video, most frames should detect gaze outside center
+        let nonCenterRatio = Double(stats.nonCenterFrames) / Double(max(1, stats.pupilDetectedFrames))
+        log("🎯 OUTER video: \(String(format: "%.1f%%", nonCenterRatio * 100)) frames detected as non-center (expected: >50%)")
+        log("   H-range: \(String(format: "%.3f", stats.minH)) to \(String(format: "%.3f", stats.maxH))")
+        log("   V-range: \(String(format: "%.3f", stats.minV)) to \(String(format: "%.3f", stats.maxV))")
+        
+        // At least 50% should be detected as non-center when looking away
+        XCTAssertGreaterThan(nonCenterRatio, 0.5, "Looking away video should have >50% non-center detections. Log:\n\(logLines.joined(separator: "\n"))")
     }
     
-    /// Process the inner video and log gaze detection results
+    /// Process the inner video (looking at screen) - should detect "looking at screen"
     func testInnerVideoGazeDetection() async throws {
         logLines = []
         
@@ -39,12 +48,36 @@ final class VideoGazeTests: XCTestCase {
             XCTFail("Video file not found at: \(projectPath)")
             return
         }
-        try await processVideo(at: URL(fileURLWithPath: projectPath))
+        let stats = try await processVideo(at: URL(fileURLWithPath: projectPath), expectLookingAway: false)
+        
+        // For inner video, most frames should detect gaze at center
+        let centerRatio = Double(stats.centerFrames) / Double(max(1, stats.pupilDetectedFrames))
+        log("🎯 INNER video: \(String(format: "%.1f%%", centerRatio * 100)) frames detected as center (expected: >50%)")
+        log("   H-range: \(String(format: "%.3f", stats.minH)) to \(String(format: "%.3f", stats.maxH))")
+        log("   V-range: \(String(format: "%.3f", stats.minV)) to \(String(format: "%.3f", stats.maxV))")
+        
+        // At least 50% should be detected as center when looking at screen
+        XCTAssertGreaterThan(centerRatio, 0.5, "Looking at screen video should have >50% center detections. Log:\n\(logLines.joined(separator: "\n"))")
     }
     
-    private func processVideo(at url: URL) async throws {
+    struct VideoStats {
+        var totalFrames = 0
+        var faceDetectedFrames = 0
+        var pupilDetectedFrames = 0
+        var centerFrames = 0
+        var nonCenterFrames = 0
+        var minH = Double.greatestFiniteMagnitude
+        var maxH = -Double.greatestFiniteMagnitude
+        var minV = Double.greatestFiniteMagnitude
+        var maxV = -Double.greatestFiniteMagnitude
+    }
+    
+    private func processVideo(at url: URL, expectLookingAway: Bool) async throws -> VideoStats {
+        var stats = VideoStats()
+        
         log("\n" + String(repeating: "=", count: 60))
         log("Processing video: \(url.lastPathComponent)")
+        log("Expected behavior: \(expectLookingAway ? "LOOKING AWAY (non-center)" : "LOOKING AT SCREEN (center)")")
         log(String(repeating: "=", count: 60))
         
         let asset = AVURLAsset(url: url)
@@ -54,7 +87,7 @@ final class VideoGazeTests: XCTestCase {
         
         guard let track = try await asset.loadTracks(withMediaType: .video).first else {
             XCTFail("No video track found")
-            return
+            return stats
         }
         
         let size = try await track.load(.naturalSize)
@@ -83,10 +116,6 @@ final class VideoGazeTests: XCTestCase {
         PupilDetector.frameSkipCount = 1
         defer { PupilDetector.frameSkipCount = originalFrameSkip }
         
-        var totalFrames = 0
-        var faceDetectedFrames = 0
-        var pupilDetectedFrames = 0
-        
         while let sampleBuffer = trackOutput.copyNextSampleBuffer() {
             defer { 
                 frameIndex += 1 
@@ -98,7 +127,7 @@ final class VideoGazeTests: XCTestCase {
                 continue
             }
             
-            totalFrames += 1
+            stats.totalFrames += 1
             
             guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
                 continue
@@ -128,7 +157,7 @@ final class VideoGazeTests: XCTestCase {
                 continue
             }
             
-            faceDetectedFrames += 1
+            stats.faceDetectedFrames += 1
             
             let imageSize = CGSize(
                 width: CVPixelBufferGetWidth(pixelBuffer),
@@ -165,10 +194,22 @@ final class VideoGazeTests: XCTestCase {
             
             if let lh = leftHRatio, let rh = rightHRatio,
                let lv = leftVRatio, let rv = rightVRatio {
-                pupilDetectedFrames += 1
+                stats.pupilDetectedFrames += 1
                 let avgH = (lh + rh) / 2.0
                 let avgV = (lv + rv) / 2.0
+                
+                // Track min/max ranges
+                stats.minH = min(stats.minH, avgH)
+                stats.maxH = max(stats.maxH, avgH)
+                stats.minV = min(stats.minV, avgV)
+                stats.maxV = max(stats.maxV, avgV)
+                
                 let direction = GazeDirection.from(horizontal: avgH, vertical: avgV)
+                if direction == .center {
+                    stats.centerFrames += 1
+                } else {
+                    stats.nonCenterFrames += 1
+                }
                 log(String(format: "%5d | %5.1fs | YES  | %.2f / %.2f    | %.2f / %.2f    | %@ %@", 
                       frameIndex, timeSeconds, lh, rh, lv, rv, direction.rawValue, String(describing: direction)))
             } else {
@@ -177,8 +218,11 @@ final class VideoGazeTests: XCTestCase {
         }
         
         log(String(repeating: "=", count: 75))
-        log("Summary: \(totalFrames) frames sampled, \(faceDetectedFrames) with face, \(pupilDetectedFrames) with pupils")
+        log("Summary: \(stats.totalFrames) frames sampled, \(stats.faceDetectedFrames) with face, \(stats.pupilDetectedFrames) with pupils")
+        log("Center frames: \(stats.centerFrames), Non-center: \(stats.nonCenterFrames)")
         log("Processing complete\n")
+        
+        return stats
     }
     
     private func calculateHorizontalRatio(pupilPosition: PupilPosition, eyeRegion: EyeRegion) -> Double {

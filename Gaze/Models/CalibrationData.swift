@@ -121,24 +121,30 @@ struct GazeThresholds: Codable {
     let referenceFaceWidth: Double // Average face width during calibration
     
     var isValid: Bool {
-        // Basic sanity checks
-        return maxRightRatio < minLeftRatio &&
-               minUpRatio < maxDownRatio &&
-               screenRightBound < screenLeftBound && // Assuming lower ratio = right
-               screenTopBound < screenBottomBound // Assuming lower ratio = up
+        // Just check that we have reasonable values (not NaN or infinite)
+        let values = [minLeftRatio, maxRightRatio, minUpRatio, maxDownRatio,
+                      screenLeftBound, screenRightBound, screenTopBound, screenBottomBound]
+        return values.allSatisfy { $0.isFinite }
     }
     
+    /// Default thresholds based on video test data:
+    /// - Center (looking at screen): H ≈ 0.29-0.35
+    /// - Screen left edge: H ≈ 0.45-0.50
+    /// - Looking away left: H ≈ 0.55+
+    /// - Screen right edge: H ≈ 0.20-0.25
+    /// - Looking away right: H ≈ 0.15-
+    /// Coordinate system: Lower H = right, Higher H = left
     static var defaultThresholds: GazeThresholds {
         GazeThresholds(
-            minLeftRatio: 0.65,
-            maxRightRatio: 0.35,
-            minUpRatio: 0.40,
-            maxDownRatio: 0.60,
-            screenLeftBound: 0.60,
-            screenRightBound: 0.40,
-            screenTopBound: 0.45,
-            screenBottomBound: 0.55,
-            referenceFaceWidth: 0.0 // 0.0 means unused/uncalibrated
+            minLeftRatio: 0.55,      // Beyond this = looking left (away)
+            maxRightRatio: 0.15,     // Below this = looking right (away)
+            minUpRatio: 0.30,        // Below this = looking up (away)
+            maxDownRatio: 0.60,      // Above this = looking down (away)
+            screenLeftBound: 0.50,   // Left edge of screen
+            screenRightBound: 0.20,  // Right edge of screen
+            screenTopBound: 0.35,    // Top edge of screen
+            screenBottomBound: 0.55, // Bottom edge of screen
+            referenceFaceWidth: 0.0  // 0.0 means unused/uncalibrated
         )
     }
 }
@@ -187,60 +193,154 @@ struct CalibrationData: Codable {
     }
     
     mutating func calculateThresholds() {
-        // We need Center, Left, Right, Up, Down samples for a full calibration
-        // Fallback: If corners (TopLeft, etc.) are available, use them to reinforce bounds
+        // Calibration uses actual measured gaze ratios from the user looking at different
+        // screen positions. The face width during calibration serves as a reference for
+        // distance-based normalization during live tracking.
+        //
+        // Coordinate system (based on video testing):
+        // Horizontal: 0.0 = far right, 1.0 = far left
+        // Vertical: 0.0 = top, 1.0 = bottom
+        // Center (looking at screen) typically: H ≈ 0.29-0.35
         
-        let centerH = averageRatio(for: .center) ?? 0.5
-        let centerV = averageVerticalRatio(for: .center) ?? 0.5
+        // 1. Get center reference point
+        let centerH = averageRatio(for: .center)
+        let centerV = averageVerticalRatio(for: .center)
+        let centerFaceWidth = averageFaceWidth(for: .center)
         
-        // 1. Horizontal Bounds
-        // If specific Left/Right steps missing, try corners
-        let leftH = averageRatio(for: .left) ?? averageRatio(for: .topLeft) ?? averageRatio(for: .bottomLeft) ?? (centerH + 0.15)
-        let rightH = averageRatio(for: .right) ?? averageRatio(for: .topRight) ?? averageRatio(for: .bottomRight) ?? (centerH - 0.15)
+        guard let cH = centerH else {
+            print("⚠️ No center calibration data, using defaults")
+            self.computedThresholds = GazeThresholds.defaultThresholds
+            return
+        }
         
-        // 2. Vertical Bounds
-        let upV = averageVerticalRatio(for: .up) ?? averageVerticalRatio(for: .topLeft) ?? averageVerticalRatio(for: .topRight) ?? (centerV - 0.15)
-        let downV = averageVerticalRatio(for: .down) ?? averageVerticalRatio(for: .bottomLeft) ?? averageVerticalRatio(for: .bottomRight) ?? (centerV + 0.15)
+        let cV = centerV ?? 0.45  // Default vertical center
         
-        // 3. Face Width Reference (average of all center samples)
-        let refFaceWidth = averageFaceWidth(for: .center) ?? 0.0
+        print("📊 Calibration data collected:")
+        print("  Center H: \(String(format: "%.3f", cH)), V: \(String(format: "%.3f", cV))")
         
-        // 4. Compute Boundaries with Margin
-        // "Screen Bound" is exactly where the user looked.
-        // We set thresholds slightly BEYOND that to detect "Looking Away".
+        // 2. Get horizontal screen bounds from left/right calibration points
+        // These represent where the user looked when targeting screen edges
+        // Use farLeft/farRight for "beyond screen" thresholds, left/right for screen bounds
         
-        // Note: Assuming standard coordinates where:
-        // Horizontal: 0.0 (Right) -> 1.0 (Left)
-        // Vertical: 0.0 (Up) -> 1.0 (Down)
+        // Screen bounds (where user looked at screen edges)
+        let screenLeftH = averageRatio(for: .left) 
+            ?? averageRatio(for: .topLeft) 
+            ?? averageRatio(for: .bottomLeft)
+        let screenRightH = averageRatio(for: .right) 
+            ?? averageRatio(for: .topRight) 
+            ?? averageRatio(for: .bottomRight)
         
-        // Thresholds for "Looking Away"
-        // Looking Left = Ratio > Screen Left Edge
-        let lookLeftThreshold = leftH + 0.05
-        // Looking Right = Ratio < Screen Right Edge
-        let lookRightThreshold = rightH - 0.05
+        // Far bounds (where user looked beyond screen - for "looking away" threshold)
+        let farLeftH = averageRatio(for: .farLeft)
+        let farRightH = averageRatio(for: .farRight)
         
-        // Looking Up = Ratio < Screen Top Edge
-        let lookUpThreshold = upV - 0.05
-        // Looking Down = Ratio > Screen Bottom Edge
-        let lookDownThreshold = downV + 0.05
+        // 3. Calculate horizontal thresholds
+        // If we have farLeft/farRight, use the midpoint between screen edge and far as threshold
+        // Otherwise, extend screen bounds by a margin
         
+        let leftBound: Double
+        let rightBound: Double
+        let lookLeftThreshold: Double
+        let lookRightThreshold: Double
+        
+        if let sLeft = screenLeftH {
+            leftBound = sLeft
+            // If we have farLeft, threshold is midpoint; otherwise extend by margin
+            if let fLeft = farLeftH {
+                lookLeftThreshold = (sLeft + fLeft) / 2.0
+            } else {
+                // Extend beyond screen by ~50% of center-to-edge distance
+                let edgeDistance = sLeft - cH
+                lookLeftThreshold = sLeft + edgeDistance * 0.5
+            }
+        } else {
+            // No left calibration - estimate based on center
+            leftBound = cH + 0.15
+            lookLeftThreshold = cH + 0.20
+        }
+        
+        if let sRight = screenRightH {
+            rightBound = sRight
+            if let fRight = farRightH {
+                lookRightThreshold = (sRight + fRight) / 2.0
+            } else {
+                let edgeDistance = cH - sRight
+                lookRightThreshold = sRight - edgeDistance * 0.5
+            }
+        } else {
+            rightBound = cH - 0.15
+            lookRightThreshold = cH - 0.20
+        }
+        
+        // 4. Get vertical screen bounds
+        let screenTopV = averageVerticalRatio(for: .up) 
+            ?? averageVerticalRatio(for: .topLeft) 
+            ?? averageVerticalRatio(for: .topRight)
+        let screenBottomV = averageVerticalRatio(for: .down) 
+            ?? averageVerticalRatio(for: .bottomLeft) 
+            ?? averageVerticalRatio(for: .bottomRight)
+        
+        let topBound: Double
+        let bottomBound: Double
+        let lookUpThreshold: Double
+        let lookDownThreshold: Double
+        
+        if let sTop = screenTopV {
+            topBound = sTop
+            let edgeDistance = cV - sTop
+            lookUpThreshold = sTop - edgeDistance * 0.5
+        } else {
+            topBound = cV - 0.10
+            lookUpThreshold = cV - 0.15
+        }
+        
+        if let sBottom = screenBottomV {
+            bottomBound = sBottom
+            let edgeDistance = sBottom - cV
+            lookDownThreshold = sBottom + edgeDistance * 0.5
+        } else {
+            bottomBound = cV + 0.10
+            lookDownThreshold = cV + 0.15
+        }
+        
+        // 5. Reference face width for distance normalization
+        // Average face width from all calibration steps gives a good reference
+        let allFaceWidths = CalibrationStep.allCases.compactMap { averageFaceWidth(for: $0) }
+        let refFaceWidth = allFaceWidths.isEmpty ? 0.0 : allFaceWidths.reduce(0.0, +) / Double(allFaceWidths.count)
+        
+        // 6. Create thresholds
         let thresholds = GazeThresholds(
             minLeftRatio: lookLeftThreshold,
             maxRightRatio: lookRightThreshold,
             minUpRatio: lookUpThreshold,
             maxDownRatio: lookDownThreshold,
-            screenLeftBound: leftH,
-            screenRightBound: rightH,
-            screenTopBound: upV,
-            screenBottomBound: downV,
+            screenLeftBound: leftBound,
+            screenRightBound: rightBound,
+            screenTopBound: topBound,
+            screenBottomBound: bottomBound,
             referenceFaceWidth: refFaceWidth
         )
         
         self.computedThresholds = thresholds
+        
         print("✓ Calibration thresholds calculated:")
-        print("  H-Range: \(String(format: "%.3f", rightH)) to \(String(format: "%.3f", leftH))")
-        print("  V-Range: \(String(format: "%.3f", upV)) to \(String(format: "%.3f", downV))")
+        print("  Center: H=\(String(format: "%.3f", cH)), V=\(String(format: "%.3f", cV))")
+        print("  Screen H-Range: \(String(format: "%.3f", rightBound)) to \(String(format: "%.3f", leftBound))")
+        print("  Screen V-Range: \(String(format: "%.3f", topBound)) to \(String(format: "%.3f", bottomBound))")
+        print("  Away Thresholds: L≥\(String(format: "%.3f", lookLeftThreshold)), R≤\(String(format: "%.3f", lookRightThreshold))")
+        print("  Away Thresholds: U≤\(String(format: "%.3f", lookUpThreshold)), D≥\(String(format: "%.3f", lookDownThreshold))")
         print("  Ref Face Width: \(String(format: "%.3f", refFaceWidth))")
+        
+        // Log per-step data for debugging
+        print("  Per-step data:")
+        for step in CalibrationStep.allCases {
+            if let h = averageRatio(for: step) {
+                let v = averageVerticalRatio(for: step) ?? -1
+                let fw = averageFaceWidth(for: step) ?? -1
+                let count = getSamples(for: step).count
+                print("    \(step.rawValue): H=\(String(format: "%.3f", h)), V=\(String(format: "%.3f", v)), FW=\(String(format: "%.3f", fw)), samples=\(count)")
+            }
+        }
     }
 }
 

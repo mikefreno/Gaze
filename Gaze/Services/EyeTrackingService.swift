@@ -494,27 +494,36 @@ class EyeTrackingService: NSObject, ObservableObject {
                 if let thresholds = CalibrationState.shared.thresholds,
                    CalibrationState.shared.isComplete {
                     
-                    // 1. Distance Scaling
+                    // 1. Distance Scaling using face width as proxy
+                    // When user is farther from screen, face appears smaller and eye movements
+                    // (in ratio terms) compress toward center. We scale to compensate.
                     let currentFaceWidth = face.boundingBox.width
                     let refFaceWidth = thresholds.referenceFaceWidth
                     
                     var distanceScale = 1.0
                     if refFaceWidth > 0 && currentFaceWidth > 0 {
-                        distanceScale = refFaceWidth / currentFaceWidth
-                        distanceScale = 1.0 + (distanceScale - 1.0) * EyeTrackingConstants.distanceSensitivity
+                        // ratio > 1 means user is farther than calibration distance
+                        // ratio < 1 means user is closer than calibration distance
+                        let rawScale = refFaceWidth / currentFaceWidth
+                        // Apply sensitivity factor and clamp to reasonable range
+                        distanceScale = 1.0 + (rawScale - 1.0) * EyeTrackingConstants.distanceSensitivity
+                        distanceScale = max(0.5, min(2.0, distanceScale))  // Clamp to 0.5x - 2x
                     }
                     
-                    // 2. Normalize Gaze
+                    // 2. Calculate calibrated center point
                     let centerH = (thresholds.screenLeftBound + thresholds.screenRightBound) / 2.0
                     let centerV = (thresholds.screenTopBound + thresholds.screenBottomBound) / 2.0
                     
+                    // 3. Normalize gaze relative to center, scaled for distance
+                    // When farther away, eye movements are smaller, so we amplify them
                     let deltaH = (avgH - centerH) * distanceScale
                     let deltaV = (avgV - centerV) * distanceScale
                     
                     let normalizedH = centerH + deltaH
                     let normalizedV = centerV + deltaV
                     
-                    // 3. Boundary Check
+                    // 4. Boundary Check - compare against screen bounds
+                    // Looking away = gaze is beyond the calibrated screen edges
                     let margin = EyeTrackingConstants.boundaryForgivenessMargin
                     
                     let isLookingLeft = normalizedH > (thresholds.screenLeftBound + margin)
@@ -525,7 +534,7 @@ class EyeTrackingService: NSObject, ObservableObject {
                     eyesLookingAway = isLookingLeft || isLookingRight || isLookingUp || isLookingDown
                     
                 } else {
-                    // Fallback to default constants
+                    // Fallback to default constants (no calibration)
                     let lookingRight = avgH <= EyeTrackingConstants.pixelGazeMinRatio
                     let lookingLeft = avgH >= EyeTrackingConstants.pixelGazeMaxRatio
                     eyesLookingAway = lookingRight || lookingLeft

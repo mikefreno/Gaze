@@ -47,7 +47,7 @@ final class OnboardingWindowPresenter {
             windowController = nil
             return false
         }
-        
+
         DispatchQueue.main.async {
             NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -83,7 +83,9 @@ final class OnboardingWindowPresenter {
         window.titlebarAppearsTransparent = true
         window.center()
         window.isReleasedWhenClosed = true
-        window.collectionBehavior = [.managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary]
+        window.collectionBehavior = [
+            .managed, .participatesInCycle, .moveToActiveSpace, .fullScreenAuxiliary,
+        ]
 
         window.contentView = NSHostingView(
             rootView: OnboardingContainerView(settingsManager: settingsManager)

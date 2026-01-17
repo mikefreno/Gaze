@@ -28,11 +28,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         self.windowManager = WindowManager.shared
         super.init()
 
-        // Setup window close observers
-        setupWindowCloseObservers()
     }
 
-    /// Initializer for testing with injectable dependencies
     init(serviceContainer: ServiceContainer, windowManager: WindowManaging) {
         self.serviceContainer = serviceContainer
         self.windowManager = windowManager
@@ -40,15 +37,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Set activation policy to hide dock icon
         NSApplication.shared.setActivationPolicy(.accessory)
-
-        logInfo("🚀 Application did finish launching")
 
         timerEngine = serviceContainer.timerEngine
 
         serviceContainer.setupSmartModeServices()
-
 
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
@@ -62,24 +55,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if settingsManager.settings.hasCompletedOnboarding {
             startTimers()
         }
-        
-        // DEBUG: Auto-start eye tracking test mode if launch argument is present
-        #if DEBUG
-        if CommandLine.arguments.contains("--debug-eye-tracking") {
-            NSLog("🔬 DEBUG: Auto-starting eye tracking test mode")
-            Task { @MainActor in
-                // Enable enforce mode if not already
-                if !settingsManager.settings.enforcementMode {
-                    settingsManager.settings.enforcementMode = true
-                }
-                // Start test mode after a brief delay
-                try? await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second
-                NSLog("🔬 DEBUG: Starting test mode now...")
-                await EnforceModeService.shared.startTestMode()
-                NSLog("🔬 DEBUG: Test mode started")
-            }
-        }
-        #endif
     }
 
     // Note: Smart mode setup is now handled by ServiceContainer
@@ -105,7 +80,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func onboardingCompleted() {
         startTimers()
 
-        // Start update checks after onboarding
         if updateManager == nil {
             updateManager = UpdateManager.shared
         }
@@ -248,25 +222,5 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             action()
         }
     }
-
-    private func setupWindowCloseObservers() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(settingsWindowDidClose),
-            name: Notification.Name("SettingsWindowDidClose"),
-            object: nil
-        )
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(onboardingWindowDidClose),
-            name: Notification.Name("OnboardingWindowDidClose"),
-            object: nil
-        )
-    }
-
-    @objc private func settingsWindowDidClose() {}
-
-    @objc private func onboardingWindowDidClose() {}
 
 }

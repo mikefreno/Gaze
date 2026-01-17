@@ -5,8 +5,11 @@
 //  Test helpers and utilities for unit testing.
 //
 
+// MARK: - Import Statement for Combine
+import Combine
 import Foundation
 import XCTest
+
 @testable import Gaze
 
 // MARK: - Enhanced MockSettingsManager
@@ -16,21 +19,22 @@ import XCTest
 @Observable
 final class EnhancedMockSettingsManager: SettingsProviding {
     var settings: AppSettings
-    
+
     @ObservationIgnored
     private let _settingsSubject: CurrentValueSubject<AppSettings, Never>
-    
+
     var settingsPublisher: AnyPublisher<AppSettings, Never> {
         _settingsSubject.eraseToAnyPublisher()
     }
-    
+
     @ObservationIgnored
-    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] = [
-        .lookAway: \.lookAwayTimer,
-        .blink: \.blinkTimer,
-        .posture: \.postureTimer,
-    ]
-    
+    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] =
+        [
+            .lookAway: \.lookAwayTimer,
+            .blink: \.blinkTimer,
+            .posture: \.postureTimer,
+        ]
+
     // Track method calls for verification
     @ObservationIgnored
     private(set) var saveCallCount = 0
@@ -40,19 +44,19 @@ final class EnhancedMockSettingsManager: SettingsProviding {
     private(set) var loadCallCount = 0
     @ObservationIgnored
     private(set) var resetToDefaultsCallCount = 0
-    
+
     init(settings: AppSettings = .defaults) {
         self.settings = settings
         self._settingsSubject = CurrentValueSubject(settings)
     }
-    
+
     func timerConfiguration(for type: TimerType) -> TimerConfiguration {
         guard let keyPath = timerConfigKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
         }
         return settings[keyPath: keyPath]
     }
-    
+
     func updateTimerConfiguration(for type: TimerType, configuration: TimerConfiguration) {
         guard let keyPath = timerConfigKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
@@ -60,7 +64,7 @@ final class EnhancedMockSettingsManager: SettingsProviding {
         settings[keyPath: keyPath] = configuration
         _settingsSubject.send(settings)
     }
-    
+
     func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
         var configs: [TimerType: TimerConfiguration] = [:]
         for (type, keyPath) in timerConfigKeyPaths {
@@ -68,27 +72,27 @@ final class EnhancedMockSettingsManager: SettingsProviding {
         }
         return configs
     }
-    
+
     func save() {
         saveCallCount += 1
         _settingsSubject.send(settings)
     }
-    
+
     func saveImmediately() {
         saveImmediatelyCallCount += 1
         _settingsSubject.send(settings)
     }
-    
+
     func load() {
         loadCallCount += 1
     }
-    
+
     func resetToDefaults() {
         resetToDefaultsCallCount += 1
         settings = .defaults
         _settingsSubject.send(settings)
     }
-    
+
     // Test helpers
     func reset() {
         saveCallCount = 0
@@ -105,17 +109,17 @@ final class EnhancedMockSettingsManager: SettingsProviding {
 @MainActor
 final class MockFullscreenDetectionService: ObservableObject, FullscreenDetectionProviding {
     @Published var isFullscreenActive: Bool = false
-    
+
     var isFullscreenActivePublisher: Published<Bool>.Publisher {
         $isFullscreenActive
     }
-    
+
     private(set) var forceUpdateCallCount = 0
-    
+
     func forceUpdate() {
         forceUpdateCallCount += 1
     }
-    
+
     func simulateFullscreen(_ active: Bool) {
         isFullscreenActive = active
     }
@@ -124,22 +128,22 @@ final class MockFullscreenDetectionService: ObservableObject, FullscreenDetectio
 @MainActor
 final class MockIdleMonitoringService: ObservableObject, IdleMonitoringProviding {
     @Published var isIdle: Bool = false
-    
+
     var isIdlePublisher: Published<Bool>.Publisher {
         $isIdle
     }
-    
+
     private(set) var thresholdMinutes: Int = 5
     private(set) var forceUpdateCallCount = 0
-    
+
     func updateThreshold(minutes: Int) {
         thresholdMinutes = minutes
     }
-    
+
     func forceUpdate() {
         forceUpdateCallCount += 1
     }
-    
+
     func simulateIdle(_ idle: Bool) {
         isIdle = idle
     }
@@ -156,7 +160,7 @@ extension AppSettings {
         settings.postureTimer.enabled = false
         return settings
     }
-    
+
     /// Settings with only lookAway timer enabled
     static var onlyLookAwayEnabled: AppSettings {
         var settings = AppSettings.defaults
@@ -165,7 +169,7 @@ extension AppSettings {
         settings.postureTimer.enabled = false
         return settings
     }
-    
+
     /// Settings with short intervals for testing
     static var shortIntervals: AppSettings {
         var settings = AppSettings.defaults
@@ -174,14 +178,14 @@ extension AppSettings {
         settings.postureTimer.intervalSeconds = 7
         return settings
     }
-    
+
     /// Settings with onboarding completed
     static var onboardingCompleted: AppSettings {
         var settings = AppSettings.defaults
         settings.hasCompletedOnboarding = true
         return settings
     }
-    
+
     /// Settings with smart mode fully enabled
     static var smartModeEnabled: AppSettings {
         var settings = AppSettings.defaults
@@ -209,19 +213,19 @@ struct TestEnvironment {
     let windowManager: MockWindowManager
     let settingsManager: EnhancedMockSettingsManager
     let timeProvider: MockTimeProvider
-    
+
     init(settings: AppSettings = .defaults) {
         self.settingsManager = EnhancedMockSettingsManager(settings: settings)
         self.container = ServiceContainer(settingsManager: settingsManager)
         self.windowManager = MockWindowManager()
         self.timeProvider = MockTimeProvider()
     }
-    
+
     /// Creates an AppDelegate with all test dependencies
     func createAppDelegate() -> AppDelegate {
         return AppDelegate(serviceContainer: container, windowManager: windowManager)
     }
-    
+
     /// Resets all mock state
     func reset() {
         windowManager.reset()
@@ -245,10 +249,10 @@ extension XCTestCase {
                 XCTFail(message)
                 return
             }
-            try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            try await Task.sleep(for: .milliseconds(100))
         }
     }
-    
+
     /// Waits for a published value to change
     @MainActor
     func waitForPublisher<T: Equatable>(
@@ -258,17 +262,14 @@ extension XCTestCase {
     ) async throws {
         let expectation = XCTestExpectation(description: "Publisher value changed")
         var cancellable: AnyCancellable?
-        
+
         cancellable = publisher.sink { value in
             if value == expectedValue {
                 expectation.fulfill()
             }
         }
-        
+
         await fulfillment(of: [expectation], timeout: timeout)
         cancellable?.cancel()
     }
 }
-
-// MARK: - Import Statement for Combine
-import Combine

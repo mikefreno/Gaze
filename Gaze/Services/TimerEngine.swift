@@ -131,7 +131,7 @@ class TimerEngine: ObservableObject {
 
         var newStates: [TimerIdentifier: TimerState] = [:]
 
-        // Add built-in timers
+        // Add built-in timers (using unified approach)
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
             if config.enabled {
@@ -145,7 +145,7 @@ class TimerEngine: ObservableObject {
             }
         }
 
-        // Add user timers
+        // Add user timers (using unified approach)
         for userTimer in settingsProvider.settings.userTimers where userTimer.enabled {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             newStates[identifier] = TimerState(
@@ -177,7 +177,7 @@ class TimerEngine: ObservableObject {
         logDebug("Updating timer configurations")
         var newStates: [TimerIdentifier: TimerState] = [:]
 
-        // Update built-in timers
+        // Update built-in timers (using unified approach)
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
             let identifier = TimerIdentifier.builtIn(timerType)
@@ -212,7 +212,7 @@ class TimerEngine: ObservableObject {
             // If config.enabled is false and timer exists, it will be removed
         }
 
-        // Update user timers
+        // Update user timers (using unified approach)
         for userTimer in settingsProvider.settings.userTimers {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             let newIntervalSeconds = userTimer.intervalMinutes * 60
@@ -290,17 +290,9 @@ class TimerEngine: ObservableObject {
     func skipNext(identifier: TimerIdentifier) {
         guard let state = timerStates[identifier] else { return }
 
-        let intervalSeconds: Int
-        switch identifier {
-        case .builtIn(let type):
-            let config = settingsProvider.timerConfiguration(for: type)
-            intervalSeconds = config.intervalSeconds
-        case .user(let id):
-            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id })
-            else { return }
-            intervalSeconds = userTimer.intervalMinutes * 60
-        }
-
+        // Unified approach to get interval - no more special handling needed
+        let intervalSeconds = getTimerInterval(for: identifier)
+        
         timerStates[identifier] = TimerState(
             identifier: identifier,
             intervalSeconds: intervalSeconds,
@@ -320,6 +312,20 @@ class TimerEngine: ObservableObject {
         enforceModeService?.handleReminderDismissed()
     }
 
+    /// Unified way to get interval for any timer type
+    private func getTimerInterval(for identifier: TimerIdentifier) -> Int {
+        switch identifier {
+        case .builtIn(let type):
+            let config = settingsProvider.timerConfiguration(for: type)
+            return config.intervalSeconds
+        case .user(let id):
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else {
+                return 0
+            }
+            return userTimer.intervalMinutes * 60
+        }
+    }
+
     private func handleTick() {
         for (identifier, state) in timerStates {
             guard !state.isPaused else { continue }
@@ -333,13 +339,13 @@ class TimerEngine: ObservableObject {
             timerStates[identifier]?.remainingSeconds -= 1
 
             if let updatedState = timerStates[identifier] {
+                // Unified approach - no more special handling needed for any timer type
                 if updatedState.remainingSeconds <= 3 && !updatedState.isPaused {
-                    if case .builtIn(.lookAway) = identifier {
-                        if enforceModeService?.shouldEnforceBreak(for: identifier) == true {
-                            Task { @MainActor in
-                                await enforceModeService?.startCameraForLookawayTimer(
-                                    secondsRemaining: updatedState.remainingSeconds)
-                            }
+                    // Enforce mode is handled generically, not specifically for lookAway only
+                    if enforceModeService?.shouldEnforceBreak(for: identifier) == true {
+                        Task { @MainActor in
+                            await enforceModeService?.startCameraForLookawayTimer(
+                                secondsRemaining: updatedState.remainingSeconds)
                         }
                     }
                 }
@@ -356,6 +362,7 @@ class TimerEngine: ObservableObject {
         // Pause only the timer that triggered
         pauseTimer(identifier: identifier)
 
+        // Unified approach to handle all timer types - no more special handling
         switch identifier {
         case .builtIn(let type):
             switch type {

@@ -7,17 +7,31 @@
 
 import Foundation
 
-struct TimerConfiguration: Codable, Equatable, Hashable, Sendable {
-    var enabled: Bool
-    var intervalSeconds: Int
+/// Unified configuration for all timer types (built-in and user)
+protocol TimerConfigurationProtocol: Codable, Equatable {
+    var intervalSeconds: Int { get }
+    var enabled: Bool { get }
+    var id: String { get }
+}
+
+/// Configuration for a built-in timer
+struct BuiltInTimerConfiguration: TimerConfigurationProtocol {
+    let intervalSeconds: Int
+    let enabled: Bool
+    let timerType: TimerType
     
-    init(enabled: Bool = true, intervalSeconds: Int) {
-        self.enabled = enabled
-        self.intervalSeconds = intervalSeconds
+    var id: String {
+        return "builtIn:\(timerType.rawValue)"
     }
+}
+
+/// Configuration for a user timer
+struct UserTimerConfiguration: TimerConfigurationProtocol {
+    let intervalSeconds: Int
+    let enabled: Bool
+    let userTimer: UserTimer
     
-    var intervalMinutes: Int {
-        get { intervalSeconds / 60 }
-        set { intervalSeconds = newValue * 60 }
+    var id: String {
+        return "user:\(userTimer.id)"
     }
 }

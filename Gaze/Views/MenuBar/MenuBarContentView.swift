@@ -96,7 +96,7 @@ struct MenuBarContentView: View {
                                     case .builtIn(let type):
                                         onOpenSettingsTab(type.tabIndex)
                                     case .user:
-                                        onOpenSettingsTab(3)  // User Timers tab
+                                        onOpenSettingsTab(4)
                                     }
                                 }
                             )

@@ -11,9 +11,9 @@ enum TimerType: String, Codable, CaseIterable, Identifiable {
     case lookAway
     case blink
     case posture
-    
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .lookAway:
@@ -24,7 +24,7 @@ enum TimerType: String, Codable, CaseIterable, Identifiable {
             return "Posture"
         }
     }
-    
+
     var iconName: String {
         switch self {
         case .lookAway:
@@ -35,18 +35,18 @@ enum TimerType: String, Codable, CaseIterable, Identifiable {
             return "figure.stand"
         }
     }
-    
+
     var tabIndex: Int {
         switch self {
         case .lookAway:
-            return 0
-        case .blink:
             return 1
-        case .posture:
+        case .blink:
             return 2
+        case .posture:
+            return 3
         }
     }
-    
+
     var tooltipText: String {
         switch self {
         case .lookAway:

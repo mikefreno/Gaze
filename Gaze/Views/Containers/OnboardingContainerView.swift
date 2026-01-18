@@ -34,29 +34,48 @@ final class OnboardingWindowPresenter {
     private var isShowingWindow = false
 
     func show(settingsManager: SettingsManager) {
-        if activateIfPresent() { return }
-        guard !isShowingWindow else { return }
+        print("DEBUG: OnboardingWindowPresenter.show called")
+        if activateIfPresent() { 
+            print("DEBUG: Onboarding already present, activated")
+            return 
+        }
+        guard !isShowingWindow else { 
+            print("DEBUG: Onboarding already showing")
+            return 
+        }
         isShowingWindow = true
+        print("DEBUG: Creating new onboarding window")
         createWindow(settingsManager: settingsManager)
     }
 
     @discardableResult
     func activateIfPresent() -> Bool {
-        guard let window = windowController?.window, window.isVisible else {
+        guard let window = windowController?.window else {
             return false
         }
 
-        NSApp.unhide(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        // Even if not visible, we may still need to activate it if it exists
+        let needsActivation = !window.isVisible || window.isMiniaturized
+        
+        if needsActivation {
+            NSApp.unhide(nil)
+            NSApp.activate(ignoringOtherApps: true)
 
-        if window.isMiniaturized {
-            window.deminiaturize(nil)
+            if window.isMiniaturized {
+                window.deminiaturize(nil)
+            }
+
+            // Ensure the window is properly ordered front
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            
+            // Make sure it's in the main space
+            window.makeMain()
+            
+            return true
         }
-
-        window.makeKeyAndOrderFront(nil)
-        window.orderFrontRegardless()
-        window.makeMain()
-        return true
+        
+        return false
     }
 
     func close() {

@@ -125,7 +125,7 @@ struct OnboardingContainerView: View {
     @Bindable var settingsManager: SettingsManager
     @State private var currentPage = 0
 
-    private let lastPageIndex = 6
+    private let lastPageIndex = 7
 
     var body: some View {
         ZStack {
@@ -157,8 +157,12 @@ struct OnboardingContainerView: View {
                         .tag(5)
                         .tabItem { Image(systemName: "gearshape.fill") }
 
-                    CompletionView()
+                    AdditionalModifiersView(settingsManager: settingsManager)
                         .tag(6)
+                        .tabItem { Image(systemName: "plus.circle.fill") }
+
+                    CompletionView()
+                        .tag(7)
                         .tabItem { Image(systemName: "checkmark.circle.fill") }
                 }
                 .tabViewStyle(.automatic)

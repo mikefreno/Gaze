@@ -287,10 +287,10 @@ class TimerEngine: ObservableObject {
         timerStates[identifier] = state
     }
 
-    func skipNext(identifier: TimerIdentifier) {
+func skipNext(identifier: TimerIdentifier) {
         guard let state = timerStates[identifier] else { return }
 
-        // Unified approach to get interval - no more special handling needed
+        // Unified approach to get interval - no more separate handling for user timers
         let intervalSeconds = getTimerInterval(for: identifier)
         
         timerStates[identifier] = TimerState(
@@ -300,18 +300,7 @@ class TimerEngine: ObservableObject {
             isActive: state.isActive
         )
     }
-
-    func dismissReminder() {
-        guard let reminder = activeReminder else { return }
-        activeReminder = nil
-
-        let identifier = reminder.identifier
-        skipNext(identifier: identifier)
-        resumeTimer(identifier: identifier)
-
-        enforceModeService?.handleReminderDismissed()
-    }
-
+    
     /// Unified way to get interval for any timer type
     private func getTimerInterval(for identifier: TimerIdentifier) -> Int {
         switch identifier {
@@ -324,6 +313,17 @@ class TimerEngine: ObservableObject {
             }
             return userTimer.intervalMinutes * 60
         }
+    }
+
+    func dismissReminder() {
+        guard let reminder = activeReminder else { return }
+        activeReminder = nil
+
+        let identifier = reminder.identifier
+        skipNext(identifier: identifier)
+        resumeTimer(identifier: identifier)
+
+        enforceModeService?.handleReminderDismissed()
     }
 
     private func handleTick() {

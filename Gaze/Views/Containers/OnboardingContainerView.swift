@@ -184,7 +184,8 @@ struct OnboardingContainerView: View {
                 #else
                     return 1000
                 #endif
-            }())
+            }()
+        )
         .onAppear {
             MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: currentPage == 1)
         }
@@ -231,7 +232,8 @@ struct OnboardingContainerView: View {
             }
             .buttonStyle(.plain)
             .glassEffectIfAvailable(
-                GlassStyle.regular.tint(currentPage == 5 ? .green : .accentColor).interactive(),
+                GlassStyle.regular.tint(currentPage == lastPageIndex ? .green : .accentColor)
+                    .interactive(),
                 in: .rect(cornerRadius: 10)
             )
         }

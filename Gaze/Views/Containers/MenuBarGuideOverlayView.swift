@@ -16,6 +16,7 @@ final class MenuBarGuideOverlayPresenter {
     private var window: NSWindow?
     private var displayLink: CVDisplayLink?
     private var lastWindowFrame: CGRect = .zero
+    private var onboardingWindowObserver: NSObjectProtocol?
 
     func updateVisibility(isVisible: Bool) {
         if isVisible {
@@ -116,6 +117,28 @@ final class MenuBarGuideOverlayPresenter {
         guard let window else { return }
         let overlayView = MenuBarGuideOverlayView()
         window.contentView = NSHostingView(rootView: overlayView)
+    }
+    
+    func setupOnboardingWindowObserver() {
+        // Remove any existing observer to prevent duplicates
+        if let observer = onboardingWindowObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        
+        // Add observer for when the onboarding window is closed
+        onboardingWindowObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let window = notification.object as? NSWindow,
+                  window.identifier == WindowIdentifiers.onboarding else {
+                return
+            }
+            
+            // Hide the overlay when onboarding window closes
+            self?.hide()
+        }
     }
 }
 

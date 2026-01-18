@@ -31,20 +31,11 @@ final class OnboardingWindowPresenter {
 
     private var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
-    private var isShowingWindow = false
 
     func show(settingsManager: SettingsManager) {
-        print("DEBUG: OnboardingWindowPresenter.show called")
-        if activateIfPresent() { 
-            print("DEBUG: Onboarding already present, activated")
-            return 
+        if activateIfPresent() {
+            return
         }
-        guard !isShowingWindow else { 
-            print("DEBUG: Onboarding already showing")
-            return 
-        }
-        isShowingWindow = true
-        print("DEBUG: Creating new onboarding window")
         createWindow(settingsManager: settingsManager)
     }
 
@@ -56,7 +47,7 @@ final class OnboardingWindowPresenter {
 
         // Even if not visible, we may still need to activate it if it exists
         let needsActivation = !window.isVisible || window.isMiniaturized
-        
+
         if needsActivation {
             NSApp.unhide(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -68,21 +59,22 @@ final class OnboardingWindowPresenter {
             // Ensure the window is properly ordered front
             window.makeKeyAndOrderFront(nil)
             window.orderFrontRegardless()
-            
+
             // Make sure it's in the main space
             window.makeMain()
-            
+
             return true
         }
-        
+
         return false
     }
 
     func close() {
-        removeCloseObserver()
+        // Notify overlay presenter to hide the guide overlay
+        MenuBarGuideOverlayPresenter.shared.hide()
+        
         windowController?.window?.close()
         windowController = nil
-        isShowingWindow = false
     }
 
     private func createWindow(settingsManager: SettingsManager) {
@@ -122,29 +114,11 @@ final class OnboardingWindowPresenter {
         window.orderFrontRegardless()
 
         windowController = controller
-
-        removeCloseObserver()
-        closeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.windowController = nil
-                self?.isShowingWindow = false
-                self?.removeCloseObserver()
-            }
-            NotificationCenter.default.post(
-                name: Notification.Name("OnboardingWindowDidClose"), object: nil)
-        }
+        
+        // Setup observer for when the onboarding window closes
+        MenuBarGuideOverlayPresenter.shared.setupOnboardingWindowObserver()
     }
 
-    private func removeCloseObserver() {
-        if let observer = closeObserver {
-            NotificationCenter.default.removeObserver(observer)
-            closeObserver = nil
-        }
-    }
 }
 
 struct OnboardingContainerView: View {

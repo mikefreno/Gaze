@@ -13,24 +13,16 @@ final class SettingsWindowPresenter {
 
     private var windowController: NSWindowController?
     private var closeObserver: NSObjectProtocol?
-    private var isShowingWindow = false
 
     func show(settingsManager: SettingsManager, initialTab: Int = 0) {
         if focusExistingWindow(tab: initialTab) { return }
-        guard !isShowingWindow else { return }
-        isShowingWindow = true
-        createWindow(settingsManager: settingsManager, initialTab: initialTab)
-    }
 
-    func focus(tab: Int) {
-        _ = focusExistingWindow(tab: tab)
+        createWindow(settingsManager: settingsManager, initialTab: initialTab)
     }
 
     func close() {
         windowController?.close()
         windowController = nil
-        isShowingWindow = false
-        removeCloseObserver()
     }
 
     @discardableResult
@@ -95,28 +87,6 @@ final class SettingsWindowPresenter {
 
         windowController = controller
 
-        removeCloseObserver()
-        closeObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.windowController = nil
-                self?.isShowingWindow = false
-                self?.removeCloseObserver()
-                NotificationCenter.default.post(
-                    name: Notification.Name("SettingsWindowDidClose"), object: nil)
-            }
-            self?.isShowingWindow = false
-        }
-    }
-
-    private func removeCloseObserver() {
-        if let observer = closeObserver {
-            NotificationCenter.default.removeObserver(observer)
-            closeObserver = nil
-        }
     }
 }
 

@@ -11,8 +11,15 @@ import SwiftUI
 enum PreviewWindowHelper {
     static func showPreview<Content: View>(
         on screen: NSScreen,
-        content: Content
-    ) -> NSWindowController {
+        content: @escaping (@escaping () -> Void) -> Content
+    ) {
+        var controller: NSWindowController?
+        
+        let dismiss: () -> Void = {
+            controller?.window?.close()
+            controller = nil
+        }
+        
         let panel = NSPanel(
             contentRect: screen.frame,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -25,11 +32,10 @@ enum PreviewWindowHelper {
         panel.hasShadow = false
         panel.ignoresMouseEvents = false
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.contentView = NSHostingView(rootView: content)
+        panel.contentView = NSHostingView(rootView: content(dismiss))
         panel.setFrame(screen.frame, display: true)
 
-        let controller = NSWindowController(window: panel)
-        controller.showWindow(nil)
-        return controller
+        controller = NSWindowController(window: panel)
+        controller?.showWindow(nil)
     }
 }

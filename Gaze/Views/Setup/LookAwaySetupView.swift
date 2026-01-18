@@ -10,7 +10,6 @@ import SwiftUI
 
 struct LookAwaySetupView: View {
     @Bindable var settingsManager: SettingsManager
-    @State private var previewWindowController: NSWindowController?
     var cameraAccess = CameraAccessService.shared
     @State private var failedCameraAccess = false
 
@@ -78,12 +77,10 @@ struct LookAwaySetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        previewWindowController = PreviewWindowHelper.showPreview(
-            on: screen,
-            content: LookAwayReminderView(countdownSeconds: settingsManager.settings.lookAwayCountdownSeconds) { [weak previewWindowController] in
-                previewWindowController?.window?.close()
-            }
-        )
+        let countdownSeconds = settingsManager.settings.lookAwayCountdownSeconds
+        PreviewWindowHelper.showPreview(on: screen) { dismiss in
+            LookAwayReminderView(countdownSeconds: countdownSeconds, onDismiss: dismiss)
+        }
     }
 }
 

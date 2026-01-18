@@ -10,7 +10,6 @@ import SwiftUI
 
 struct PostureSetupView: View {
     @Bindable var settingsManager: SettingsManager
-    @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -72,14 +71,10 @@ struct PostureSetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        previewWindowController = PreviewWindowHelper.showPreview(
-            on: screen,
-            content: PostureReminderView(
-                sizePercentage: settingsManager.settings.subtleReminderSize.percentage
-            ) { [weak previewWindowController] in
-                previewWindowController?.window?.close()
-            }
-        )
+        let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
+        PreviewWindowHelper.showPreview(on: screen) { dismiss in
+            PostureReminderView(sizePercentage: sizePercentage, onDismiss: dismiss)
+        }
     }
 }
 

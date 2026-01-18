@@ -10,7 +10,6 @@ import SwiftUI
 
 struct BlinkSetupView: View {
     @Bindable var settingsManager: SettingsManager
-    @State private var previewWindowController: NSWindowController?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -123,14 +122,10 @@ struct BlinkSetupView: View {
 
     private func showPreviewWindow() {
         guard let screen = NSScreen.main else { return }
-        previewWindowController = PreviewWindowHelper.showPreview(
-            on: screen,
-            content: BlinkReminderView(
-                sizePercentage: settingsManager.settings.subtleReminderSize.percentage
-            ) { [weak previewWindowController] in
-                previewWindowController?.window?.close()
-            }
-        )
+        let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
+        PreviewWindowHelper.showPreview(on: screen) { dismiss in
+            BlinkReminderView(sizePercentage: sizePercentage, onDismiss: dismiss)
+        }
     }
 }
 

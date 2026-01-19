@@ -153,13 +153,13 @@ struct OnboardingContainerView: View {
                         .tag(4)
                         .tabItem { Image(systemName: "figure.stand") }
 
-                    GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
-                        .tag(5)
-                        .tabItem { Image(systemName: "gearshape.fill") }
-
                     AdditionalModifiersView(settingsManager: settingsManager)
+                        .tag(5)
+                        .tabItem { Image(systemName: "slider.horizontal.3") }
+
+                    GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
                         .tag(6)
-                        .tabItem { Image(systemName: "plus.circle.fill") }
+                        .tabItem { Image(systemName: "gearshape.fill") }
 
                     CompletionView()
                         .tag(7)

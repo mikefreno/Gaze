@@ -14,6 +14,7 @@ struct EnforceModeSetupView: View {
     @ObservedObject var cameraService = CameraAccessService.shared
     @ObservedObject var eyeTrackingService = EyeTrackingService.shared
     @ObservedObject var enforceModeService = EnforceModeService.shared
+    @Environment(\.isCompactLayout) private var isCompact
 
     @State private var isProcessingToggle = false
     @State private var isTestModeActive = false
@@ -30,19 +31,19 @@ struct EnforceModeSetupView: View {
 
             Spacer()
 
-            VStack(spacing: 30) {
+            VStack(spacing: isCompact ? 16 : 30) {
                 Text("Use your camera to ensure you take breaks")
-                    .font(.title3)
+                    .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
 
-                VStack(spacing: 20) {
+                VStack(spacing: isCompact ? 12 : 20) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 4) {
+                        VStack(alignment: .leading, spacing: 2) {
                             Text("Enable Enforce Mode")
-                                .font(.headline)
+                                .font(isCompact ? .subheadline : .headline)
                             Text("Camera activates 3 seconds before lookaway reminders")
-                                .font(.caption)
+                                .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
@@ -65,8 +66,9 @@ struct EnforceModeSetupView: View {
                         )
                         .labelsHidden()
                         .disabled(isProcessingToggle)
+                        .controlSize(isCompact ? .small : .regular)
                     }
-                    .padding()
+                    .padding(isCompact ? 10 : 16)
                     .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
                     cameraStatusView
@@ -215,7 +217,7 @@ struct EnforceModeSetupView: View {
                         Spacer()
                     }
                 }
-                .frame(height: 300)
+                .frame(height: isCompact ? 200 : 300)
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
                 .onAppear {
                     if cachedPreviewLayer == nil {

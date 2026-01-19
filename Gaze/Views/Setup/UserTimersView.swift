@@ -11,33 +11,34 @@ struct UserTimersView: View {
     @Binding var userTimers: [UserTimer]
     @State private var editingTimer: UserTimer?
     @State private var showingAddTimer = false
+    @Environment(\.isCompactLayout) private var isCompact
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
+            VStack(spacing: isCompact ? 10 : 16) {
                 Image(systemName: "clock.badge.checkmark")
-                    .font(.system(size: 60))
+                    .font(.system(size: isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon))
                     .foregroundStyle(.purple)
                 Text("Custom Timers")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle, weight: .bold))
             }
-            .padding(.top, 20)
-            .padding(.bottom, 30)
+            .padding(.top, isCompact ? 12 : 20)
+            .padding(.bottom, isCompact ? 16 : 30)
 
             Spacer()
-            VStack(spacing: 30) {
+            VStack(spacing: isCompact ? 16 : 30) {
                 Text("Create your own reminder schedules")
-                    .font(.title3)
+                    .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
 
                 HStack(spacing: 12) {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.white)
                     Text("Add up to 3 custom timers with your own intervals and messages")
-                        .font(.headline)
+                        .font(isCompact ? .subheadline : .headline)
                         .foregroundStyle(.white)
                 }
-                .padding()
+                .padding(isCompact ? 10 : 16)
                 .glassEffectIfAvailable(
                     GlassStyle.regular.tint(.purple), in: .rect(cornerRadius: 8))
 
@@ -47,7 +48,7 @@ struct UserTimersView: View {
                     // for
                     HStack {
                         Text("Active Timers (\(userTimers.count)/3)")
-                            .font(.headline)
+                            .font(isCompact ? .subheadline : .headline)
                         Spacer()
                         if userTimers.count < 3 {
                             Button(action: {
@@ -56,6 +57,7 @@ struct UserTimersView: View {
                                 Label("Add Timer", systemImage: "plus.circle.fill")
                             }
                             .buttonStyle(.borderedProminent)
+                            .controlSize(isCompact ? .small : .regular)
                         }
                     }
                     /*#else*/
@@ -65,7 +67,7 @@ struct UserTimersView: View {
                     if userTimers.isEmpty {
                         VStack(spacing: 12) {
                             Image(systemName: "clock.badge.questionmark")
-                                .font(.system(size: 40))
+                                .font(.system(size: isCompact ? 28 : 40))
                                 .foregroundStyle(.secondary)
                             Text("No custom timers yet")
                                 .font(.subheadline)
@@ -75,7 +77,7 @@ struct UserTimersView: View {
                                 .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(40)
+                        .padding(isCompact ? 24 : 40)
                     } else {
                         ScrollView {
                             VStack(spacing: 8) {
@@ -83,6 +85,7 @@ struct UserTimersView: View {
                                     index, timer in
                                     UserTimerRow(
                                         timer: $userTimers[index],
+                                        isCompact: isCompact,
                                         onEdit: {
                                             editingTimer = timer
                                         },
@@ -97,10 +100,10 @@ struct UserTimersView: View {
                                 }
                             }
                         }
-                        .frame(maxHeight: 200)
+                        .frame(maxHeight: isCompact ? 150 : 200)
                     }
                 }
-                .padding()
+                .padding(isCompact ? 10 : 16)
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
             }
             Spacer()
@@ -141,51 +144,53 @@ struct UserTimersView: View {
 
 struct UserTimerRow: View {
     @Binding var timer: UserTimer
+    var isCompact: Bool = false
     var onEdit: () -> Void
     var onDelete: () -> Void
     @State private var isHovered = false
     @State private var showingDeleteConfirmation = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: isCompact ? 8 : 12) {
             Circle()
                 .fill(timer.color)
-                .frame(width: 12, height: 12)
+                .frame(width: isCompact ? 10 : 12, height: isCompact ? 10 : 12)
 
             Image(systemName: timer.type == .subtle ? "eye.circle" : "rectangle.on.rectangle")
                 .foregroundStyle(timer.color)
-                .frame(width: 24)
+                .frame(width: isCompact ? 20 : 24)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(timer.title)
-                    .font(.subheadline)
+                    .font(isCompact ? .caption : .subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
                 Text(
                     "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
                 )
-                .font(.caption)
+                .font(.caption2)
                 .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
 
             Spacer()
 
-            HStack(spacing: 8) {
+            HStack(spacing: isCompact ? 4 : 8) {
                 Toggle("", isOn: $timer.enabled)
                     .labelsHidden()
                     .toggleStyle(.switch)
-                    .controlSize(.small)
+                    .controlSize(.mini)
 
                 Button(action: onEdit) {
                     Image(systemName: "pencil.circle.fill")
-                        .font(.title3)
+                        .font(isCompact ? .subheadline : .title3)
                         .foregroundStyle(Color.accentColor)
                 }
                 .buttonStyle(.plain)
 
                 Button(action: { showingDeleteConfirmation = true }) {
                     Image(systemName: "trash.circle.fill")
-                        .font(.title3)
+                        .font(isCompact ? .subheadline : .title3)
                         .foregroundStyle(.red)
                 }
                 .buttonStyle(.plain)
@@ -200,7 +205,7 @@ struct UserTimerRow: View {
                 }
             }
         }
-        .padding()
+        .padding(isCompact ? 8 : 12)
         .background(
             RoundedRectangle(cornerRadius: 8)
                 .fill(Color.secondary.opacity(isHovered ? 0.1 : 0.05))
@@ -251,29 +256,31 @@ struct UserTimerEditSheet: View {
     }
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 20) {
             Text(timer == nil ? "Add Custom Timer" : "Edit Custom Timer")
-                .font(.title2)
+                .font(.title3)
                 .fontWeight(.bold)
 
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Title")
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     TextField("Timer title", text: $title)
                         .textFieldStyle(.roundedBorder)
                     Text("Example: \"Stretch Break\", \"Eye Rest\", \"Water Break\"")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Color")
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
 
                     LazyVGrid(
-                        columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 8),
-                        spacing: 12
+                        columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 8),
+                        spacing: 8
                     ) {
                         ForEach(UserTimer.defaultColors, id: \.self) { colorHex in
                             Button(action: {
@@ -281,23 +288,23 @@ struct UserTimerEditSheet: View {
                             }) {
                                 Circle()
                                     .fill(Color(hex: colorHex) ?? .purple)
-                                    .frame(width: 32, height: 32)
+                                    .frame(width: 28, height: 28)
                                     .overlay(
                                         Circle()
                                             .strokeBorder(
                                                 Color.white,
-                                                lineWidth: selectedColorHex == colorHex ? 3 : 0)
+                                                lineWidth: selectedColorHex == colorHex ? 2 : 0)
                                     )
                                     .shadow(
                                         color: selectedColorHex == colorHex ? .accentColor : .clear,
-                                        radius: 4)
+                                        radius: 3)
                             }
                             .buttonStyle(.plain)
                         }
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Picker("Display Type", selection: $type) {
                         ForEach(UserTimerType.allCases) { timerType in
                             Text(timerType.displayName).tag(timerType)
@@ -317,14 +324,15 @@ struct UserTimerEditSheet: View {
                             ? "Small reminder at top of screen"
                             : "Full screen reminder with animation"
                     )
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                 }
 
                 if type == .overlay {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Duration on Screen")
-                            .font(.headline)
+                            .font(.subheadline)
+                            .fontWeight(.medium)
                         HStack {
                             Slider(
                                 value: Binding(
@@ -335,15 +343,17 @@ struct UserTimerEditSheet: View {
                                 step: 1
                             )
                             Text("\(timeOnScreen)s")
-                                .frame(width: 50, alignment: .trailing)
+                                .frame(width: 40, alignment: .trailing)
                                 .monospacedDigit()
+                                .font(.caption)
                         }
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Interval")
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     HStack {
                         Slider(
                             value: Binding(
@@ -354,21 +364,23 @@ struct UserTimerEditSheet: View {
                             step: 1
                         )
                         Text("\(intervalMinutes) min")
-                            .frame(width: 60, alignment: .trailing)
+                            .frame(width: 50, alignment: .trailing)
                             .monospacedDigit()
+                            .font(.caption)
                     }
                     Text("How often this reminder will appear (in minutes)")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
 
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Message (Optional)")
-                        .font(.headline)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
                     TextField("Enter custom reminder message", text: $message)
                         .textFieldStyle(.roundedBorder)
                     Text("Leave blank to show a default timer notification")
-                        .font(.caption)
+                        .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -396,8 +408,8 @@ struct UserTimerEditSheet: View {
                 .buttonStyle(.borderedProminent)
             }
         }
-        .padding(24)
-        .frame(width: 450)
+        .padding(20)
+        .frame(minWidth: 360, idealWidth: 420, maxWidth: 480)
     }
 }
 

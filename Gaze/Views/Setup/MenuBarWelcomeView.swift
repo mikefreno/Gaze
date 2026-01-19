@@ -8,25 +8,40 @@
 import SwiftUI
 
 struct MenuBarWelcomeView: View {
+    @Environment(\.isCompactLayout) private var isCompact
+    
+    private var iconSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon
+    }
+    
+    private var titleSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle
+    }
+    
+    private var spacing: CGFloat {
+        isCompact ? AdaptiveLayout.Spacing.compact : AdaptiveLayout.Spacing.standard
+    }
+    
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: spacing * 1.5) {
             Spacer()
 
             Image(systemName: "menubar.rectangle")
-                .font(.system(size: 72))
+                .font(.system(size: iconSize))
                 .foregroundStyle(Color.accentColor)
 
             VStack(spacing: 8) {
                 Text("Gaze Lives in Your Menu Bar")
-                    .font(.system(size: 34, weight: .bold))
+                    .font(.system(size: titleSize, weight: .bold))
+                    .multilineTextAlignment(.center)
 
                 Text("Keep an eye on the top-right of your screen for the Gaze icon.")
-                    .font(.title3)
+                    .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: isCompact ? 12 : 16) {
                 FeatureRow(
                     icon: "cursorarrow.click", title: "Always Within Reach",
                     description: "Open settings and timers from the menu bar anytime")
@@ -37,12 +52,12 @@ struct MenuBarWelcomeView: View {
                     icon: "sparkles", title: "Quick Tweaks",
                     description: "Pause, resume, and adjust timers in one click")
             }
-            .padding()
+            .padding(isCompact ? 12 : 16)
             .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
             Spacer()
         }
-        .frame(width: 600, height: 450)
+        .frame(maxWidth: AdaptiveLayout.Content.maxWidth)
         .padding()
         .background(.clear)
     }

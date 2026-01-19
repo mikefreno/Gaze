@@ -72,7 +72,7 @@ final class OnboardingWindowPresenter {
     func close() {
         // Notify overlay presenter to hide the guide overlay
         MenuBarGuideOverlayPresenter.shared.hide()
-        
+
         windowController?.window?.close()
         windowController = nil
     }
@@ -80,15 +80,11 @@ final class OnboardingWindowPresenter {
     private func createWindow(settingsManager: SettingsManager) {
         let window = NSWindow(
             contentRect: NSRect(
-                x: 0, y: 0, width: 1000,
-                height: {
-                    #if APPSTORE
-                        return 700
-                    #else
-                        return 1000
-                    #endif
-                }()),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+                x: 0, y: 0,
+                width: AdaptiveLayout.Window.defaultWidth,
+                height: AdaptiveLayout.Window.defaultHeight
+            ),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
@@ -114,7 +110,7 @@ final class OnboardingWindowPresenter {
         window.orderFrontRegardless()
 
         windowController = controller
-        
+
         // Setup observer for when the onboarding window closes
         MenuBarGuideOverlayPresenter.shared.setupOnboardingWindowObserver()
     }
@@ -128,60 +124,62 @@ struct OnboardingContainerView: View {
     private let lastPageIndex = 7
 
     var body: some View {
-        ZStack {
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                .ignoresSafeArea()
-            VStack(spacing: 0) {
-                TabView(selection: $currentPage) {
-                    WelcomeView()
-                        .tag(0)
-                        .tabItem { Image(systemName: "hand.wave.fill") }
+        GeometryReader { geometry in
+            let isCompact = geometry.size.height < 600
 
-                    MenuBarWelcomeView()
-                        .tag(1)
-                        .tabItem { Image(systemName: "menubar.rectangle") }
+            ZStack {
+                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                    .ignoresSafeArea()
+                VStack(spacing: 0) {
+                    TabView(selection: $currentPage) {
+                        WelcomeView()
+                            .tag(0)
+                            .tabItem { Image(systemName: "hand.wave.fill") }
 
-                    LookAwaySetupView(settingsManager: settingsManager)
-                        .tag(2)
-                        .tabItem { Image(systemName: "eye.fill") }
+                        MenuBarWelcomeView()
+                            .tag(1)
+                            .tabItem { Image(systemName: "menubar.rectangle") }
 
-                    BlinkSetupView(settingsManager: settingsManager)
-                        .tag(3)
-                        .tabItem { Image(systemName: "eye.circle.fill") }
+                        LookAwaySetupView(settingsManager: settingsManager)
+                            .tag(2)
+                            .tabItem { Image(systemName: "eye.fill") }
 
-                    PostureSetupView(settingsManager: settingsManager)
-                        .tag(4)
-                        .tabItem { Image(systemName: "figure.stand") }
+                        BlinkSetupView(settingsManager: settingsManager)
+                            .tag(3)
+                            .tabItem { Image(systemName: "eye.circle.fill") }
 
-                    AdditionalModifiersView(settingsManager: settingsManager)
-                        .tag(5)
-                        .tabItem { Image(systemName: "slider.horizontal.3") }
+                        PostureSetupView(settingsManager: settingsManager)
+                            .tag(4)
+                            .tabItem { Image(systemName: "figure.stand") }
 
-                    GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
-                        .tag(6)
-                        .tabItem { Image(systemName: "gearshape.fill") }
+                        AdditionalModifiersView(settingsManager: settingsManager)
+                            .tag(5)
+                            .tabItem { Image(systemName: "slider.horizontal.3") }
 
-                    CompletionView()
-                        .tag(7)
-                        .tabItem { Image(systemName: "checkmark.circle.fill") }
+                        ScrollView {
+                            GeneralSetupView(settingsManager: settingsManager, isOnboarding: true)
+
+                        }.tag(6)
+                            .tabItem { Image(systemName: "gearshape.fill") }
+
+                        CompletionView()
+                            .tag(7)
+                            .tabItem { Image(systemName: "checkmark.circle.fill") }
+                    }
+                    .tabViewStyle(.automatic)
+                    .onChange(of: currentPage) { _, newValue in
+                        MenuBarGuideOverlayPresenter.shared.updateVisibility(
+                            isVisible: newValue == 1)
+                    }
+
+                    navigationButtons(isCompact: isCompact)
                 }
-                .tabViewStyle(.automatic)
-                .onChange(of: currentPage) { _, newValue in
-                    MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: newValue == 1)
-                }
-
-                navigationButtons
             }
+            .environment(\.isCompactLayout, isCompact)
         }
         .frame(
-            minWidth: 1000,
-            minHeight: {
-                #if APPSTORE
-                    return 700
-                #else
-                    return 1000
-                #endif
-            }()
+            minWidth: AdaptiveLayout.Window.minWidth,
+            minHeight: AdaptiveLayout.Window.minHeight
         )
         .onAppear {
             MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: currentPage == 1)
@@ -192,7 +190,7 @@ struct OnboardingContainerView: View {
     }
 
     @ViewBuilder
-    private var navigationButtons: some View {
+    private func navigationButtons(isCompact: Bool) -> some View {
         HStack(spacing: 12) {
             if currentPage > 0 {
                 Button(action: { currentPage -= 1 }) {
@@ -200,8 +198,11 @@ struct OnboardingContainerView: View {
                         Image(systemName: "chevron.left")
                         Text("Back")
                     }
-                    .font(.headline)
-                    .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
+                    .font(isCompact ? .subheadline : .headline)
+                    .frame(
+                        minWidth: 80, maxWidth: .infinity, minHeight: isCompact ? 36 : 44,
+                        maxHeight: isCompact ? 36 : 44
+                    )
                     .foregroundStyle(.primary)
                     .contentShape(RoundedRectangle(cornerRadius: 10))
                 }
@@ -222,8 +223,11 @@ struct OnboardingContainerView: View {
                         ? "Let's Get Started"
                         : currentPage == lastPageIndex ? "Get Started" : "Continue"
                 )
-                .font(.headline)
-                .frame(minWidth: 100, maxWidth: .infinity, minHeight: 44, maxHeight: 44)
+                .font(isCompact ? .subheadline : .headline)
+                .frame(
+                    minWidth: 80, maxWidth: .infinity, minHeight: isCompact ? 36 : 44,
+                    maxHeight: isCompact ? 36 : 44
+                )
                 .foregroundStyle(.white)
                 .contentShape(RoundedRectangle(cornerRadius: 10))
             }
@@ -234,8 +238,8 @@ struct OnboardingContainerView: View {
                 in: .rect(cornerRadius: 10)
             )
         }
-        .padding(.horizontal, 40)
-        .padding(.bottom, 20)
+        .padding(.horizontal, isCompact ? 24 : 40)
+        .padding(.bottom, isCompact ? 12 : 20)
     }
 
     private func completeOnboarding() {

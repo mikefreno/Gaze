@@ -8,72 +8,68 @@
 import SwiftUI
 
 struct CompletionView: View {
+    @Environment(\.isCompactLayout) private var isCompact
+    
+    private var iconSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon
+    }
+    
+    private var titleSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle
+    }
+    
+    private var spacing: CGFloat {
+        isCompact ? AdaptiveLayout.Spacing.compact : AdaptiveLayout.Spacing.standard
+    }
+    
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: spacing * 1.5) {
             Spacer()
 
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
+                .font(.system(size: iconSize))
                 .foregroundStyle(.green)
 
             Text("You're All Set!")
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: titleSize, weight: .bold))
 
             Text("Gaze will now help you take care of your eyes and posture")
-                .font(.title3)
+                .font(isCompact ? .subheadline : .title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, isCompact ? 20 : 40)
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: isCompact ? 10 : 16) {
                 Text("What happens next:")
-                    .font(.headline)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
                     .padding(.horizontal)
 
-                HStack(spacing: 16) {
-                    Image(systemName: "menubar.rectangle")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 30)
-                    Text("Gaze will appear in your menu bar")
-                        .font(.subheadline)
-                }
-                .padding(.horizontal)
-
-                HStack(spacing: 16) {
-                    Image(systemName: "clock")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 30)
-                    Text("Timers will start automatically")
-                        .font(.subheadline)
-                }
-                .padding(.horizontal)
-
-                HStack(spacing: 16) {
-                    Image(systemName: "gearshape")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 30)
-                    Text("Adjust settings anytime from the menu bar")
-                        .font(.subheadline)
-                }
-                .padding(.horizontal)
-
-                HStack(spacing: 16) {
-                    Image(systemName: "plus.circle")
-                        .foregroundStyle(Color.accentColor)
-                        .frame(width: 30)
-                    Text("Create custom timers in Settings for additional reminders")
-                        .font(.subheadline)
-                }
-                .padding(.horizontal)
+                completionItem(icon: "menubar.rectangle", text: "Gaze will appear in your menu bar")
+                completionItem(icon: "clock", text: "Timers will start automatically")
+                completionItem(icon: "gearshape", text: "Adjust settings anytime from the menu bar")
+                completionItem(icon: "plus.circle", text: "Create custom timers in Settings for additional reminders")
             }
-            .padding()
+            .padding(isCompact ? 12 : 16)
             .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
             Spacer()
         }
-        .frame(width: 600, height: 450)
+        .frame(maxWidth: AdaptiveLayout.Content.maxWidth)
         .padding()
         .background(.clear)
+    }
+    
+    @ViewBuilder
+    private func completionItem(icon: String, text: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(Color.accentColor)
+                .frame(width: 24)
+            Text(text)
+                .font(.caption)
+        }
+        .padding(.horizontal)
     }
 }
 

@@ -8,22 +8,36 @@
 import SwiftUI
 
 struct WelcomeView: View {
+    @Environment(\.isCompactLayout) private var isCompact
+    
+    private var iconSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon
+    }
+    
+    private var titleSize: CGFloat {
+        isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle
+    }
+    
+    private var spacing: CGFloat {
+        isCompact ? AdaptiveLayout.Spacing.compact : AdaptiveLayout.Spacing.standard
+    }
+    
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: spacing * 1.5) {
             Spacer()
 
             Image(systemName: "eye.fill")
-                .font(.system(size: 80))
+                .font(.system(size: iconSize))
                 .foregroundStyle(Color.accentColor)
 
             Text("Welcome to Gaze")
-                .font(.system(size: 36, weight: .bold))
+                .font(.system(size: titleSize, weight: .bold))
 
             Text("Take care of your eyes and posture")
                 .font(.title3)
                 .foregroundStyle(.secondary)
 
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: isCompact ? 12 : 16) {
                 FeatureRow(
                     icon: "eye.trianglebadge.exclamationmark", title: "Reduce Eye Strain",
                     description: "Regular breaks help prevent digital eye strain")
@@ -37,12 +51,12 @@ struct WelcomeView: View {
                     icon: "plus.circle", title: "Custom Timers",
                     description: "Create your own timers for specific needs")
             }
-            .padding()
+            .padding(isCompact ? 12 : 16)
             .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
             Spacer()
         }
-        .frame(width: 600, height: 450)
+        .frame(maxWidth: AdaptiveLayout.Content.maxWidth)
         .padding()
         .background(.clear)
     }
@@ -63,17 +77,18 @@ struct FeatureRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
-                .font(.title2)
+                .font(.title3)
                 .foregroundStyle(iconColor)
-                .frame(width: 30)
+                .frame(width: 24)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
-                Text(description)
                     .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text(description)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }

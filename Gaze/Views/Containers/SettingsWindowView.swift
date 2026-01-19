@@ -55,7 +55,11 @@ final class SettingsWindowPresenter {
 
     private func createWindow(settingsManager: SettingsManager, initialTab: Int) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 1000, height: 900),
+            contentRect: NSRect(
+                x: 0, y: 0,
+                width: AdaptiveLayout.Window.defaultWidth,
+                height: AdaptiveLayout.Window.defaultHeight
+            ),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -100,52 +104,54 @@ struct SettingsWindowView: View {
     }
 
     var body: some View {
-        ZStack {
-            VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            let isCompact = geometry.size.height < 600
+            
+            ZStack {
+                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                    .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                NavigationSplitView {
-                    List(SettingsSection.allCases, selection: $selectedSection) { section in
-                        NavigationLink(value: section) {
-                            Label(section.title, systemImage: section.iconName)
+                VStack(spacing: 0) {
+                    NavigationSplitView {
+                        List(SettingsSection.allCases, selection: $selectedSection) { section in
+                            NavigationLink(value: section) {
+                                Label(section.title, systemImage: section.iconName)
+                            }
+                        }
+                        .listStyle(.sidebar)
+                    } detail: {
+                        ScrollView {
+                            detailView(for: selectedSection)
                         }
                     }
-                    .listStyle(.sidebar)
-                } detail: {
-                    ScrollView {
-                        detailView(for: selectedSection)
-                    }
-                }
-                .onReceive(
-                    NotificationCenter.default.publisher(
-                        for: Notification.Name("SwitchToSettingsTab"))
-                ) { notification in
-                    if let tab = notification.object as? Int,
-                        let section = SettingsSection(rawValue: tab)
-                    {
-                        selectedSection = section
-                    }
-                }
-
-                #if DEBUG
-                    Divider()
-                    HStack {
-                        Button("Retrigger Onboarding") {
-                            retriggerOnboarding()
+                    .onReceive(
+                        NotificationCenter.default.publisher(
+                            for: Notification.Name("SwitchToSettingsTab"))
+                    ) { notification in
+                        if let tab = notification.object as? Int,
+                            let section = SettingsSection(rawValue: tab)
+                        {
+                            selectedSection = section
                         }
-                        .buttonStyle(.bordered)
-                        Spacer()
                     }
-                    .padding()
-                #endif
+
+                    #if DEBUG
+                        Divider()
+                        HStack {
+                            Button("Retrigger Onboarding") {
+                                retriggerOnboarding()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(isCompact ? .small : .regular)
+                            Spacer()
+                        }
+                        .padding(isCompact ? 8 : 16)
+                    #endif
+                }
             }
+            .environment(\.isCompactLayout, isCompact)
         }
-        #if APPSTORE
-            .frame(minWidth: 1000, minHeight: 700)
-        #else
-            .frame(minWidth: 1000, minHeight: 900)
-        #endif
+        .frame(minWidth: AdaptiveLayout.Window.minWidth, minHeight: AdaptiveLayout.Window.minHeight)
     }
 
     @ViewBuilder

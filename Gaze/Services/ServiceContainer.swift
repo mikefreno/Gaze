@@ -64,7 +64,8 @@ final class ServiceContainer {
         }
         let engine = TimerEngine(
             settingsManager: settingsManager,
-            enforceModeService: enforceModeService
+            enforceModeService: enforceModeService,
+            timeProvider: isTestEnvironment ? MockTimeProvider() : SystemTimeProvider()
         )
         _timerEngine = engine
         return engine

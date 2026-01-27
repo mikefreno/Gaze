@@ -1,141 +1,41 @@
 //
-//  TimerEngine.swift
+//  TimerManager.swift
 //  Gaze
 //
-//  Created by Mike Freno on 1/7/26.
+//  Manages timer creation, state updates, and lifecycle operations.
 //
 
 import Combine
 import Foundation
 
 @MainActor
-class TimerEngine: ObservableObject {
+class TimerManager: ObservableObject {
     @Published var timerStates: [TimerIdentifier: TimerState] = [:]
-    @Published var activeReminder: ReminderEvent?
-
-    private var timerSubscription: AnyCancellable?
-    private let settingsProvider: any SettingsProviding
     
-    // Expose the settings provider for components that need it (like SmartModeManager)
-    var settingsProviderForTesting: any SettingsProviding {
-        return settingsProvider
-    }
-    private var sleepStartTime: Date?
-
-    /// Time provider for deterministic testing (defaults to system time)
+    private let settingsProvider: any SettingsProviding
+    private var timerSubscription: AnyCancellable?
     private let timeProvider: TimeProviding
-
-    // For enforce mode integration
-    private var enforceModeService: EnforceModeService?
-
-    // Smart Mode services
-    private var fullscreenService: FullscreenDetectionService?
-    private var idleService: IdleMonitoringService?
-    private var cancellables = Set<AnyCancellable>()
-
-    convenience init(
-        settingsManager: any SettingsProviding,
-        enforceModeService: EnforceModeService? = nil
-    ) {
-        self.init(
-            settingsManager: settingsManager,
-            enforceModeService: enforceModeService,
-            timeProvider: SystemTimeProvider()
-        )
-    }
-
+    
     init(
         settingsManager: any SettingsProviding,
-        enforceModeService: EnforceModeService?,
         timeProvider: TimeProviding
     ) {
         self.settingsProvider = settingsManager
-        self.enforceModeService = enforceModeService ?? EnforceModeService.shared
         self.timeProvider = timeProvider
-
-        Task { @MainActor in
-            self.enforceModeService?.setTimerEngine(self)
-        }
     }
-
-    func setupSmartMode(
-        fullscreenService: FullscreenDetectionService?,
-        idleService: IdleMonitoringService?
-    ) {
-        self.fullscreenService = fullscreenService
-        self.idleService = idleService
-
-        // Subscribe to fullscreen state changes
-        fullscreenService?.$isFullscreenActive
-            .sink { [weak self] isFullscreen in
-                Task { @MainActor in
-                    self?.handleFullscreenChange(isFullscreen: isFullscreen)
-                }
-            }
-            .store(in: &cancellables)
-
-        // Subscribe to idle state changes
-        idleService?.$isIdle
-            .sink { [weak self] isIdle in
-                Task { @MainActor in
-                    self?.handleIdleChange(isIdle: isIdle)
-                }
-            }
-            .store(in: &cancellables)
-    }
-
-    private func handleFullscreenChange(isFullscreen: Bool) {
-        guard settingsProvider.settings.smartMode.autoPauseOnFullscreen else { return }
-
-        if isFullscreen {
-            pauseAllTimers(reason: .fullscreen)
-            logInfo("⏸️ Timers paused: fullscreen detected")
-        } else {
-            resumeAllTimers(reason: .fullscreen)
-            logInfo("▶️ Timers resumed: fullscreen exited")
-        }
-    }
-
-    private func handleIdleChange(isIdle: Bool) {
-        guard settingsProvider.settings.smartMode.autoPauseOnIdle else { return }
-
-        if isIdle {
-            pauseAllTimers(reason: .idle)
-            logInfo("⏸️ Timers paused: user idle")
-        } else {
-            resumeAllTimers(reason: .idle)
-            logInfo("▶️ Timers resumed: user active")
-        }
-    }
-
-    func pauseAllTimers(reason: PauseReason) {
-        for (id, var state) in timerStates {
-            state.pauseReasons.insert(reason)
-            state.isPaused = true
-            timerStates[id] = state
-        }
-    }
-
-    func resumeAllTimers(reason: PauseReason) {
-        for (id, var state) in timerStates {
-            state.pauseReasons.remove(reason)
-            state.isPaused = !state.pauseReasons.isEmpty
-            timerStates[id] = state
-        }
-    }
-
+    
     func start() {
         // If timers are already running, just update configurations without resetting
         if timerSubscription != nil {
             updateConfigurations()
             return
         }
-
+        
         // Initial start - create all timer states
         stop()
-
+        
         var newStates: [TimerIdentifier: TimerState] = [:]
-
+        
         // Add built-in timers (using unified approach)
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
@@ -149,7 +49,7 @@ class TimerEngine: ObservableObject {
                 )
             }
         }
-
+        
         // Add user timers (using unified approach)
         for userTimer in settingsProvider.settings.userTimers where userTimer.enabled {
             let identifier = TimerIdentifier.user(id: userTimer.id)
@@ -160,10 +60,10 @@ class TimerEngine: ObservableObject {
                 isActive: true
             )
         }
-
+        
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
-
+        
         timerSubscription = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -172,27 +72,27 @@ class TimerEngine: ObservableObject {
                 }
             }
     }
-
-    /// Check if enforce mode is active and should affect timer behavior
-    func checkEnforceMode() {
-        // Deprecated - camera is now activated in handleTick before timer triggers
+    
+    func stop() {
+        timerSubscription?.cancel()
+        timerSubscription = nil
+        timerStates.removeAll()
     }
-
-    private func updateConfigurations() {
-        logDebug("Updating timer configurations")
+    
+    func updateConfigurations() {
+        // Update configurations from settings
         var newStates: [TimerIdentifier: TimerState] = [:]
-
+        
         // Update built-in timers (using unified approach)
         for timerType in TimerType.allCases {
             let config = settingsProvider.timerConfiguration(for: timerType)
             let identifier = TimerIdentifier.builtIn(timerType)
-
+            
             if config.enabled {
                 if let existingState = timerStates[identifier] {
                     // Timer exists - check if interval changed
                     if existingState.originalIntervalSeconds != config.intervalSeconds {
                         // Interval changed - reset with new interval
-                        logDebug("Timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: config.intervalSeconds,
@@ -205,7 +105,6 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // Timer was just enabled - create new state
-                    logDebug("Timer enabled")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: config.intervalSeconds,
@@ -216,18 +115,17 @@ class TimerEngine: ObservableObject {
             }
             // If config.enabled is false and timer exists, it will be removed
         }
-
+        
         // Update user timers (using unified approach)
         for userTimer in settingsProvider.settings.userTimers {
             let identifier = TimerIdentifier.user(id: userTimer.id)
             let newIntervalSeconds = userTimer.intervalMinutes * 60
-
+            
             if userTimer.enabled {
                 if let existingState = timerStates[identifier] {
                     // Check if interval changed
                     if existingState.originalIntervalSeconds != newIntervalSeconds {
                         // Interval changed - reset with new interval
-                        logDebug("User timer interval changed")
                         newStates[identifier] = TimerState(
                             identifier: identifier,
                             intervalSeconds: newIntervalSeconds,
@@ -240,7 +138,6 @@ class TimerEngine: ObservableObject {
                     }
                 } else {
                     // New timer - create state
-                    logDebug("User timer created")
                     newStates[identifier] = TimerState(
                         identifier: identifier,
                         intervalSeconds: newIntervalSeconds,
@@ -251,17 +148,33 @@ class TimerEngine: ObservableObject {
             }
             // If timer is disabled, it will be removed
         }
-
+        
         // Assign the entire dictionary at once to trigger @Published
         timerStates = newStates
     }
-
-    func stop() {
-        timerSubscription?.cancel()
-        timerSubscription = nil
-        timerStates.removeAll()
+    
+    private func handleTick() {
+        for (identifier, state) in timerStates {
+            guard !state.isPaused else { continue }
+            guard state.isActive else { continue }
+            
+            if state.targetDate < timeProvider.now() - 3.0 {
+                // Timer has expired but with some grace period
+                continue
+            }
+            
+            timerStates[identifier]?.remainingSeconds -= 1
+            
+            if let updatedState = timerStates[identifier] {
+                // Update remaining seconds for the timer
+                if updatedState.remainingSeconds <= 0 {
+                    // This would normally trigger a reminder in a full implementation,
+                    // but we're decomposing it to separate components
+                }
+            }
+        }
     }
-
+    
     func pause() {
         for (id, var state) in timerStates {
             state.pauseReasons.insert(.manual)
@@ -269,7 +182,7 @@ class TimerEngine: ObservableObject {
             timerStates[id] = state
         }
     }
-
+    
     func resume() {
         for (id, var state) in timerStates {
             state.pauseReasons.remove(.manual)
@@ -277,24 +190,24 @@ class TimerEngine: ObservableObject {
             timerStates[id] = state
         }
     }
-
+    
     func pauseTimer(identifier: TimerIdentifier) {
         guard var state = timerStates[identifier] else { return }
         state.pauseReasons.insert(.manual)
         state.isPaused = true
         timerStates[identifier] = state
     }
-
+    
     func resumeTimer(identifier: TimerIdentifier) {
         guard var state = timerStates[identifier] else { return }
         state.pauseReasons.remove(.manual)
         state.isPaused = !state.pauseReasons.isEmpty
         timerStates[identifier] = state
     }
-
-func skipNext(identifier: TimerIdentifier) {
+    
+    func skipNext(identifier: TimerIdentifier) {
         guard let state = timerStates[identifier] else { return }
-
+        
         // Unified approach to get interval - no more separate handling for user timers
         let intervalSeconds = getTimerInterval(for: identifier)
         
@@ -319,100 +232,17 @@ func skipNext(identifier: TimerIdentifier) {
             return userTimer.intervalMinutes * 60
         }
     }
-
-    func dismissReminder() {
-        guard let reminder = activeReminder else { return }
-        activeReminder = nil
-
-        let identifier = reminder.identifier
-        skipNext(identifier: identifier)
-        resumeTimer(identifier: identifier)
-
-        enforceModeService?.handleReminderDismissed()
-    }
-
-    private func handleTick() {
-        for (identifier, state) in timerStates {
-            guard !state.isPaused else { continue }
-            guard state.isActive else { continue }
-
-            if state.targetDate < timeProvider.now() - 3.0 {
-                skipNext(identifier: identifier)
-                continue
-            }
-
-            timerStates[identifier]?.remainingSeconds -= 1
-
-            if let updatedState = timerStates[identifier] {
-                // Unified approach - no more special handling needed for any timer type
-                if updatedState.remainingSeconds <= 3 && !updatedState.isPaused {
-                    // Enforce mode is handled generically, not specifically for lookAway only
-                    if enforceModeService?.shouldEnforceBreak(for: identifier) == true {
-                        Task { @MainActor in
-                            await enforceModeService?.startCameraForLookawayTimer(
-                                secondsRemaining: updatedState.remainingSeconds)
-                        }
-                    }
-                }
-
-                if updatedState.remainingSeconds <= 0 {
-                    triggerReminder(for: identifier)
-                    break
-                }
-            }
-        }
-    }
-
-    func triggerReminder(for identifier: TimerIdentifier) {
-        // Pause only the timer that triggered
-        pauseTimer(identifier: identifier)
-
-        // Unified approach to handle all timer types - no more special handling
-        switch identifier {
-        case .builtIn(let type):
-            switch type {
-            case .lookAway:
-                activeReminder = .lookAwayTriggered(
-                    countdownSeconds: settingsProvider.settings.lookAwayCountdownSeconds)
-            case .blink:
-                activeReminder = .blinkTriggered
-            case .posture:
-                activeReminder = .postureTriggered
-            }
-        case .user(let id):
-            if let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) {
-                activeReminder = .userTimerTriggered(userTimer)
-            }
-        }
-    }
-
+    
     func getTimeRemaining(for identifier: TimerIdentifier) -> TimeInterval {
         guard let state = timerStates[identifier] else { return 0 }
         return TimeInterval(state.remainingSeconds)
     }
-
+    
     func getFormattedTimeRemaining(for identifier: TimerIdentifier) -> String {
         return getTimeRemaining(for: identifier).formatAsTimerDurationFull()
     }
-
+    
     func isTimerPaused(_ identifier: TimerIdentifier) -> Bool {
         return timerStates[identifier]?.isPaused ?? true
     }
-
-// System sleep/wake handling is now managed by SystemSleepManager
-// This method is kept for compatibility but will be removed in future versions
-    /// Handles system sleep event - deprecated
-    @available(*, deprecated, message: "Use SystemSleepManager instead")
-    func handleSystemSleep() {
-        logDebug("System going to sleep (deprecated)")
-        // This functionality has been moved to SystemSleepManager
-    }
-    
-    /// Handles system wake event - deprecated
-    @available(*, deprecated, message: "Use SystemSleepManager instead")
-    func handleSystemWake() {
-        logDebug("System waking up (deprecated)")
-        // This functionality has been moved to SystemSleepManager
-    }
 }
-

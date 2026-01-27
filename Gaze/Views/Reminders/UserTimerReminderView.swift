@@ -2,7 +2,7 @@
 //  UserTimerReminderView.swift
 //  Gaze
 //
-//  Created by OpenCode on 1/11/26.
+//  Created by Mike Freno on 1/11/26.
 //
 
 import SwiftUI

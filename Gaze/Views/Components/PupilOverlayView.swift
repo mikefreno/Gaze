@@ -2,7 +2,7 @@
 //  PupilOverlayView.swift
 //  Gaze
 //
-//  Created by Claude on 1/16/26.
+//  Created by Mike Freno on 1/16/26.
 //
 
 import SwiftUI

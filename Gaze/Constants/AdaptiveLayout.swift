@@ -2,7 +2,7 @@
 //  AdaptiveLayout.swift
 //  Gaze
 //
-//  Created by Claude on 1/19/26.
+//  Created by Mike Freno on 1/19/26.
 //
 
 import SwiftUI
@@ -13,29 +13,29 @@ enum AdaptiveLayout {
     enum Window {
         static let minWidth: CGFloat = 700
         #if APPSTORE
-        static let minHeight: CGFloat = 500
+            static let minHeight: CGFloat = 500
         #else
-        static let minHeight: CGFloat = 600
+            static let minHeight: CGFloat = 600
         #endif
-        
+
         static let defaultWidth: CGFloat = 900
         #if APPSTORE
-        static let defaultHeight: CGFloat = 650
+            static let defaultHeight: CGFloat = 650
         #else
-        static let defaultHeight: CGFloat = 800
+            static let defaultHeight: CGFloat = 800
         #endif
     }
-    
+
     /// Content area constraints
     enum Content {
         /// Maximum width for content cards/sections
         static let maxWidth: CGFloat = 560
-        /// Minimum width for content cards/sections  
+        /// Minimum width for content cards/sections
         static let minWidth: CGFloat = 400
         /// Ideal width for onboarding/welcome cards
         static let idealCardWidth: CGFloat = 520
     }
-    
+
     /// Font sizes that scale based on available space
     enum Font {
         static let heroIcon: CGFloat = 60
@@ -45,7 +45,7 @@ enum AdaptiveLayout {
         static let cardIcon: CGFloat = 32
         static let cardIconSmall: CGFloat = 28
     }
-    
+
     /// Spacing values
     enum Spacing {
         static let standard: CGFloat = 20
@@ -53,7 +53,7 @@ enum AdaptiveLayout {
         static let section: CGFloat = 30
         static let sectionCompact: CGFloat = 20
     }
-    
+
     /// Card dimensions for swipeable cards
     enum Card {
         static let maxWidth: CGFloat = 520
@@ -81,11 +81,11 @@ extension EnvironmentValues {
 struct AdaptiveContainerModifier: ViewModifier {
     @State private var isCompact = false
     let compactThreshold: CGFloat
-    
+
     init(compactThreshold: CGFloat = 600) {
         self.compactThreshold = compactThreshold
     }
-    
+
     func body(content: Content) -> some View {
         GeometryReader { geometry in
             content

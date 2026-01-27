@@ -2,7 +2,7 @@
 //  ScreenCapturePermissionManager.swift
 //  Gaze
 //
-//  Created by ChatGPT on 1/14/26.
+//  Created by Mike Freno on 1/14/26.
 //
 
 import AppKit

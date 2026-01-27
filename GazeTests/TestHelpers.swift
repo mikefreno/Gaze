@@ -202,34 +202,41 @@ extension AppSettings {
 @MainActor
 func createTestContainer(
     settings: AppSettings = .defaults
-) -> ServiceContainer {
-    return ServiceContainer.forTesting(settings: settings)
+) -> TestServiceContainer {
+    return TestServiceContainer(settings: settings)
 }
 
 /// Creates a complete test environment with all mocks
 @MainActor
 struct TestEnvironment {
-    let container: ServiceContainer
+    let container: TestServiceContainer
     let windowManager: MockWindowManager
     let settingsManager: EnhancedMockSettingsManager
     let timeProvider: MockTimeProvider
 
     init(settings: AppSettings = .defaults) {
         self.settingsManager = EnhancedMockSettingsManager(settings: settings)
-        self.container = ServiceContainer(settingsManager: settingsManager)
+        self.container = TestServiceContainer(settingsManager: settingsManager)
         self.windowManager = MockWindowManager()
         self.timeProvider = MockTimeProvider()
     }
 
     /// Creates an AppDelegate with all test dependencies
     func createAppDelegate() -> AppDelegate {
-        return AppDelegate(serviceContainer: container, windowManager: windowManager)
+        return AppDelegate(serviceContainer: serviceContainer, windowManager: windowManager)
     }
 
     /// Resets all mock state
     func reset() {
         windowManager.reset()
         settingsManager.reset()
+    }
+
+    private var serviceContainer: ServiceContainer {
+        ServiceContainer(
+            settingsManager: settingsManager,
+            enforceModeService: EnforceModeService.shared
+        )
     }
 }
 

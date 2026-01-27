@@ -93,7 +93,6 @@ final class WindowManager: WindowManaging {
     }
     
     func showSettings(settingsManager: any SettingsProviding, initialTab: Int) {
-        // Use the existing presenter for now
         if let realSettings = settingsManager as? SettingsManager {
             SettingsWindowPresenter.shared.show(settingsManager: realSettings, initialTab: initialTab)
         }

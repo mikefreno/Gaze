@@ -18,39 +18,21 @@ class EnforceModeService: ObservableObject {
     @Published var isTestMode = false
 
     private var settingsManager: SettingsManager
-    private var eyeTrackingService: EyeTrackingService
+    private let policyEvaluator: EnforcePolicyEvaluator
+    private let cameraController: EnforceCameraController
     private var timerEngine: TimerEngine?
-
-    private var cancellables = Set<AnyCancellable>()
-    private var faceDetectionTimer: Timer?
-    private var lastFaceDetectionTime: Date = Date.distantPast
-    private let faceDetectionTimeout: TimeInterval = 5.0  // 5 seconds to consider person lost
 
     private init() {
         self.settingsManager = SettingsManager.shared
-        self.eyeTrackingService = EyeTrackingService.shared
-        setupObservers()
+        self.policyEvaluator = EnforcePolicyEvaluator(settingsProvider: SettingsManager.shared)
+        self.cameraController = EnforceCameraController(eyeTrackingService: EyeTrackingService.shared)
+        self.cameraController.delegate = self
         initializeEnforceModeState()
-    }
-
-    private func setupObservers() {
-        eyeTrackingService.$userLookingAtScreen
-            .sink { [weak self] lookingAtScreen in
-                self?.handleGazeChange(lookingAtScreen: lookingAtScreen)
-            }
-            .store(in: &cancellables)
-
-        // Observe face detection changes to track person presence
-        eyeTrackingService.$faceDetected
-            .sink { [weak self] faceDetected in
-                self?.handleFaceDetectionChange(faceDetected: faceDetected)
-            }
-            .store(in: &cancellables)
     }
 
     private func initializeEnforceModeState() {
         let cameraService = CameraAccessService.shared
-        let settingsEnabled = settingsManager.settings.enforcementMode
+        let settingsEnabled = policyEvaluator.isEnforcementEnabled
 
         // If settings say it's enabled AND camera is authorized, mark as enabled
         if settingsEnabled && cameraService.isCameraAuthorized {
@@ -104,27 +86,17 @@ class EnforceModeService: ObservableObject {
 
     func shouldEnforceBreak(for timerIdentifier: TimerIdentifier) -> Bool {
         guard isEnforceModeEnabled else { return false }
-        guard settingsManager.settings.enforcementMode else { return false }
-
-        switch timerIdentifier {
-        case .builtIn(let type):
-            return type == .lookAway
-        case .user:
-            return false
-        }
+        return policyEvaluator.shouldEnforce(timerIdentifier: timerIdentifier)
     }
 
     func startCameraForLookawayTimer(secondsRemaining: Int) async {
         guard isEnforceModeEnabled else { return }
-        guard !isCameraActive else { return }
 
         logDebug("👁️ Starting camera for lookaway reminder (T-\(secondsRemaining)s)")
 
         do {
-            try await eyeTrackingService.startEyeTracking()
-            isCameraActive = true
-            lastFaceDetectionTime = Date()  // Reset grace period
-            startFaceDetectionTimer()
+            try await cameraController.startCamera()
+            isCameraActive = cameraController.isCameraActive
             logDebug("✓ Camera active")
         } catch {
             logError("⚠️ Failed to start camera: \(error.localizedDescription)")
@@ -135,11 +107,9 @@ class EnforceModeService: ObservableObject {
         guard isCameraActive else { return }
 
         logDebug("👁️ Stopping camera")
-        eyeTrackingService.stopEyeTracking()
+        cameraController.stopCamera()
         isCameraActive = false
         userCompliedWithBreak = false
-
-        stopFaceDetectionTimer()
     }
 
     func checkUserCompliance() {
@@ -147,54 +117,18 @@ class EnforceModeService: ObservableObject {
             userCompliedWithBreak = false
             return
         }
+        let compliance = policyEvaluator.evaluateCompliance(
+            isLookingAtScreen: EyeTrackingService.shared.userLookingAtScreen,
+            faceDetected: EyeTrackingService.shared.faceDetected
+        )
 
-        let lookingAway = !eyeTrackingService.userLookingAtScreen
-        userCompliedWithBreak = lookingAway
-    }
-
-    private func handleGazeChange(lookingAtScreen: Bool) {
-        guard isCameraActive else { return }
-
-        checkUserCompliance()
-    }
-
-    private func handleFaceDetectionChange(faceDetected: Bool) {
-        // Update the last face detection time only when a face is actively detected
-        if faceDetected {
-            lastFaceDetectionTime = Date()
-        }
-    }
-
-    private func startFaceDetectionTimer() {
-        stopFaceDetectionTimer()
-        // Check every 1 second
-        faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) {
-            [weak self] _ in
-            Task { @MainActor [weak self] in
-                self?.checkFaceDetectionTimeout()
-            }
-        }
-    }
-
-    private func stopFaceDetectionTimer() {
-        faceDetectionTimer?.invalidate()
-        faceDetectionTimer = nil
-    }
-
-    private func checkFaceDetectionTimeout() {
-        guard isEnforceModeEnabled && isCameraActive else {
-            stopFaceDetectionTimer()
-            return
-        }
-
-        let timeSinceLastDetection = Date().timeIntervalSince(lastFaceDetectionTime)
-
-        // If person has not been detected for too long, temporarily disable enforce mode
-        if timeSinceLastDetection > faceDetectionTimeout {
-            logDebug(
-                "⏰ Person not detected for \(faceDetectionTimeout)s. Temporarily disabling enforce mode."
-            )
-            disableEnforceMode()
+        switch compliance {
+        case .compliant:
+            userCompliedWithBreak = true
+        case .notCompliant:
+            userCompliedWithBreak = false
+        case .faceNotDetected:
+            userCompliedWithBreak = false
         }
     }
 
@@ -208,16 +142,13 @@ class EnforceModeService: ObservableObject {
 
     func startTestMode() async {
         guard isEnforceModeEnabled else { return }
-        guard !isCameraActive else { return }
 
         logDebug("🧪 Starting test mode")
         isTestMode = true
 
         do {
-            try await eyeTrackingService.startEyeTracking()
-            isCameraActive = true
-            lastFaceDetectionTime = Date()  // Reset grace period
-            startFaceDetectionTimer()
+            try await cameraController.startCamera()
+            isCameraActive = cameraController.isCameraActive
             logDebug("✓ Test mode camera active")
         } catch {
             logError("⚠️ Failed to start test mode camera: \(error.localizedDescription)")
@@ -231,5 +162,19 @@ class EnforceModeService: ObservableObject {
         logDebug("🧪 Stopping test mode")
         stopCamera()
         isTestMode = false
+    }
+}
+
+extension EnforceModeService: EnforceCameraControllerDelegate {
+    func cameraControllerDidTimeout(_ controller: EnforceCameraController) {
+        logDebug(
+            "⏰ Person not detected for \(controller.faceDetectionTimeout)s. Temporarily disabling enforce mode."
+        )
+        disableEnforceMode()
+    }
+
+    func cameraController(_ controller: EnforceCameraController, didUpdateLookingAtScreen: Bool) {
+        guard isCameraActive else { return }
+        checkUserCompliance()
     }
 }

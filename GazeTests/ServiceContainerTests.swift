@@ -14,31 +14,30 @@ final class ServiceContainerTests: XCTestCase {
     func testProductionContainerCreation() {
         let container = ServiceContainer.shared
         
-        XCTAssertFalse(container.isTestEnvironment)
         XCTAssertNotNil(container.settingsManager)
         XCTAssertNotNil(container.enforceModeService)
     }
     
     func testTestContainerCreation() {
         let settings = AppSettings.onlyLookAwayEnabled
-        let container = ServiceContainer.forTesting(settings: settings)
+        let container = TestServiceContainer(settings: settings)
         
-        XCTAssertTrue(container.isTestEnvironment)
         XCTAssertEqual(container.settingsManager.settings.lookAwayTimer.enabled, true)
         XCTAssertEqual(container.settingsManager.settings.blinkTimer.enabled, false)
     }
     
     func testTimerEngineCreation() {
-        let container = ServiceContainer.forTesting()
+        let container = TestServiceContainer()
         let timerEngine = container.timerEngine
         
         XCTAssertNotNil(timerEngine)
         // Second access should return the same instance
         XCTAssertTrue(container.timerEngine === timerEngine)
+        XCTAssertTrue(container.timeProvider is MockTimeProvider)
     }
     
     func testCustomTimerEngineInjection() {
-        let container = ServiceContainer.forTesting()
+        let container = TestServiceContainer()
         let mockSettings = EnhancedMockSettingsManager(settings: .shortIntervals)
         let customEngine = TimerEngine(
             settingsManager: mockSettings,
@@ -51,10 +50,10 @@ final class ServiceContainerTests: XCTestCase {
     }
     
     func testContainerReset() {
-        let container = ServiceContainer.forTesting()
+        let container = TestServiceContainer()
         
         // Access timer engine to create it
-        _ = container.timerEngine
+        let existingEngine = container.timerEngine
         
         // Reset should clear the timer engine
         container.reset()
@@ -62,5 +61,6 @@ final class ServiceContainerTests: XCTestCase {
         // Accessing again should create a new instance
         let newEngine = container.timerEngine
         XCTAssertNotNil(newEngine)
+        XCTAssertFalse(existingEngine === newEngine)
     }
 }

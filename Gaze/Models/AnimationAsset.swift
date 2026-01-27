@@ -10,9 +10,9 @@ import Foundation
 enum AnimationAsset: String {
     case blink = "blink"
     case lookAway = "look-away"
-    case posture = "posture"
+    case posture = "posture4"
     case ring = "ring"
-    
+
     var fileName: String {
         return self.rawValue
     }

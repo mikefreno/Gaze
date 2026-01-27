@@ -5,29 +5,47 @@
 //  Created by Mike Freno on 1/7/26.
 //
 
+import Lottie
 import SwiftUI
 
 struct PostureReminderView: View {
     let sizePercentage: Double
     var onDismiss: () -> Void
 
-    @State private var scale: CGFloat = 0
-    @State private var yOffset: CGFloat = 0
     @State private var opacity: Double = 0
+    @State private var scale: CGFloat = 0
+    @State private var shouldShowAnimation = false
 
     private let screenHeight = NSScreen.main?.frame.height ?? 800
     private let screenWidth = NSScreen.main?.frame.width ?? 1200
 
+    private var baseSize: CGFloat {
+        screenWidth * (sizePercentage / 100.0) * 2.5
+    }
+
     var body: some View {
         VStack {
-            Image(systemName: "arrow.up.circle.fill")
-                .font(.system(size: scale))
-                .foregroundStyle(Color.accentColor)
+            if shouldShowAnimation {
+                GazeLottieView(
+                    animationName: AnimationAsset.posture.fileName,
+                    loopMode: .playOnce,
+                    animationSpeed: 1.0,
+                    onAnimationFinish: { completed in
+                        if completed {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                fadeOut()
+                            }
+                        }
+                    }
+                )
+                .frame(width: baseSize, height: baseSize)
+                .scaleEffect(scale)
+            }
+            Spacer()
         }
         .opacity(opacity)
-        .offset(y: yOffset)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .padding(.top, screenHeight * 0.075)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, screenHeight * 0.05)
         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.postureView)
         .onAppear {
             startAnimation()
@@ -35,36 +53,29 @@ struct PostureReminderView: View {
     }
 
     private func startAnimation() {
-        // Phase 1: Fade in + Grow to configured size
-        withAnimation(.easeOut(duration: 0.4)) {
+        withAnimation(.easeOut(duration: 0.3)) {
             opacity = 1.0
-            scale = screenWidth * (sizePercentage / 100.0)
+            scale = 1.0
         }
 
-        // Phase 2: Hold
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4 + 0.5) {
-            // Phase 3: Shrink to half the configured size
-            withAnimation(.easeInOut(duration: 0.3)) {
-                scale = screenWidth * (sizePercentage / 100.0) * 0.5
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            shouldShowAnimation = true
+        }
+    }
 
-            // Phase 4: Shoot upward
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                withAnimation(.easeIn(duration: 0.4)) {
-                    yOffset = -screenHeight
-                    opacity = 0
-                }
+    private func fadeOut() {
+        withAnimation(.easeOut(duration: 0.3)) {
+            opacity = 0
+            scale = 0.7
+        }
 
-                // Dismiss after animation
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    onDismiss()
-                }
-            }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            onDismiss()
         }
     }
 }
 
 #Preview("Posture Reminder") {
-    PostureReminderView(sizePercentage: 10.0, onDismiss: {})
+    PostureReminderView(sizePercentage: 15.0, onDismiss: {})
         .frame(width: 800, height: 600)
 }

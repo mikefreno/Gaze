@@ -21,7 +21,7 @@ struct AdditionalModifiersView: View {
         GeometryReader { geometry in
             let availableWidth = geometry.size.width - 80  // Account for padding
             let availableHeight = geometry.size.height - 200  // Account for header and nav
-            
+
             let cardWidth = min(
                 max(availableWidth * 0.85, AdaptiveLayout.Card.minWidth),
                 AdaptiveLayout.Card.maxWidth
@@ -30,9 +30,10 @@ struct AdditionalModifiersView: View {
                 max(availableHeight * 0.75, AdaptiveLayout.Card.minHeight),
                 AdaptiveLayout.Card.maxHeight
             )
-            
+
             VStack(spacing: 0) {
-                SetupHeader(icon: "slider.horizontal.3", title: "Additional Options", color: .purple)
+                SetupHeader(
+                    icon: "slider.horizontal.3", title: "Additional Options", color: .purple)
 
                 Text("Optional features to enhance your experience")
                     .font(isCompact ? .subheadline : .title3)
@@ -77,7 +78,7 @@ struct AdditionalModifiersView: View {
                     HStack(spacing: isCompact ? 10 : 16) {
                         cardIndicator(index: 0, icon: "video.fill", label: "Enforce")
                         cardIndicator(index: 1, icon: "brain.fill", label: "Smart")
-                    }
+                    }.padding(.all, 20)
 
                     Button(action: { swapCards() }) {
                         Image(systemName: "chevron.right")
@@ -211,7 +212,11 @@ struct AdditionalModifiersView: View {
     private var enforceModeContent: some View {
         VStack(spacing: isCompact ? 10 : 16) {
             Image(systemName: "video.fill")
-                .font(.system(size: isCompact ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon))
+                .font(
+                    .system(
+                        size: isCompact
+                            ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon)
+                )
                 .foregroundStyle(Color.accentColor)
 
             Text("Enforce Mode")
@@ -292,7 +297,11 @@ struct AdditionalModifiersView: View {
     private var smartModeContent: some View {
         VStack(spacing: isCompact ? 10 : 16) {
             Image(systemName: "brain.fill")
-                .font(.system(size: isCompact ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon))
+                .font(
+                    .system(
+                        size: isCompact
+                            ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon)
+                )
                 .foregroundStyle(.purple)
 
             Text("Smart Mode")

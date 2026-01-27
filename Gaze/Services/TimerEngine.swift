@@ -138,7 +138,7 @@ class TimerEngine: ObservableObject {
         let intervalSeconds = getTimerInterval(for: identifier)
         stateManager.resetTimer(identifier: identifier, intervalSeconds: intervalSeconds)
     }
-    
+
     /// Unified way to get interval for any timer type
     private func getTimerInterval(for identifier: TimerIdentifier) -> Int {
         switch identifier {
@@ -146,7 +146,8 @@ class TimerEngine: ObservableObject {
             let config = settingsProvider.timerConfiguration(for: type)
             return config.intervalSeconds
         case .user(let id):
-            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else {
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id })
+            else {
                 return 0
             }
             return userTimer.intervalMinutes * 60
@@ -183,7 +184,8 @@ class TimerEngine: ObservableObject {
                 secondsRemaining: updatedState.remainingSeconds
             ) {
                 Task { @MainActor in
-                    await reminderService.prepareEnforceMode(secondsRemaining: updatedState.remainingSeconds)
+                    await reminderService.prepareEnforceMode(
+                        secondsRemaining: updatedState.remainingSeconds)
                 }
             }
 
@@ -213,22 +215,6 @@ class TimerEngine: ObservableObject {
 
     func isTimerPaused(_ identifier: TimerIdentifier) -> Bool {
         return stateManager.isTimerPaused(identifier)
-    }
-
-    // System sleep/wake handling is now managed by SystemSleepManager
-    // This method is kept for compatibility but will be removed in future versions
-    /// Handles system sleep event - deprecated
-    @available(*, deprecated, message: "Use SystemSleepManager instead")
-    func handleSystemSleep() {
-        logDebug("System going to sleep (deprecated)")
-        // This functionality has been moved to SystemSleepManager
-    }
-    
-    /// Handles system wake event - deprecated
-    @available(*, deprecated, message: "Use SystemSleepManager instead")
-    func handleSystemWake() {
-        logDebug("System waking up (deprecated)")
-        // This functionality has been moved to SystemSleepManager
     }
 
     private func timerConfigurations() -> [TimerIdentifier: TimerConfiguration] {

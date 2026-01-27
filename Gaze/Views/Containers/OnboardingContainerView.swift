@@ -136,7 +136,7 @@ struct OnboardingContainerView: View {
                             .tag(0)
                             .tabItem { Image(systemName: "hand.wave.fill") }
 
-                        MenuBarWelcomeView()
+                        MenuBarTargetView()
                             .tag(1)
                             .tabItem { Image(systemName: "menubar.rectangle") }
 

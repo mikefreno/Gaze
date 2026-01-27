@@ -118,13 +118,13 @@ final class MenuBarGuideOverlayPresenter {
         let overlayView = MenuBarGuideOverlayView()
         window.contentView = NSHostingView(rootView: overlayView)
     }
-    
+
     func setupOnboardingWindowObserver() {
         // Remove any existing observer to prevent duplicates
         if let observer = onboardingWindowObserver {
             NotificationCenter.default.removeObserver(observer)
         }
-        
+
         // Add observer for when the onboarding window is closed
         onboardingWindowObserver = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
@@ -132,10 +132,11 @@ final class MenuBarGuideOverlayPresenter {
             queue: .main
         ) { [weak self] notification in
             guard let window = notification.object as? NSWindow,
-                  window.identifier == WindowIdentifiers.onboarding else {
+                window.identifier == WindowIdentifiers.onboarding
+            else {
                 return
             }
-            
+
             // Hide the overlay when onboarding window closes
             self?.hide()
         }
@@ -176,8 +177,8 @@ struct MenuBarGuideOverlayView: View {
             $0.identifier == WindowIdentifiers.onboarding
         }) {
             let windowFrame = onboardingWindow.frame
-            let textRightX = windowFrame.midX + 210
-            let textY = screenFrame.maxY - windowFrame.maxY + 505
+            let textRightX = windowFrame.midX
+            let textY = screenFrame.maxY - windowFrame.maxY + 305
             return CGPoint(x: textRightX, y: textY)
         }
         return CGPoint(x: screenSize.width * 0.5, y: screenSize.height * 0.45)
@@ -195,7 +196,6 @@ struct HandDrawnArrowShape: Shape {
         // This creates a more playful, hand-drawn feel
 
         let dx = end.x - start.x
-        let dy = end.y - start.y
 
         // First control point: go DOWN and slightly toward target
         let ctrl1 = CGPoint(
@@ -203,23 +203,14 @@ struct HandDrawnArrowShape: Shape {
             y: start.y + 120  // Go DOWN first
         )
 
-        // Second control point: curve back up toward target
         let ctrl2 = CGPoint(
             x: start.x + dx * 0.6,
             y: start.y + 80
         )
 
-        // Third control point: approach target from below-ish
-        let ctrl3 = CGPoint(
-            x: end.x - dx * 0.15,
-            y: end.y + 60
-        )
-
-        // Add slight hand-drawn wobble
         let wobble: CGFloat = 2.5
         let wobbledCtrl1 = CGPoint(x: ctrl1.x + wobble, y: ctrl1.y - wobble)
         let wobbledCtrl2 = CGPoint(x: ctrl2.x - wobble, y: ctrl2.y + wobble)
-        let wobbledCtrl3 = CGPoint(x: ctrl3.x + wobble * 0.5, y: ctrl3.y - wobble)
 
         path.move(to: start)
         path.addCurve(to: end, control1: wobbledCtrl1, control2: wobbledCtrl2)

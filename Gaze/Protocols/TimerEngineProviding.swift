@@ -60,12 +60,6 @@ protocol TimerEngineProviding: AnyObject, ObservableObject {
     /// Checks if a timer is currently paused
     func isTimerPaused(_ identifier: TimerIdentifier) -> Bool
     
-    /// Handles system sleep event
-    func handleSystemSleep()
-    
-    /// Handles system wake event
-    func handleSystemWake()
-    
     /// Sets up smart mode with fullscreen and idle detection services
     func setupSmartMode(
         fullscreenService: FullscreenDetectionService?,

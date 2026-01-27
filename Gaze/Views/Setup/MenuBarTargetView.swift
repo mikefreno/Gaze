@@ -1,5 +1,5 @@
 //
-//  MenuBarWelcomeView.swift
+//  MenuBarTargetView.swift
 //  Gaze
 //
 //  Created by Mike Freno on 1/17/26.
@@ -7,21 +7,21 @@
 
 import SwiftUI
 
-struct MenuBarWelcomeView: View {
+struct MenuBarTargetView: View {
     @Environment(\.isCompactLayout) private var isCompact
-    
+
     private var iconSize: CGFloat {
         isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon
     }
-    
+
     private var titleSize: CGFloat {
         isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle
     }
-    
+
     private var spacing: CGFloat {
         isCompact ? AdaptiveLayout.Spacing.compact : AdaptiveLayout.Spacing.standard
     }
-    
+
     var body: some View {
         VStack(spacing: spacing * 1.5) {
             Spacer()
@@ -64,5 +64,5 @@ struct MenuBarWelcomeView: View {
 }
 
 #Preview("Menu Bar Welcome") {
-    MenuBarWelcomeView()
+    MenuBarTargetView()
 }

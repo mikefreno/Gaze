@@ -15,6 +15,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let serviceContainer: ServiceContainer
     private let windowManager: WindowManaging
     private var updateManager: UpdateManager?
+    private var systemSleepManager: SystemSleepManager?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
 
@@ -46,6 +47,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
 
         timerEngine = serviceContainer.timerEngine
+        systemSleepManager = SystemSleepManager(
+            timerEngine: timerEngine,
+            settingsManager: settingsManager
+        )
+        systemSleepManager?.startObserving()
 
         serviceContainer.setupSmartModeServices()
 
@@ -53,8 +59,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         if settingsManager.settings.hasCompletedOnboarding {
             updateManager = UpdateManager.shared
         }
-
-        setupLifecycleObservers()
 
         observeSettingsChanges()
 
@@ -129,34 +133,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     func applicationWillTerminate(_ notification: Notification) {
         logInfo(" applicationWill terminate")
         settingsManager.saveImmediately()
+        stopLifecycleObservers()
         timerEngine?.stop()
     }
 
-    private func setupLifecycleObservers() {
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(systemWillSleep),
-            name: NSWorkspace.willSleepNotification,
-            object: nil
-        )
-
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(systemDidWake),
-            name: NSWorkspace.didWakeNotification,
-            object: nil
-        )
-    }
-
-    @objc private func systemWillSleep() {
-        logInfo("System will sleep")
-        timerEngine?.handleSystemSleep()
-        settingsManager.saveImmediately()
-    }
-
-    @objc private func systemDidWake() {
-        logInfo("System did wake")
-        timerEngine?.handleSystemWake()
+    private func stopLifecycleObservers() {
+        systemSleepManager?.stopObserving()
+        systemSleepManager = nil
     }
 
     private func observeReminderEvents() {

@@ -109,42 +109,8 @@ struct MenuBarContentView: View {
 
                 // Controls
                 VStack(spacing: 4) {
-                    Button(action: {
-                        if let engine = timerEngine {
-                            if isAllPaused(timerEngine: engine) {
-                                engine.resume()
-                            } else {
-                                engine.pause()
-                            }
-                        }
-                    }) {
-                        HStack {
-                            Image(
-                                systemName: timerEngine.map { isAllPaused(timerEngine: $0) }
-                                    ?? false
-                                    ? "play.circle" : "pause.circle")
-                            Text(
-                                timerEngine.map { isAllPaused(timerEngine: $0) } ?? false
-                                    ? "Resume All Timers" : "Pause All Timers")
-                            Spacer()
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                    }
-                    .buttonStyle(MenuBarHoverButtonStyle())
-
-                    Button(action: {
-                        onOpenSettings()
-                    }) {
-                        HStack {
-                            Image(systemName: "gearshape")
-                            Text("Settings...")
-                            Spacer()
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                    }
-                    .buttonStyle(MenuBarHoverButtonStyle())
+                    PauseAllButton(timerEngine: timerEngine)
+                    SettingsButton(onOpenSettings: onOpenSettings)
                 }
                 .padding(.vertical, 8)
                 .padding(.horizontal, 8)
@@ -189,6 +155,71 @@ struct MenuBarContentView: View {
         }
     }
 }
+
+struct PauseAllButton: View {
+    var timerEngine: TimerEngine?
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovered = false
+
+    private var isAllPaused: Bool {
+        guard let engine = timerEngine else { return false }
+        let activeStates = engine.timerStates.values.filter { $0.isActive }
+        return !activeStates.isEmpty && activeStates.allSatisfy { $0.isPaused }
+    }
+
+    var body: some View {
+        Button(action: {
+            if let engine = timerEngine {
+                if isAllPaused {
+                    engine.resume()
+                } else {
+                    engine.pause()
+                }
+            }
+        }) {
+            HStack {
+                Image(
+                    systemName: isAllPaused ? "play.circle" : "pause.circle")
+                Text(
+                    isAllPaused ? "Resume All Timers" : "Pause All Timers")
+                Spacer()
+            }
+            .foregroundStyle(isHovered && colorScheme == .light ? .white : .primary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(MenuBarHoverButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
+struct SettingsButton: View {
+    var onOpenSettings: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: {
+            onOpenSettings()
+        }) {
+            HStack {
+                Image(systemName: "gearshape")
+                Text("Settings...")
+                Spacer()
+            }
+            .foregroundStyle(isHovered && colorScheme == .light ? .white : .primary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(MenuBarHoverButtonStyle())
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+
 struct IncompleteOnboardingView: View {
     @State private var isHovering = false
 
@@ -218,7 +249,9 @@ struct IncompleteOnboardingView: View {
         .padding(.horizontal, 8)
     }
 }
+
 struct QuitRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     @State private var isHovering = false
 
     let onQuit: () -> Void
@@ -228,9 +261,9 @@ struct QuitRow: View {
             Button(action: onQuit) {
                 HStack {
                     Image(systemName: "power")
-                        .foregroundStyle(isHovering ? .white : .red)
+                        .foregroundStyle(isHovering && colorScheme == .light ? .white : .red)
                     Text("Quit Gaze")
-                        .foregroundStyle(isHovering ? .white : .primary)
+                        .foregroundStyle(isHovering && colorScheme == .light ? .white : .primary)
                     Spacer()
                 }
                 .padding(.horizontal, 8)

@@ -14,9 +14,11 @@ final class MenuBarGuideOverlayPresenter {
     static let shared = MenuBarGuideOverlayPresenter()
 
     private var window: NSWindow?
-    private var displayLink: CVDisplayLink?
     private var lastWindowFrame: CGRect = .zero
+    private var checkTimer: Timer?
     private var onboardingWindowObserver: NSObjectProtocol?
+    private var currentStartPoint: CGPoint = .zero
+    private var previousStartPoint: CGPoint = .zero
 
     func updateVisibility(isVisible: Bool) {
         if isVisible {
@@ -28,7 +30,8 @@ final class MenuBarGuideOverlayPresenter {
     }
 
     func hide() {
-        stopDisplayLink()
+        checkTimer?.invalidate()
+        checkTimer = nil
         window?.orderOut(nil)
         window?.close()
         window = nil
@@ -37,7 +40,7 @@ final class MenuBarGuideOverlayPresenter {
     private func show() {
         if let window {
             window.orderFrontRegardless()
-            startDisplayLink()
+            startCheckTimer()
             return
         }
 
@@ -58,48 +61,26 @@ final class MenuBarGuideOverlayPresenter {
         overlayWindow.isReleasedWhenClosed = false
         overlayWindow.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary]
 
-        let overlayView = MenuBarGuideOverlayView()
+        let overlayView = MenuBarGuideOverlayView(
+            currentStart: currentStartPoint,
+            previousStart: previousStartPoint
+        )
         overlayWindow.contentView = NSHostingView(rootView: overlayView)
 
         overlayWindow.orderFrontRegardless()
         window = overlayWindow
 
-        startDisplayLink()
+        startCheckTimer()
     }
 
-    private func startDisplayLink() {
-        guard displayLink == nil else { return }
-
-        var link: CVDisplayLink?
-        CVDisplayLinkCreateWithActiveCGDisplays(&link)
-
-        guard let displayLink = link else { return }
-
-        let Doc = Unmanaged.passUnretained(self).toOpaque()
-
-        CVDisplayLinkSetOutputCallback(
-            displayLink,
-            { _, _, _, _, _, userInfo -> CVReturn in
-                guard let userInfo = userInfo else { return kCVReturnSuccess }
-                let presenter = Unmanaged<MenuBarGuideOverlayPresenter>.fromOpaque(userInfo)
-                    .takeUnretainedValue()
-                DispatchQueue.main.async {
-                    presenter.checkAndRedraw()
-                }
-                return kCVReturnSuccess
-            }, Doc)
-
-        CVDisplayLinkStart(displayLink)
-        self.displayLink = displayLink
+    private func startCheckTimer() {
+        checkTimer?.invalidate()
+        checkTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
+            self?.checkWindowFrame()
+        }
     }
 
-    private func stopDisplayLink() {
-        guard let displayLink else { return }
-        CVDisplayLinkStop(displayLink)
-        self.displayLink = nil
-    }
-
-    private func checkAndRedraw() {
+    private func checkWindowFrame() {
         guard
             let onboardingWindow = NSApp.windows.first(where: {
                 $0.identifier == WindowIdentifiers.onboarding
@@ -109,13 +90,27 @@ final class MenuBarGuideOverlayPresenter {
         let currentFrame = onboardingWindow.frame
         if currentFrame != lastWindowFrame {
             lastWindowFrame = currentFrame
+
+            let screenSize = NSScreen.main?.frame ?? .zero
+            let windowFrame = onboardingWindow.frame
+            let textRightX = windowFrame.midX + 40
+            let textY = screenSize.maxY - windowFrame.maxY + 255
+            let newStart = CGPoint(x: textRightX, y: textY)
+
+            previousStartPoint = currentStartPoint
+            currentStartPoint = newStart
+
             redraw()
         }
     }
 
     private func redraw() {
         guard let window else { return }
-        let overlayView = MenuBarGuideOverlayView()
+
+        let overlayView = MenuBarGuideOverlayView(
+            currentStart: currentStartPoint,
+            previousStart: previousStartPoint
+        )
         window.contentView = NSHostingView(rootView: overlayView)
     }
 
@@ -123,6 +118,18 @@ final class MenuBarGuideOverlayPresenter {
         // Remove any existing observer to prevent duplicates
         if let observer = onboardingWindowObserver {
             NotificationCenter.default.removeObserver(observer)
+        }
+
+        guard
+            let onboardingWindow = NSApp.windows.first(where: {
+                $0.identifier == WindowIdentifiers.onboarding
+            })
+        else { return }
+
+        // Set up KVO for window frame changes
+        onboardingWindowObserver = onboardingWindow.observe(\.frame, options: [.new, .old]) {
+            [weak self] _, _ in
+            self?.checkWindowFrame()
         }
 
         // Add observer for when the onboarding window is closed
@@ -144,6 +151,9 @@ final class MenuBarGuideOverlayPresenter {
 }
 
 struct MenuBarGuideOverlayView: View {
+    var currentStart: CGPoint
+    var previousStart: CGPoint
+
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
@@ -154,7 +164,7 @@ struct MenuBarGuideOverlayView: View {
                 let target = targetPoint(from: locationResult.frame)
                 let start = startPoint(screenSize: size, screenFrame: screen.frame)
 
-                HandDrawnArrowShape(start: start, end: target)
+                HandDrawnArrowShape(start: start, end: target, previousStart: previousStart)
                     .stroke(
                         Color.accentColor.opacity(0.85),
                         style: StrokeStyle(lineWidth: 3.5, lineCap: .round, lineJoin: .round)
@@ -183,19 +193,29 @@ struct MenuBarGuideOverlayView: View {
         }
         return CGPoint(x: screenSize.width * 0.5, y: screenSize.height * 0.45)
     }
+
+    private func interpolate(from: CGPoint, to: CGPoint, factor: CGFloat) -> CGPoint {
+        CGPoint(x: from.x + (to.x - from.x) * factor, y: from.y + (to.y - from.y) * factor)
+    }
 }
 
 struct HandDrawnArrowShape: Shape {
     let start: CGPoint
     let end: CGPoint
+    let previousStart: CGPoint
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
 
+        // Interpolate start point for smooth transition
+        let currentStart = CGPoint(
+            x: previousStart.x + (start.x - previousStart.x) * 0.3,
+            y: previousStart.y + (start.y - previousStart.y) * 0.3)
+
         // Create a path that starts going DOWN, then curves back UP to the target
         // This creates a more playful, hand-drawn feel
 
-        let dx = end.x - start.x
+        let dx = end.x - currentStart.x
 
         // First control point: go DOWN and slightly toward target
         let ctrl1 = CGPoint(
@@ -242,6 +262,9 @@ struct HandDrawnArrowShape: Shape {
 }
 
 #Preview("Menu Bar Guide Overlay") {
-    MenuBarGuideOverlayView()
-        .frame(width: 1200, height: 800)
+    MenuBarGuideOverlayView(
+        currentStart: .zero,
+        previousStart: .zero
+    )
+    .frame(width: 1200, height: 800)
 }

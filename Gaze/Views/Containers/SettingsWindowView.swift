@@ -34,7 +34,12 @@ struct SettingsWindowView: View {
             }
             .environment(\.isCompactLayout, isCompact)
         }
-        .frame(minWidth: AdaptiveLayout.Window.minWidth, minHeight: AdaptiveLayout.Window.minHeight)
+        .frame(
+            minWidth: AdaptiveLayout.Window.minWidth * 0.7,
+            maxWidth: AdaptiveLayout.Window.defaultWidth * 1.2,
+            minHeight: AdaptiveLayout.Window.minHeight,
+            maxHeight: AdaptiveLayout.Window.defaultHeight * 1.2
+        )
         .onReceive(tabSwitchPublisher) { notification in
             if let tab = notification.object as? Int,
                let section = SettingsSection(rawValue: tab) {

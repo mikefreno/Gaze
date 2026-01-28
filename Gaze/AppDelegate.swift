@@ -76,8 +76,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         }
     }
 
-    // Note: Smart mode setup is now handled by ServiceContainer
-    // Keeping this method for settings change observation
     private func observeSmartModeSettings() {
         settingsManager.settingsPublisher
             .map { $0.smartMode }

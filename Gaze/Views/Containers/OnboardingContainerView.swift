@@ -7,24 +7,6 @@
 
 import SwiftUI
 
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
-
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
-        view.state = .active
-        return view
-    }
-
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
-}
-
 @MainActor
 final class OnboardingWindowPresenter {
     static let shared = OnboardingWindowPresenter()
@@ -78,11 +60,16 @@ final class OnboardingWindowPresenter {
     }
 
     private func createWindow(settingsManager: SettingsManager) {
+        let responsiveWidth = AdaptiveLayout.responsiveWidth(
+            baseWidth: AdaptiveLayout.Window.defaultWidth)
+        let responsiveHeight = AdaptiveLayout.responsiveHeight(
+            baseHeight: AdaptiveLayout.Window.defaultHeight)
+
         let window = NSWindow(
             contentRect: NSRect(
                 x: 0, y: 0,
-                width: AdaptiveLayout.Window.defaultWidth,
-                height: AdaptiveLayout.Window.defaultHeight
+                width: responsiveWidth,
+                height: responsiveHeight
             ),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
@@ -178,8 +165,10 @@ struct OnboardingContainerView: View {
             .environment(\.isCompactLayout, isCompact)
         }
         .frame(
-            minWidth: AdaptiveLayout.Window.minWidth,
-            minHeight: AdaptiveLayout.Window.minHeight
+            minWidth: AdaptiveLayout.Window.minWidth * 0.6,
+            maxWidth: AdaptiveLayout.Window.defaultWidth * 1.1,
+            minHeight: AdaptiveLayout.Window.minHeight,
+            maxHeight: AdaptiveLayout.Window.defaultHeight * 1.1
         )
         .onAppear {
             MenuBarGuideOverlayPresenter.shared.updateVisibility(isVisible: currentPage == 1)
@@ -239,7 +228,7 @@ struct OnboardingContainerView: View {
             )
         }
         .padding(.horizontal, isCompact ? 24 : 40)
-        .padding(.bottom, isCompact ? 12 : 20)
+        .padding(.vertical, isCompact ? 12 : 20)
     }
 
     private func completeOnboarding() {

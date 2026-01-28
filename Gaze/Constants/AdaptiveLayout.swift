@@ -44,6 +44,26 @@ enum AdaptiveLayout {
         static let heroTitleSmall: CGFloat = 24
         static let cardIcon: CGFloat = 32
         static let cardIconSmall: CGFloat = 28
+        
+        /// Returns a responsive font size based on available space
+        static func responsiveHeroIcon(for size: CGFloat) -> CGFloat {
+            size < 600 ? heroIconSmall : heroIcon
+        }
+        
+        /// Returns a responsive font size based on available space
+        static func responsiveHeroTitle(for size: CGFloat) -> CGFloat {
+            size < 600 ? heroTitleSmall : heroTitle
+        }
+        
+        /// Returns a responsive font size based on available space
+        static func responsiveCardIcon(for size: CGFloat) -> CGFloat {
+            size < 600 ? cardIconSmall : cardIcon
+        }
+        
+        /// Returns a responsive spacing value based on available space
+        static func responsiveSpacing(for size: CGFloat) -> CGFloat {
+            size < 600 ? AdaptiveLayout.Spacing.compact : AdaptiveLayout.Spacing.standard
+        }
     }
 
     /// Spacing values
@@ -62,6 +82,26 @@ enum AdaptiveLayout {
         static let minHeight: CGFloat = 360
         static let backOffset: CGFloat = 24
         static let backScale: CGFloat = 0.92
+    }
+    
+    /// Returns a width that scales based on available screen size
+    static func responsiveWidth(
+        baseWidth: CGFloat,
+        scaleFactor: CGFloat = 1.0,
+        minScale: CGFloat = 0.6
+    ) -> CGFloat {
+        let scaleFactor = min(max(scaleFactor, minScale), 1.0)
+        return baseWidth * scaleFactor
+    }
+    
+    /// Returns a height that scales based on available screen size
+    static func responsiveHeight(
+        baseHeight: CGFloat,
+        scaleFactor: CGFloat = 1.0,
+        minScale: CGFloat = 0.6
+    ) -> CGFloat {
+        let scaleFactor = min(max(scaleFactor, minScale), 1.0)
+        return baseHeight * scaleFactor
     }
 }
 

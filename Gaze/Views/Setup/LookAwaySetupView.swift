@@ -22,7 +22,8 @@ struct LookAwaySetupView: View {
             VStack(spacing: 30) {
                 InfoBox(
                     text: "Suggested: 20-20-20 rule",
-                    url: "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
+                    url:
+                        "https://journals.co.za/doi/abs/10.4102/aveh.v79i1.554#:~:text=the 20/20/20 rule induces significant changes in dry eye symptoms and tear film and some limited changes for ocular surface integrity."
                 )
 
                 SliderSection(
@@ -34,7 +35,8 @@ struct LookAwaySetupView: View {
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.lookAwayTimer.intervalSeconds = (newValue.val ?? 20) * 60
+                            settingsManager.settings.lookAwayTimer.intervalSeconds =
+                                (newValue.val ?? 20) * 60
                         }
                     ),
                     countdownSettings: Binding(
@@ -52,22 +54,8 @@ struct LookAwaySetupView: View {
                     type: "Look away",
                     previewFunc: showPreviewWindow
                 )
-                
-                Toggle("Enable enforcement mode", isOn: $settingsManager.settings.enforcementMode)
-                    .onChange(of: settingsManager.settings.enforcementMode) { _, newMode in
-                        if newMode && !cameraAccess.isCameraAuthorized {
-                            Task {
-                                do {
-                                    try await cameraAccess.requestCameraAccess()
-                                } catch {
-                                    failedCameraAccess = true
-                                    settingsManager.settings.enforcementMode = false
-                                }
-                            }
-                        }
-                    }
             }
-            
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

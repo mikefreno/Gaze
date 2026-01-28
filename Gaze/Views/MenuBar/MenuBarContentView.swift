@@ -151,47 +151,10 @@ struct MenuBarContentView: View {
 
                 Divider()
             } else {
-                VStack(spacing: 4) {
-                    Button(action: {
-                        onOpenOnboarding()
-                    }) {
-                        HStack {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(Color.accentColor)
-                            Text("Complete Onboarding")
-                            Spacer()
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 6)
-                    }
-                    .buttonStyle(MenuBarHoverButtonStyle())
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal, 8)
+                IncompleteOnboardingView(onOpenOnboarding: onOpenOnboarding)
             }
 
-            HStack {
-                Button(action: onQuit) {
-                    HStack {
-                        Image(systemName: "power")
-                            .foregroundStyle(.red)
-                        Text("Quit Gaze")
-                        Spacer()
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                }
-                .buttonStyle(MenuBarHoverButtonStyle())
-                .padding(.vertical, 8)
-                Spacer()
-                Text(
-                    "v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")"
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
+            QuitRow(onQuit: onQuit)
 
         }
         .frame(width: 300)
@@ -224,6 +187,69 @@ struct MenuBarContentView: View {
                 return id1 < id2
             }
         }
+    }
+}
+struct IncompleteOnboardingView: View {
+    @State private var isHovering = false
+
+    let onOpenOnboarding: () -> Void
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Button(action: {
+                onOpenOnboarding()
+            }) {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(isHovering ? .white : .accentColor)
+                    Text("Complete Onboarding")
+                        .foregroundStyle(isHovering ? .white : .primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .onHover { hovering in
+                    isHovering = hovering
+                }
+            }
+            .buttonStyle(MenuBarHoverButtonStyle())
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+    }
+}
+struct QuitRow: View {
+    @State private var isHovering = false
+
+    let onQuit: () -> Void
+
+    var body: some View {
+        HStack {
+            Button(action: onQuit) {
+                HStack {
+                    Image(systemName: "power")
+                        .foregroundStyle(isHovering ? .white : .red)
+                    Text("Quit Gaze")
+                        .foregroundStyle(isHovering ? .white : .primary)
+                    Spacer()
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .onHover { hovering in
+                    isHovering = hovering
+                }
+            }
+            .buttonStyle(MenuBarHoverButtonStyle())
+            .padding(.vertical, 8)
+            Spacer()
+            Text(
+                "v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0")"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
     }
 }
 

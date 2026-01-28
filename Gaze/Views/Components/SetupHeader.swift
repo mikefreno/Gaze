@@ -20,8 +20,8 @@ struct SetupHeader: View {
             Text(title)
                 .font(.system(size: 28, weight: .bold))
         }
-        .padding(.top, 20)
-        .padding(.bottom, 30)
+        .padding(.top, 15)
+        .padding(.bottom, 20)
     }
 }
 

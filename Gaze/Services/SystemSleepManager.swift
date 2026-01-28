@@ -50,13 +50,13 @@ final class SystemSleepManager {
         observers.removeAll()
     }
 
-    private func handleSystemWillSleep() {
+    func handleSystemWillSleep() {
         logInfo("System will sleep")
         timerEngine?.stop()
         settingsManager.saveImmediately()
     }
 
-    private func handleSystemDidWake() {
+    func handleSystemDidWake() {
         logInfo("System did wake")
         timerEngine?.start()
     }

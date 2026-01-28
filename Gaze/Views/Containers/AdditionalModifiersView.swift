@@ -19,8 +19,8 @@ struct AdditionalModifiersView: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let availableWidth = geometry.size.width - 80  // Account for padding
-            let availableHeight = geometry.size.height - 200  // Account for header and nav
+            let availableWidth = geometry.size.width - 60  // Account for padding
+            let availableHeight = geometry.size.height - 160  // Account for header and nav
 
             let cardWidth = min(
                 max(availableWidth * 0.85, AdaptiveLayout.Card.minWidth),
@@ -39,7 +39,6 @@ struct AdditionalModifiersView: View {
                     .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .padding(.bottom, isCompact ? 12 : 20)
 
                 Spacer()
 
@@ -209,6 +208,8 @@ struct AdditionalModifiersView: View {
         .frame(width: width, height: height)
     }
 
+    @ObservedObject var cameraService = CameraAccessService.shared
+
     private var enforceModeContent: some View {
         VStack(spacing: isCompact ? 10 : 16) {
             Image(systemName: "video.fill")
@@ -223,10 +224,17 @@ struct AdditionalModifiersView: View {
                 .font(isCompact ? .headline : .title2)
                 .fontWeight(.bold)
 
-            Text("Use your camera to ensure you take breaks")
-                .font(isCompact ? .caption : .subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            if !cameraService.hasCameraHardware {
+                Text("Camera hardware not detected")
+                    .font(isCompact ? .caption : .subheadline)
+                    .foregroundStyle(.orange)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text("Use your camera to ensure you take breaks")
+                    .font(isCompact ? .caption : .subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
 
             Spacer()
 
@@ -235,13 +243,20 @@ struct AdditionalModifiersView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Enable Enforce Mode")
                             .font(isCompact ? .subheadline : .headline)
-                        Text("Camera activates before lookaway reminders")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                        if !cameraService.hasCameraHardware {
+                            Text("No camera hardware detected")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        } else {
+                            Text("Camera activates before lookaway reminders")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Spacer()
                     Toggle("", isOn: $settingsManager.settings.enforcementMode)
                         .labelsHidden()
+                        .disabled(!cameraService.hasCameraHardware)
                         .controlSize(isCompact ? .small : .regular)
                 }
                 .padding(isCompact ? 10 : 16)
@@ -252,11 +267,15 @@ struct AdditionalModifiersView: View {
                         Text("Camera Access")
                             .font(isCompact ? .subheadline : .headline)
 
-                        if CameraAccessService.shared.isCameraAuthorized {
+                        if !cameraService.hasCameraHardware {
+                            Label("No camera", systemImage: "xmark.circle.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                        } else if cameraService.isCameraAuthorized {
                             Label("Authorized", systemImage: "checkmark.circle.fill")
                                 .font(.caption2)
                                 .foregroundStyle(.green)
-                        } else if let error = CameraAccessService.shared.cameraError {
+                        } else if let error = cameraService.cameraError {
                             Label(
                                 error.localizedDescription,
                                 systemImage: "exclamationmark.triangle.fill"
@@ -272,11 +291,11 @@ struct AdditionalModifiersView: View {
 
                     Spacer()
 
-                    if !CameraAccessService.shared.isCameraAuthorized {
+                    if !cameraService.isCameraAuthorized {
                         Button("Request Access") {
                             Task { @MainActor in
                                 do {
-                                    try await CameraAccessService.shared.requestCameraAccess()
+                                    try await cameraService.requestCameraAccess()
                                 } catch {
                                     print("Camera access failed: \(error.localizedDescription)")
                                 }

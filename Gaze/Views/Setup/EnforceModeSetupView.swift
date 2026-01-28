@@ -25,6 +25,10 @@ struct EnforceModeSetupView: View {
     @State private var showCalibrationWindow = false
     @ObservedObject var calibrationManager = CalibrationManager.shared
 
+    private var cameraHardwareAvailable: Bool {
+        cameraService.hasCameraHardware
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             SetupHeader(icon: "video.fill", title: "Enforce Mode", color: .accentColor)
@@ -42,9 +46,15 @@ struct EnforceModeSetupView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Enable Enforce Mode")
                                 .font(isCompact ? .subheadline : .headline)
-                            Text("Camera activates 3 seconds before lookaway reminders")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                            if !cameraHardwareAvailable {
+                                Text("No camera hardware detected")
+                                    .font(.caption2)
+                                    .foregroundStyle(.orange)
+                            } else {
+                                Text("Camera activates 3 seconds before lookaway reminders")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
                         Toggle(
@@ -65,7 +75,7 @@ struct EnforceModeSetupView: View {
                             )
                         )
                         .labelsHidden()
-                        .disabled(isProcessingToggle)
+                        .disabled(isProcessingToggle || !cameraHardwareAvailable)
                         .controlSize(isCompact ? .small : .regular)
                     }
                     .padding(isCompact ? 10 : 16)
@@ -378,6 +388,11 @@ struct EnforceModeSetupView: View {
             defer { isProcessingToggle = false }
 
             if enabled {
+                guard cameraHardwareAvailable else {
+                    print("⚠️ Cannot enable enforce mode - no camera hardware")
+                    settingsManager.settings.enforcementMode = false
+                    return
+                }
                 print("🎛️ Enabling enforce mode...")
                 await enforceModeService.enableEnforceMode()
                 print("🎛️ Enforce mode enabled: \(enforceModeService.isEnforceModeEnabled)")

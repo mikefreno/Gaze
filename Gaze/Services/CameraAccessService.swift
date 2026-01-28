@@ -14,9 +14,11 @@ class CameraAccessService: ObservableObject {
 
     @Published var isCameraAuthorized = false
     @Published var cameraError: Error?
+    @Published var hasCameraHardware = false
 
     private init() {
         checkCameraAuthorizationStatus()
+        checkCameraHardware()
     }
 
     func requestCameraAccess() async throws {
@@ -66,6 +68,15 @@ class CameraAccessService: ObservableObject {
             isCameraAuthorized = false
             cameraError = CameraAccessError.unknown
         }
+    }
+
+    func checkCameraHardware() {
+        let devices = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera],
+            mediaType: .video,
+            position: .unspecified
+        ).devices
+        hasCameraHardware = !devices.isEmpty
     }
     
     // New method to check if face detection is supported and available

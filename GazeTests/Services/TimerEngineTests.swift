@@ -15,18 +15,25 @@ final class TimerEngineTests: XCTestCase {
 
     var testEnv: TestEnvironment!
     var timerEngine: TimerEngine!
+    var systemSleepManager: SystemSleepManager!
     var cancellables: Set<AnyCancellable>!
 
     override func setUp() async throws {
         testEnv = TestEnvironment(settings: .defaults)
         timerEngine = testEnv.container.timerEngine
+        systemSleepManager = SystemSleepManager(
+            timerEngine: timerEngine,
+            settingsManager: testEnv.settingsManager
+        )
         cancellables = []
     }
 
     override func tearDown() async throws {
         timerEngine?.stop()
+        systemSleepManager?.stopObserving()
         cancellables = nil
         timerEngine = nil
+        systemSleepManager = nil
         testEnv = nil
     }
 
@@ -252,20 +259,20 @@ final class TimerEngineTests: XCTestCase {
 
     // MARK: - System Sleep/Wake Tests
 
-    func testHandleSystemSleep() {
+    func testSystemSleepManagerHandlesSleep() {
         timerEngine.start()
         let statesBefore = timerEngine.timerStates.count
 
-        timerEngine.handleSystemSleep()
+        systemSleepManager.handleSystemWillSleep()
 
         // States should still exist
         XCTAssertEqual(timerEngine.timerStates.count, statesBefore)
     }
 
-    func testHandleSystemWake() {
+    func testSystemSleepManagerHandlesWake() {
         timerEngine.start()
-        timerEngine.handleSystemSleep()
-        timerEngine.handleSystemWake()
+        systemSleepManager.handleSystemWillSleep()
+        systemSleepManager.handleSystemDidWake()
 
         // Should handle wake event without crashing
         XCTAssertGreaterThan(timerEngine.timerStates.count, 0)

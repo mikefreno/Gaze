@@ -177,8 +177,8 @@ struct MenuBarGuideOverlayView: View {
             $0.identifier == WindowIdentifiers.onboarding
         }) {
             let windowFrame = onboardingWindow.frame
-            let textRightX = windowFrame.midX
-            let textY = screenFrame.maxY - windowFrame.maxY + 305
+            let textRightX = windowFrame.midX + 40
+            let textY = screenFrame.maxY - windowFrame.maxY + 255
             return CGPoint(x: textRightX, y: textY)
         }
         return CGPoint(x: screenSize.width * 0.5, y: screenSize.height * 0.45)
@@ -200,7 +200,7 @@ struct HandDrawnArrowShape: Shape {
         // First control point: go DOWN and slightly toward target
         let ctrl1 = CGPoint(
             x: start.x + dx * 0.15,
-            y: start.y + 120  // Go DOWN first
+            y: start.y + 40
         )
 
         let ctrl2 = CGPoint(

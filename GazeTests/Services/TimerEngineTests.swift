@@ -265,8 +265,8 @@ final class TimerEngineTests: XCTestCase {
 
         systemSleepManager.handleSystemWillSleep()
 
-        // States should still exist
-        XCTAssertEqual(timerEngine.timerStates.count, statesBefore)
+        // States should be cleared
+        XCTAssertEqual(timerEngine.timerStates.count, 0)
     }
 
     func testSystemSleepManagerHandlesWake() {

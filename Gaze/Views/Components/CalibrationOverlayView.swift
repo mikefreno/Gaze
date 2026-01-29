@@ -10,7 +10,7 @@ import Combine
 import SwiftUI
 
 struct CalibrationOverlayView: View {
-    @StateObject private var calibrationManager = CalibrationManager.shared
+    @StateObject private var calibratorService = CalibratorService.shared
     @StateObject private var eyeTrackingService = EyeTrackingService.shared
     @StateObject private var viewModel = CalibrationOverlayViewModel()
 
@@ -33,10 +33,10 @@ struct CalibrationOverlayView: View {
                     errorView(error)
                 } else if !viewModel.cameraStarted {
                     startingCameraView
-                } else if calibrationManager.isCalibrating {
+                } else if calibratorService.isCalibrating {
                     calibrationContentView(screenSize: geometry.size)
                 } else if viewModel.calibrationStarted
-                    && calibrationManager.calibrationData.isComplete
+                    && calibratorService.calibrationData.isComplete
                 {
                     // Only show completion if we started calibration this session AND it completed
                     completionView
@@ -48,15 +48,15 @@ struct CalibrationOverlayView: View {
         }
         .task {
             await viewModel.startCamera(
-                eyeTrackingService: eyeTrackingService, calibrationManager: calibrationManager)
+                eyeTrackingService: eyeTrackingService, calibratorService: calibratorService)
         }
         .onDisappear {
             viewModel.cleanup(
-                eyeTrackingService: eyeTrackingService, calibrationManager: calibrationManager)
+                eyeTrackingService: eyeTrackingService, calibratorService: calibratorService)
         }
-        .onChange(of: calibrationManager.currentStep) { oldStep, newStep in
+        .onChange(of: calibratorService.currentStep) { oldStep, newStep in
             if newStep != nil && oldStep != newStep {
-                viewModel.startStepCountdown(calibrationManager: calibrationManager)
+                viewModel.startStepCountdown(calibratorService: calibratorService)
             }
         }
     }
@@ -110,7 +110,7 @@ struct CalibrationOverlayView: View {
                 Spacer()
             }
 
-            if let step = calibrationManager.currentStep {
+            if let step = calibratorService.currentStep {
                 calibrationTarget(for: step, screenSize: screenSize)
             }
 
@@ -119,7 +119,7 @@ struct CalibrationOverlayView: View {
                 HStack {
                     cancelButton
                     Spacer()
-                    if !calibrationManager.isCollectingSamples {
+                    if !calibratorService.isCollectingSamples {
                         skipButton
                     }
                 }
@@ -146,11 +146,11 @@ struct CalibrationOverlayView: View {
                 Text("Calibrating...")
                     .foregroundStyle(.white)
                 Spacer()
-                Text(calibrationManager.progressText)
+                Text(calibratorService.progressText)
                     .foregroundStyle(.white.opacity(0.7))
             }
 
-            ProgressView(value: calibrationManager.progress)
+            ProgressView(value: calibratorService.progress)
                 .progressViewStyle(.linear)
                 .tint(.blue)
         }
@@ -198,29 +198,29 @@ struct CalibrationOverlayView: View {
                         value: viewModel.isCountingDown)
 
                 // Progress ring when collecting
-                if calibrationManager.isCollectingSamples {
+                if calibratorService.isCollectingSamples {
                     Circle()
-                        .trim(from: 0, to: CGFloat(calibrationManager.samplesCollected) / 30.0)
+                        .trim(from: 0, to: CGFloat(calibratorService.samplesCollected) / 30.0)
                         .stroke(Color.green, lineWidth: 4)
                         .frame(width: 90, height: 90)
                         .rotationEffect(.degrees(-90))
                         .animation(
-                            .linear(duration: 0.1), value: calibrationManager.samplesCollected)
+                            .linear(duration: 0.1), value: calibratorService.samplesCollected)
                 }
 
                 // Inner circle
                 Circle()
-                    .fill(calibrationManager.isCollectingSamples ? Color.green : Color.blue)
+                    .fill(calibratorService.isCollectingSamples ? Color.green : Color.blue)
                     .frame(width: 60, height: 60)
                     .animation(
-                        .easeInOut(duration: 0.3), value: calibrationManager.isCollectingSamples)
+                        .easeInOut(duration: 0.3), value: calibratorService.isCollectingSamples)
 
                 // Countdown number or collecting indicator
                 if viewModel.isCountingDown && viewModel.countdownValue > 0 {
                     Text("\(viewModel.countdownValue)")
                         .font(.system(size: 36, weight: .bold))
                         .foregroundStyle(.white)
-                } else if calibrationManager.isCollectingSamples {
+                } else if calibratorService.isCollectingSamples {
                     Image(systemName: "eye.fill")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundStyle(.white)
@@ -241,7 +241,7 @@ struct CalibrationOverlayView: View {
     private func instructionText(for step: CalibrationStep) -> String {
         if viewModel.isCountingDown && viewModel.countdownValue > 0 {
             return "Get ready..."
-        } else if calibrationManager.isCollectingSamples {
+        } else if calibratorService.isCollectingSamples {
             return "Look at the target"
         } else {
             return step.instructionText
@@ -252,7 +252,7 @@ struct CalibrationOverlayView: View {
 
     private var skipButton: some View {
         Button {
-            viewModel.skipCurrentStep(calibrationManager: calibrationManager)
+            viewModel.skipCurrentStep(calibratorService: calibratorService)
         } label: {
             Text("Skip")
                 .foregroundStyle(.white)
@@ -267,7 +267,7 @@ struct CalibrationOverlayView: View {
     private var cancelButton: some View {
         Button {
             viewModel.cleanup(
-                eyeTrackingService: eyeTrackingService, calibrationManager: calibrationManager)
+                eyeTrackingService: eyeTrackingService, calibratorService: calibratorService)
             onDismiss()
         } label: {
             HStack(spacing: 6) {
@@ -369,7 +369,7 @@ class CalibrationOverlayViewModel: ObservableObject {
     private var lastFaceDetectedTime: Date = .distantPast
     private let faceDetectionDebounce: TimeInterval = 0.5  // 500ms debounce
 
-    func startCamera(eyeTrackingService: EyeTrackingService, calibrationManager: CalibrationManager)
+    func startCamera(eyeTrackingService: EyeTrackingService, calibratorService: CalibratorService)
         async
     {
         do {
@@ -382,10 +382,10 @@ class CalibrationOverlayViewModel: ObservableObject {
             try? await Task.sleep(for: .seconds(0.5))
 
             // Reset any previous calibration data before starting fresh
-            calibrationManager.resetForNewCalibration()
-            calibrationManager.startCalibration()
+            calibratorService.resetForNewCalibration()
+            calibratorService.startCalibration()
             calibrationStarted = true
-            startStepCountdown(calibrationManager: calibrationManager)
+            startStepCountdown(calibratorService: calibratorService)
         } catch {
             showError = "Failed to start camera: \(error.localizedDescription)"
         }
@@ -411,28 +411,28 @@ class CalibrationOverlayViewModel: ObservableObject {
             }
     }
 
-    func cleanup(eyeTrackingService: EyeTrackingService, calibrationManager: CalibrationManager) {
+    func cleanup(eyeTrackingService: EyeTrackingService, calibratorService: CalibratorService) {
         countdownTask?.cancel()
         countdownTask = nil
         faceDetectionCancellable?.cancel()
         faceDetectionCancellable = nil
         isCountingDown = false
 
-        if calibrationManager.isCalibrating {
-            calibrationManager.cancelCalibration()
+        if calibratorService.isCalibrating {
+            calibratorService.cancelCalibration()
         }
 
         eyeTrackingService.stopEyeTracking()
     }
 
-    func skipCurrentStep(calibrationManager: CalibrationManager) {
+    func skipCurrentStep(calibratorService: CalibratorService) {
         countdownTask?.cancel()
         countdownTask = nil
         isCountingDown = false
-        calibrationManager.skipStep()
+        calibratorService.skipStep()
     }
 
-    func startStepCountdown(calibrationManager: CalibrationManager) {
+    func startStepCountdown(calibratorService: CalibratorService) {
         countdownTask?.cancel()
         countdownTask = nil
         countdownValue = 1
@@ -446,7 +446,7 @@ class CalibrationOverlayViewModel: ObservableObject {
             // Done counting, start collecting
             isCountingDown = false
             countdownValue = 0
-            calibrationManager.startCollectingSamples()
+            calibratorService.startCollectingSamples()
         }
     }
 }

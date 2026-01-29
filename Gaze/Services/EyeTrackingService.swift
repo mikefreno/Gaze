@@ -44,7 +44,6 @@ class EyeTrackingService: NSObject, ObservableObject {
     private let cameraManager = CameraSessionManager()
     private let visionPipeline = VisionPipeline()
     private let debugAdapter = EyeDebugStateAdapter()
-    private let calibrationBridge = CalibrationBridge()
     private let gazeDetector: GazeDetector
 
     var previewLayer: AVCaptureVideoPreviewLayer? {
@@ -135,10 +134,11 @@ class EyeTrackingService: NSObject, ObservableObject {
         debugImageSize = debugAdapter.imageSize
     }
 
-    nonisolated private func updateGazeConfiguration() {
+    @MainActor
+    private func updateGazeConfiguration() {
         let configuration = GazeDetector.Configuration(
-            thresholds: calibrationBridge.thresholds,
-            isCalibrationComplete: calibrationBridge.isComplete,
+            thresholds: CalibrationState.shared.thresholds,
+            isCalibrationComplete: CalibratorService.shared.isCalibrating || CalibrationState.shared.isComplete,
             eyeClosedEnabled: EyeTrackingConstants.eyeClosedEnabled,
             eyeClosedThreshold: EyeTrackingConstants.eyeClosedThreshold,
             yawEnabled: EyeTrackingConstants.yawEnabled,
@@ -173,8 +173,8 @@ extension EyeTrackingService: CameraSessionDelegate {
            let rightRatio = result.rightPupilRatio,
            let faceWidth = result.faceWidthRatio {
             Task { @MainActor in
-                guard CalibrationManager.shared.isCalibrating else { return }
-                calibrationBridge.submitSample(
+                guard CalibratorService.shared.isCalibrating else { return }
+                CalibratorService.shared.submitSampleToBridge(
                     leftRatio: leftRatio,
                     rightRatio: rightRatio,
                     leftVertical: result.leftVerticalRatio,

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct EyeTrackingCalibrationView: View {
-    @StateObject private var calibrationManager = CalibrationManager.shared
+    @StateObject private var calibratorService = CalibratorService.shared
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -46,12 +46,12 @@ struct EyeTrackingCalibrationView: View {
             }
             .padding(.vertical, 20)
 
-            if calibrationManager.calibrationData.isComplete {
+            if calibratorService.calibrationData.isComplete {
                 VStack(spacing: 10) {
                     Text("Last calibration:")
                         .font(.caption)
                         .foregroundStyle(.gray)
-                    Text(calibrationManager.getCalibrationSummary())
+                    Text(calibratorService.getCalibrationSummary())
                         .font(.caption)
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.gray)
@@ -83,10 +83,10 @@ struct EyeTrackingCalibrationView: View {
 
     private func startFullscreenCalibration() {
         dismiss()
-        
+
         // Small delay to allow sheet dismissal animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            CalibrationWindowManager.shared.showCalibrationOverlay()
+            CalibratorService.shared.showCalibrationOverlay()
         }
     }
 }

@@ -23,7 +23,7 @@ struct EnforceModeSetupView: View {
     @State private var isViewActive = false
     @State private var showAdvancedSettings = false
     @State private var showCalibrationWindow = false
-    @ObservedObject var calibrationManager = CalibrationManager.shared
+    @ObservedObject var calibratorService = CalibratorService.shared
 
     private var cameraHardwareAvailable: Bool {
         cameraService.hasCameraHardware
@@ -155,13 +155,13 @@ struct EnforceModeSetupView: View {
                     .font(.headline)
             }
 
-            if calibrationManager.calibrationData.isComplete {
+            if calibratorService.calibrationData.isComplete {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(calibrationManager.getCalibrationSummary())
+                    Text(calibratorService.getCalibrationSummary())
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    if calibrationManager.needsRecalibration() {
+                    if calibratorService.needsRecalibration() {
                         Label(
                             "Calibration expired - recalibration recommended",
                             systemImage: "exclamationmark.triangle.fill"
@@ -186,7 +186,7 @@ struct EnforceModeSetupView: View {
                 HStack {
                     Image(systemName: "target")
                     Text(
-                        calibrationManager.calibrationData.isComplete
+                        calibratorService.calibrationData.isComplete
                             ? "Recalibrate" : "Run Calibration")
                 }
                 .frame(maxWidth: .infinity)

@@ -38,7 +38,7 @@ class ReminderManager: ObservableObject {
             switch type {
             case .lookAway:
                 activeReminder = .lookAwayTriggered(
-                    countdownSeconds: settingsProvider.settings.lookAwayCountdownSeconds)
+                    countdownSeconds: settingsProvider.timerIntervalMinutes(for: .lookAway) * 60)
             case .blink:
                 activeReminder = .blinkTriggered
             case .posture:

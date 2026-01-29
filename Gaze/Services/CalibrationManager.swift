@@ -5,8 +5,8 @@
 //  Created by Mike Freno on 1/15/26.
 //
 
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 class CalibrationManager: ObservableObject {
@@ -22,11 +22,10 @@ class CalibrationManager: ObservableObject {
     @Published var calibrationData = CalibrationData()
     
     // MARK: - Configuration
-    
+
     private let samplesPerStep = 30  // Collect 30 samples per calibration point (~1 second at 30fps)
     private let userDefaultsKey = "eyeTrackingCalibration"
-    
-    // Calibration sequence (9 steps)
+
     private let calibrationSteps: [CalibrationStep] = [
         .center,
         .left,
@@ -38,11 +37,30 @@ class CalibrationManager: ObservableObject {
         .topLeft,
         .topRight
     ]
+
+    private let flowController: CalibrationFlowController
+    private var sampleCollector = CalibrationSampleCollector()
     
     // MARK: - Initialization
     
     private init() {
+        self.flowController = CalibrationFlowController(
+            samplesPerStep: samplesPerStep,
+            calibrationSteps: calibrationSteps
+        )
         loadCalibration()
+        bindFlowController()
+    }
+
+    private func bindFlowController() {
+        flowController.$isCollectingSamples
+            .assign(to: &$isCollectingSamples)
+        flowController.$currentStep
+            .assign(to: &$currentStep)
+        flowController.$currentStepIndex
+            .assign(to: &$currentStepIndex)
+        flowController.$samplesCollected
+            .assign(to: &$samplesCollected)
     }
     
     // MARK: - Calibration Flow
@@ -50,10 +68,7 @@ class CalibrationManager: ObservableObject {
     func startCalibration() {
         print("🎯 Starting calibration...")
         isCalibrating = true
-        isCollectingSamples = false
-        currentStepIndex = 0
-        currentStep = calibrationSteps[0]
-        samplesCollected = 0
+        flowController.start()
         calibrationData = CalibrationData()
     }
     
@@ -61,44 +76,43 @@ class CalibrationManager: ObservableObject {
     func resetForNewCalibration() {
         print("🔄 Resetting for new calibration...")
         calibrationData = CalibrationData()
+        flowController.start()
     }
     
     func startCollectingSamples() {
-        guard isCalibrating, currentStep != nil else { return }
+        guard isCalibrating else { return }
         print("📊 Started collecting samples for step: \(currentStep?.displayName ?? "unknown")")
-        isCollectingSamples = true
+        flowController.startCollectingSamples()
     }
     
-    func collectSample(leftRatio: Double?, rightRatio: Double?, leftVertical: Double? = nil, rightVertical: Double? = nil, faceWidthRatio: Double? = nil) {
+    func collectSample(
+        leftRatio: Double?,
+        rightRatio: Double?,
+        leftVertical: Double? = nil,
+        rightVertical: Double? = nil,
+        faceWidthRatio: Double? = nil
+    ) {
         guard isCalibrating, isCollectingSamples, let step = currentStep else { return }
-        
-        let sample = GazeSample(
+
+        sampleCollector.addSample(
+            to: &calibrationData,
+            step: step,
             leftRatio: leftRatio,
             rightRatio: rightRatio,
-            leftVerticalRatio: leftVertical,
-            rightVerticalRatio: rightVertical,
+            leftVertical: leftVertical,
+            rightVertical: rightVertical,
             faceWidthRatio: faceWidthRatio
         )
-        calibrationData.addSample(sample, for: step)
-        samplesCollected += 1
-        
-        // Move to next step when enough samples collected
-        if samplesCollected >= samplesPerStep {
+
+        if flowController.markSampleCollected() {
             advanceToNextStep()
         }
     }
     
     private func advanceToNextStep() {
-        isCollectingSamples = false
-        currentStepIndex += 1
-        
-        if currentStepIndex < calibrationSteps.count {
-            // Move to next calibration point
-            currentStep = calibrationSteps[currentStepIndex]
-            samplesCollected = 0
+        if flowController.advanceToNextStep() {
             print("📍 Calibration step: \(currentStep?.displayName ?? "unknown")")
         } else {
-            // All steps complete
             finishCalibration()
         }
     }
@@ -122,10 +136,7 @@ class CalibrationManager: ObservableObject {
         applyCalibration()
         
         isCalibrating = false
-        isCollectingSamples = false
-        currentStep = nil
-        currentStepIndex = 0
-        samplesCollected = 0
+        flowController.stop()
         
         print("✓ Calibration saved and applied")
     }
@@ -133,15 +144,10 @@ class CalibrationManager: ObservableObject {
     func cancelCalibration() {
         print("❌ Calibration cancelled")
         isCalibrating = false
-        isCollectingSamples = false
-        currentStep = nil
-        currentStepIndex = 0
-        samplesCollected = 0
+        flowController.stop()
         calibrationData = CalibrationData()
         
-        // Reset thread-safe state
-        CalibrationState.shared.isComplete = false
-        CalibrationState.shared.thresholds = nil
+        CalibrationState.shared.reset()
     }
     
     // MARK: - Persistence
@@ -184,9 +190,7 @@ class CalibrationManager: ObservableObject {
         UserDefaults.standard.removeObject(forKey: userDefaultsKey)
         calibrationData = CalibrationData()
         
-        // Reset thread-safe state
-        CalibrationState.shared.isComplete = false
-        CalibrationState.shared.thresholds = nil
+        CalibrationState.shared.reset()
         
         print("🗑️ Calibration data cleared")
     }
@@ -215,8 +219,8 @@ class CalibrationManager: ObservableObject {
         }
         
         // Push to thread-safe state for background processing
-        CalibrationState.shared.thresholds = thresholds
-        CalibrationState.shared.isComplete = true
+        CalibrationState.shared.setThresholds(thresholds)
+        CalibrationState.shared.setComplete(true)
         
         print("✓ Applied calibrated thresholds:")
         print("  Looking left: ≥\(String(format: "%.3f", thresholds.minLeftRatio))")
@@ -251,13 +255,10 @@ class CalibrationManager: ObservableObject {
     // MARK: - Progress
     
     var progress: Double {
-        let totalSteps = calibrationSteps.count
-        let completedSteps = currentStepIndex
-        let currentProgress = Double(samplesCollected) / Double(samplesPerStep)
-        return (Double(completedSteps) + currentProgress) / Double(totalSteps)
+        flowController.progress
     }
     
     var progressText: String {
-        "\(currentStepIndex + 1) of \(calibrationSteps.count)"
+        flowController.progressText
     }
 }

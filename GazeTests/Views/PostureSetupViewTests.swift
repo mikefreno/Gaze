@@ -29,40 +29,47 @@ final class PostureSetupViewTests: XCTestCase {
     }
     
     func testPostureTimerConfigurationChanges() {
-        let initial = testEnv.settingsManager.timerConfiguration(for: .posture)
+        // Start with default
+        XCTAssertTrue(testEnv.settingsManager.settings.postureEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.postureIntervalMinutes, 30)
         
-        var modified = initial
-        modified.enabled = true
-        modified.intervalSeconds = 1800
-        testEnv.settingsManager.updateTimerConfiguration(for: .posture, configuration: modified)
+        // Modify configuration
+        testEnv.settingsManager.settings.postureEnabled = true
+        testEnv.settingsManager.settings.postureIntervalMinutes = 45
         
-        let updated = testEnv.settingsManager.timerConfiguration(for: .posture)
-        XCTAssertTrue(updated.enabled)
-        XCTAssertEqual(updated.intervalSeconds, 1800)
+        // Verify changes
+        XCTAssertTrue(testEnv.settingsManager.settings.postureEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.postureIntervalMinutes, 45)
     }
     
     func testPostureTimerEnableDisable() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .posture)
+        var config = testEnv.settingsManager.settings
         
-        config.enabled = true
-        testEnv.settingsManager.updateTimerConfiguration(for: .posture, configuration: config)
-        XCTAssertTrue(testEnv.settingsManager.timerConfiguration(for: .posture).enabled)
+        // Enable
+        config.postureEnabled = true
+        config.postureIntervalMinutes = 25
+        testEnv.settingsManager.settings = config
+        XCTAssertTrue(testEnv.settingsManager.settings.postureEnabled)
         
-        config.enabled = false
-        testEnv.settingsManager.updateTimerConfiguration(for: .posture, configuration: config)
-        XCTAssertFalse(testEnv.settingsManager.timerConfiguration(for: .posture).enabled)
+        // Disable
+        config.postureEnabled = false
+        config.postureIntervalMinutes = 20
+        testEnv.settingsManager.settings = config
+        XCTAssertFalse(testEnv.settingsManager.settings.postureEnabled)
     }
     
     func testPostureIntervalValidation() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .posture)
+        var config = testEnv.settingsManager.settings
         
-        let intervals = [900, 1200, 1800, 2400, 3600]
-        for interval in intervals {
-            config.intervalSeconds = interval
-            testEnv.settingsManager.updateTimerConfiguration(for: .posture, configuration: config)
+        // Test various intervals (in minutes)
+        let intervals = [15, 20, 30, 45, 60]
+        for minutes in intervals {
+            config.postureEnabled = true
+            config.postureIntervalMinutes = minutes
+            testEnv.settingsManager.settings = config
             
-            let retrieved = testEnv.settingsManager.timerConfiguration(for: .posture)
-            XCTAssertEqual(retrieved.intervalSeconds, interval)
+            let retrieved = testEnv.settingsManager.settings
+            XCTAssertEqual(retrieved.postureIntervalMinutes, minutes)
         }
     }
     

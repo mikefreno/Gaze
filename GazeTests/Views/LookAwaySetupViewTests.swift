@@ -30,45 +30,46 @@ final class LookAwaySetupViewTests: XCTestCase {
     
     func testLookAwayTimerConfigurationChanges() {
         // Start with default
-        let initial = testEnv.settingsManager.timerConfiguration(for: .lookAway)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 20)
         
         // Modify configuration
-        var modified = initial
-        modified.enabled = true
-        modified.intervalSeconds = 1500
-        testEnv.settingsManager.updateTimerConfiguration(for: .lookAway, configuration: modified)
+        testEnv.settingsManager.settings.lookAwayEnabled = true
+        testEnv.settingsManager.settings.lookAwayIntervalMinutes = 25
         
         // Verify changes
-        let updated = testEnv.settingsManager.timerConfiguration(for: .lookAway)
-        XCTAssertTrue(updated.enabled)
-        XCTAssertEqual(updated.intervalSeconds, 1500)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 25)
     }
     
     func testLookAwayTimerEnableDisable() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .lookAway)
+        var config = testEnv.settingsManager.settings
         
         // Enable
-        config.enabled = true
-        testEnv.settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
-        XCTAssertTrue(testEnv.settingsManager.timerConfiguration(for: .lookAway).enabled)
+        config.lookAwayEnabled = true
+        config.lookAwayIntervalMinutes = 15
+        testEnv.settingsManager.settings = config
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
         
         // Disable
-        config.enabled = false
-        testEnv.settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
-        XCTAssertFalse(testEnv.settingsManager.timerConfiguration(for: .lookAway).enabled)
+        config.lookAwayEnabled = false
+        config.lookAwayIntervalMinutes = 10
+        testEnv.settingsManager.settings = config
+        XCTAssertFalse(testEnv.settingsManager.settings.lookAwayEnabled)
     }
     
     func testLookAwayIntervalValidation() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .lookAway)
+        var config = testEnv.settingsManager.settings
         
-        // Test various intervals
-        let intervals = [300, 600, 1200, 1800, 3600]
-        for interval in intervals {
-            config.intervalSeconds = interval
-            testEnv.settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
+        // Test various intervals (in minutes)
+        let intervals = [5, 10, 20, 30, 60]
+        for minutes in intervals {
+            config.lookAwayEnabled = true
+            config.lookAwayIntervalMinutes = minutes
+            testEnv.settingsManager.settings = config
             
-            let retrieved = testEnv.settingsManager.timerConfiguration(for: .lookAway)
-            XCTAssertEqual(retrieved.intervalSeconds, interval)
+            let retrieved = testEnv.settingsManager.settings
+            XCTAssertEqual(retrieved.lookAwayIntervalMinutes, minutes)
         }
     }
     

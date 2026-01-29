@@ -16,7 +16,7 @@ struct SliderSection: View {
         previewFunc: @escaping () -> Void
     ) {
         self._intervalSettings = intervalSettings
-        self._countdownSettings = countdownSettings ?? .constant(RangeChoice(val: nil, range: nil))
+        self._countdownSettings = countdownSettings ?? .constant(RangeChoice(value: nil, range: nil))
         self._enabled = enabled
         self.type = type
         self.previewFunc = previewFunc
@@ -27,10 +27,10 @@ struct SliderSection: View {
             return "\(type) reminders are currently disabled."
         }
         if countdownSettings.isNil && !intervalSettings.isNil {
-            return "You will be reminded every \(intervalSettings.val ?? 0) minutes"
+            return "You will be reminded every \(intervalSettings.value ?? 0) minutes"
         }
         return
-            "You will be \(countdownSettings.isNil ? "subtly" : "") reminded every \(intervalSettings.val ?? 0) minutes for \(countdownSettings.val ?? 0) seconds"
+            "You will be \(countdownSettings.isNil ? "subtly" : "") reminded every \(intervalSettings.value ?? 0) minutes for \(countdownSettings.value ?? 0) seconds"
     }
 
     var body: some View {
@@ -46,15 +46,15 @@ struct SliderSection: View {
                     HStack {
                         Slider(
                             value: Binding(
-                                get: { Double(intervalSettings.val ?? 0) },
-                                set: { intervalSettings.val = Int($0) }
+                                get: { Double(intervalSettings.value ?? 0) },
+                                set: { intervalSettings.value = Int($0) }
                             ),
                             in:
                                 Double(
                                     intervalSettings.range?.bounds.lowerBound ?? 0)...Double(
                                     intervalSettings.range?.bounds.upperBound ?? 100),
                             step: 5.0)
-                        Text("\(intervalSettings.val ?? 0) min")
+                        Text("\(intervalSettings.value ?? 0) min")
                             .frame(width: 60, alignment: .trailing)
                             .monospacedDigit()
                     }
@@ -66,14 +66,14 @@ struct SliderSection: View {
                         HStack {
                             Slider(
                                 value: Binding(
-                                    get: { Double(countdownSettings.val ?? 0) },
-                                    set: { countdownSettings.val = Int($0) }
+                                    get: { Double(countdownSettings.value ?? 0) },
+                                    set: { countdownSettings.value = Int($0) }
                                 ),
                                 in:
                                     Double(
                                         range.bounds.lowerBound)...Double(range.bounds.upperBound),
                                 step: 5.0)
-                            Text("\(countdownSettings.val ?? 0) sec")
+                            Text("\(countdownSettings.value ?? 0) sec")
                                 .frame(width: 60, alignment: .trailing)
                                 .monospacedDigit()
                         }

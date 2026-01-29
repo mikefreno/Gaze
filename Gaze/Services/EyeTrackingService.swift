@@ -42,10 +42,10 @@ class EyeTrackingService: NSObject, ObservableObject {
     @Published var debugImageSize: CGSize?
 
     private let cameraManager = CameraSessionManager()
-    nonisolated(unsafe) private let visionPipeline = VisionPipeline()
+    private let visionPipeline = VisionPipeline()
     private let debugAdapter = EyeDebugStateAdapter()
     private let calibrationBridge = CalibrationBridge()
-    nonisolated(unsafe) private let gazeDetector: GazeDetector
+    private let gazeDetector: GazeDetector
 
     var previewLayer: AVCaptureVideoPreviewLayer? {
         cameraManager.previewLayer

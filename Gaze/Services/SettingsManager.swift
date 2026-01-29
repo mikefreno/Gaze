@@ -31,10 +31,17 @@ final class SettingsManager {
     private var saveCancellable: AnyCancellable?
 
     @ObservationIgnored
-    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] = [
-        .lookAway: \.lookAwayTimer,
-        .blink: \.blinkTimer,
-        .posture: \.postureTimer,
+    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, Bool>] = [
+        .lookAway: \.lookAwayEnabled,
+        .blink: \.blinkEnabled,
+        .posture: \.postureEnabled,
+    ]
+
+    @ObservationIgnored
+    private let intervalKeyPaths: [TimerType: WritableKeyPath<AppSettings, Int>] = [
+        .lookAway: \.lookAwayIntervalMinutes,
+        .blink: \.blinkIntervalMinutes,
+        .posture: \.postureIntervalMinutes,
     ]
 
     private init() {
@@ -83,25 +90,37 @@ final class SettingsManager {
         settings = .defaults
     }
 
-    func timerConfiguration(for type: TimerType) -> TimerConfiguration {
+    func isTimerEnabled(for type: TimerType) -> Bool {
         guard let keyPath = timerConfigKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
         }
         return settings[keyPath: keyPath]
     }
 
-    func updateTimerConfiguration(for type: TimerType, configuration: TimerConfiguration) {
+    func updateTimerEnabled(for type: TimerType, enabled: Bool) {
         guard let keyPath = timerConfigKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
         }
-        settings[keyPath: keyPath] = configuration
+        settings[keyPath: keyPath] = enabled
     }
 
-    func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
-        var configs: [TimerType: TimerConfiguration] = [:]
-        for (type, keyPath) in timerConfigKeyPaths {
-            configs[type] = settings[keyPath: keyPath]
+    func timerIntervalMinutes(for type: TimerType) -> Int {
+        guard let keyPath = intervalKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
         }
-        return configs
+        return settings[keyPath: keyPath]
+    }
+
+    func updateTimerInterval(for type: TimerType, minutes: Int) {
+        guard let keyPath = intervalKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
+        }
+        settings[keyPath: keyPath] = minutes
+    }
+
+    func allTimerSettings() -> [TimerType: (enabled: Bool, intervalMinutes: Int)] {
+        TimerType.allCases.reduce(into: [:]) { result, type in
+            result[type] = (enabled: isTimerEnabled(for: type), intervalMinutes: timerIntervalMinutes(for: type))
+        }
     }
 }

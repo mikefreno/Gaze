@@ -70,6 +70,7 @@ final class FullscreenDetectionService: ObservableObject {
     private var frontmostAppObserver: AnyCancellable?
     private let permissionManager: ScreenCapturePermissionManaging
     private let environmentProvider: FullscreenEnvironmentProviding
+    private let windowMatcher = FullscreenWindowMatcher()
 
     init(
         permissionManager: ScreenCapturePermissionManaging,
@@ -111,49 +112,27 @@ final class FullscreenDetectionService: ObservableObject {
         let workspace = NSWorkspace.shared
         let notificationCenter = workspace.notificationCenter
 
-        let spaceObserver = notificationCenter.addObserver(
-            forName: NSWorkspace.activeSpaceDidChangeNotification,
-            object: workspace,
-            queue: .main
-        ) { [weak self] _ in
+        let stateChangeHandler: (Notification) -> Void = { [weak self] _ in
             Task { @MainActor in
                 self?.checkFullscreenState()
             }
         }
-        observers.append(spaceObserver)
 
-        let transitionObserver = notificationCenter.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkFullscreenState()
-            }
-        }
-        observers.append(transitionObserver)
+        let notifications: [(NSNotification.Name, Any?)] = [
+            (NSWorkspace.activeSpaceDidChangeNotification, workspace),
+            (NSApplication.didChangeScreenParametersNotification, nil),
+            (NSWindow.willEnterFullScreenNotification, nil),
+            (NSWindow.willExitFullScreenNotification, nil),
+        ]
 
-        let fullscreenObserver = notificationCenter.addObserver(
-            forName: NSWindow.willEnterFullScreenNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkFullscreenState()
-            }
+        observers = notifications.map { notification, object in
+            notificationCenter.addObserver(
+                forName: notification,
+                object: object,
+                queue: .main,
+                using: stateChangeHandler
+            )
         }
-        observers.append(fullscreenObserver)
-
-        let exitFullscreenObserver = notificationCenter.addObserver(
-            forName: NSWindow.willExitFullScreenNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor in
-                self?.checkFullscreenState()
-            }
-        }
-        observers.append(exitFullscreenObserver)
 
         frontmostAppObserver = NotificationCenter.default.publisher(
             for: NSWorkspace.didActivateApplicationNotification,
@@ -187,20 +166,13 @@ final class FullscreenDetectionService: ObservableObject {
         let screens = environmentProvider.screenFrames()
 
         for window in windows where window.ownerPID == frontmostPID && window.layer == 0 {
-            if screens.contains(where: { FullscreenDetectionService.window(window.bounds, matches: $0) }) {
+            if windowMatcher.isFullscreen(windowBounds: window.bounds, screenFrames: screens) {
                 setFullscreenState(true)
                 return
             }
         }
 
         setFullscreenState(false)
-    }
-
-    private static func window(_ windowBounds: CGRect, matches screenFrame: CGRect, tolerance: CGFloat = 1) -> Bool {
-        abs(windowBounds.width - screenFrame.width) < tolerance &&
-            abs(windowBounds.height - screenFrame.height) < tolerance &&
-            abs(windowBounds.origin.x - screenFrame.origin.x) < tolerance &&
-            abs(windowBounds.origin.y - screenFrame.origin.y) < tolerance
     }
 
     fileprivate func setFullscreenState(_ isActive: Bool) {

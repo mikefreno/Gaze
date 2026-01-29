@@ -28,11 +28,19 @@ final class EnhancedMockSettingsManager: SettingsProviding {
     }
 
     @ObservationIgnored
-    private let timerConfigKeyPaths: [TimerType: WritableKeyPath<AppSettings, TimerConfiguration>] =
+    private let intervalKeyPaths: [TimerType: WritableKeyPath<AppSettings, Int>] =
         [
-            .lookAway: \.lookAwayTimer,
-            .blink: \.blinkTimer,
-            .posture: \.postureTimer,
+            .lookAway: \.lookAwayIntervalMinutes,
+            .blink: \.blinkIntervalMinutes,
+            .posture: \.postureIntervalMinutes,
+        ]
+
+    @ObservationIgnored
+    private let enabledKeyPaths: [TimerType: WritableKeyPath<AppSettings, Bool>] =
+        [
+            .lookAway: \.lookAwayEnabled,
+            .blink: \.blinkEnabled,
+            .posture: \.postureEnabled,
         ]
 
     // Track method calls for verification
@@ -50,27 +58,42 @@ final class EnhancedMockSettingsManager: SettingsProviding {
         self._settingsSubject = CurrentValueSubject(settings)
     }
 
-    func timerConfiguration(for type: TimerType) -> TimerConfiguration {
-        guard let keyPath = timerConfigKeyPaths[type] else {
+    func timerIntervalMinutes(for type: TimerType) -> Int {
+        guard let keyPath = intervalKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
         }
         return settings[keyPath: keyPath]
     }
 
-    func updateTimerConfiguration(for type: TimerType, configuration: TimerConfiguration) {
-        guard let keyPath = timerConfigKeyPaths[type] else {
+    func isTimerEnabled(for type: TimerType) -> Bool {
+        guard let keyPath = enabledKeyPaths[type] else {
             preconditionFailure("Unknown timer type: \(type)")
         }
-        settings[keyPath: keyPath] = configuration
+        return settings[keyPath: keyPath]
+    }
+
+    func updateTimerInterval(for type: TimerType, minutes: Int) {
+        guard let keyPath = intervalKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
+        }
+        settings[keyPath: keyPath] = minutes
         _settingsSubject.send(settings)
     }
 
-    func allTimerConfigurations() -> [TimerType: TimerConfiguration] {
-        var configs: [TimerType: TimerConfiguration] = [:]
-        for (type, keyPath) in timerConfigKeyPaths {
-            configs[type] = settings[keyPath: keyPath]
+    func updateTimerEnabled(for type: TimerType, enabled: Bool) {
+        guard let keyPath = enabledKeyPaths[type] else {
+            preconditionFailure("Unknown timer type: \(type)")
         }
-        return configs
+        settings[keyPath: keyPath] = enabled
+        _settingsSubject.send(settings)
+    }
+
+    func allTimerSettings() -> [TimerType: (enabled: Bool, intervalMinutes: Int)] {
+        var settingsMap: [TimerType: (enabled: Bool, intervalMinutes: Int)] = [:]
+        for (type, enabledKey) in enabledKeyPaths {
+            settingsMap[type] = (enabled: settings[keyPath: enabledKey], intervalMinutes: settings[keyPath: intervalKeyPaths[type]!])
+        }
+        return settingsMap
     }
 
     func save() {
@@ -155,27 +178,27 @@ extension AppSettings {
     /// Settings with all timers disabled
     static var allTimersDisabled: AppSettings {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.enabled = false
-        settings.blinkTimer.enabled = false
-        settings.postureTimer.enabled = false
+        settings.lookAwayEnabled = false
+        settings.blinkEnabled = false
+        settings.postureEnabled = false
         return settings
     }
 
     /// Settings with only lookAway timer enabled
     static var onlyLookAwayEnabled: AppSettings {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.enabled = true
-        settings.blinkTimer.enabled = false
-        settings.postureTimer.enabled = false
+        settings.lookAwayEnabled = true
+        settings.blinkEnabled = false
+        settings.postureEnabled = false
         return settings
     }
 
     /// Settings with short intervals for testing
     static var shortIntervals: AppSettings {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.intervalSeconds = 5
-        settings.blinkTimer.intervalSeconds = 3
-        settings.postureTimer.intervalSeconds = 7
+        settings.lookAwayIntervalMinutes = 5
+        settings.blinkIntervalMinutes = 3
+        settings.postureIntervalMinutes = 7
         return settings
     }
 

@@ -21,7 +21,7 @@ final class EnforcePolicyEvaluator {
     }
 
     var isEnforcementEnabled: Bool {
-        settingsProvider.settings.enforcementMode
+        settingsProvider.isTimerEnabled(for: .lookAway)
     }
 
     func shouldEnforce(timerIdentifier: TimerIdentifier) -> Bool {

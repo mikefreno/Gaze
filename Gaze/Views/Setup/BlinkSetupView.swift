@@ -44,11 +44,11 @@ struct BlinkSetupView: View {
 
                 VStack(alignment: .leading, spacing: 20) {
                     Toggle(
-                        "Enable Blink Reminders", isOn: $settingsManager.settings.blinkTimer.enabled
+                        "Enable Blink Reminders", isOn: $settingsManager.settings.blinkEnabled
                     )
                     .font(.headline)
 
-                    if settingsManager.settings.blinkTimer.enabled {
+                    if settingsManager.settings.blinkEnabled {
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Remind me every:")
                                 .font(.subheadline)
@@ -58,13 +58,10 @@ struct BlinkSetupView: View {
                                 Slider(
                                     value: Binding(
                                         get: {
-                                            Double(
-                                                settingsManager.settings.blinkTimer.intervalSeconds
-                                                    / 60)
+                                            Double(settingsManager.settings.blinkIntervalMinutes)
                                         },
                                         set: {
-                                            settingsManager.settings.blinkTimer.intervalSeconds =
-                                                Int($0) * 60
+                                            settingsManager.settings.blinkIntervalMinutes = Int($0)
                                         }
                                     ),
                                     in: 1...20,
@@ -72,7 +69,7 @@ struct BlinkSetupView: View {
                                 )
 
                                 Text(
-                                    "\(settingsManager.settings.blinkTimer.intervalSeconds / 60) min"
+                                    "\(settingsManager.settings.blinkIntervalMinutes) min"
                                 )
                                 .frame(width: 60, alignment: .trailing)
                                 .monospacedDigit()
@@ -83,9 +80,9 @@ struct BlinkSetupView: View {
                 .padding()
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
 
-                if settingsManager.settings.blinkTimer.enabled {
+                if settingsManager.settings.blinkEnabled {
                     Text(
-                        "You will be subtly reminded every \(settingsManager.settings.blinkTimer.intervalSeconds / 60) minutes to blink"
+                        "You will be subtly reminded every \(settingsManager.settings.blinkIntervalMinutes) minutes to blink"
                     )
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -109,8 +106,7 @@ struct BlinkSetupView: View {
                 }
                 .buttonStyle(.plain)
                 .glassEffectIfAvailable(
-                    GlassStyle.regular.tint(.accentColor).interactive(), in: .rect(cornerRadius: 10)
-                )
+                    GlassStyle.regular.tint(.green).interactive(), in: .rect(cornerRadius: 10))
             }
 
             Spacer()
@@ -129,6 +125,6 @@ struct BlinkSetupView: View {
     }
 }
 
-#Preview("Blink Setup") {
+#Preview("Blink Setup View") {
     BlinkSetupView(settingsManager: SettingsManager.shared)
 }

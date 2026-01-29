@@ -22,8 +22,8 @@ final class ServiceContainerTests: XCTestCase {
         let settings = AppSettings.onlyLookAwayEnabled
         let container = TestServiceContainer(settings: settings)
         
-        XCTAssertEqual(container.settingsManager.settings.lookAwayTimer.enabled, true)
-        XCTAssertEqual(container.settingsManager.settings.blinkTimer.enabled, false)
+        XCTAssertEqual(container.settingsManager.settings.lookAwayEnabled, true)
+        XCTAssertEqual(container.settingsManager.settings.blinkEnabled, false)
     }
     
     func testTimerEngineCreation() {

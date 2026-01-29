@@ -254,10 +254,23 @@ struct AdditionalModifiersView: View {
                         }
                     }
                     Spacer()
-                    Toggle("", isOn: $settingsManager.settings.enforcementMode)
-                        .labelsHidden()
-                        .disabled(!cameraService.hasCameraHardware)
-                        .controlSize(isCompact ? .small : .regular)
+                    Toggle("", isOn: Binding(
+                        get: {
+                            settingsManager.isTimerEnabled(for: .lookAway) ||
+                            settingsManager.isTimerEnabled(for: .blink) ||
+                            settingsManager.isTimerEnabled(for: .posture)
+                        },
+                        set: { newValue in
+                            if newValue {
+                                Task { @MainActor in
+                                    try await cameraService.requestCameraAccess()
+                                }
+                            }
+                        }
+                    ))
+                    .labelsHidden()
+                    .disabled(!cameraService.hasCameraHardware)
+                    .controlSize(isCompact ? .small : .regular)
                 }
                 .padding(isCompact ? 10 : 16)
                 .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))

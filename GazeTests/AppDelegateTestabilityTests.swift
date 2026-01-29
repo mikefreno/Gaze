@@ -53,12 +53,12 @@ final class AppDelegateTestabilityTests: XCTestCase {
         let appDelegate = testEnv.createAppDelegate()
 
         // Change a setting
-        testEnv.settingsManager.settings.lookAwayTimer.enabled = false
+        testEnv.settingsManager.settings.lookAwayEnabled = false
 
         try await Task.sleep(for: .milliseconds(50))
 
         // Verify the change propagated
-        XCTAssertFalse(testEnv.settingsManager.settings.lookAwayTimer.enabled)
+        XCTAssertFalse(testEnv.settingsManager.settings.lookAwayEnabled)
     }
 
     func testOpenSettingsUsesWindowManager() {

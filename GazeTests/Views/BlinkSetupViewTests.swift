@@ -29,40 +29,41 @@ final class BlinkSetupViewTests: XCTestCase {
     }
     
     func testBlinkTimerConfigurationChanges() {
-        let initial = testEnv.settingsManager.timerConfiguration(for: .blink)
+        XCTAssertFalse(testEnv.settingsManager.settings.blinkEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.blinkIntervalMinutes, 7)
         
-        var modified = initial
-        modified.enabled = true
-        modified.intervalSeconds = 300
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: modified)
+        testEnv.settingsManager.settings.blinkEnabled = true
+        testEnv.settingsManager.settings.blinkIntervalMinutes = 5
         
-        let updated = testEnv.settingsManager.timerConfiguration(for: .blink)
-        XCTAssertTrue(updated.enabled)
-        XCTAssertEqual(updated.intervalSeconds, 300)
+        XCTAssertTrue(testEnv.settingsManager.settings.blinkEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.blinkIntervalMinutes, 5)
     }
     
     func testBlinkTimerEnableDisable() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .blink)
+        var config = testEnv.settingsManager.settings
         
-        config.enabled = true
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
-        XCTAssertTrue(testEnv.settingsManager.timerConfiguration(for: .blink).enabled)
+        config.blinkEnabled = true
+        config.blinkIntervalMinutes = 4
+        testEnv.settingsManager.settings = config
+        XCTAssertTrue(testEnv.settingsManager.settings.blinkEnabled)
         
-        config.enabled = false
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
-        XCTAssertFalse(testEnv.settingsManager.timerConfiguration(for: .blink).enabled)
+        config.blinkEnabled = false
+        config.blinkIntervalMinutes = 3
+        testEnv.settingsManager.settings = config
+        XCTAssertFalse(testEnv.settingsManager.settings.blinkEnabled)
     }
     
     func testBlinkIntervalValidation() {
-        var config = testEnv.settingsManager.timerConfiguration(for: .blink)
+        var config = testEnv.settingsManager.settings
         
-        let intervals = [180, 240, 300, 360, 600]
-        for interval in intervals {
-            config.intervalSeconds = interval
-            testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: config)
+        let intervals = [3, 4, 5, 6, 10]
+        for minutes in intervals {
+            config.blinkEnabled = true
+            config.blinkIntervalMinutes = minutes
+            testEnv.settingsManager.settings = config
             
-            let retrieved = testEnv.settingsManager.timerConfiguration(for: .blink)
-            XCTAssertEqual(retrieved.intervalSeconds, interval)
+            let retrieved = testEnv.settingsManager.settings
+            XCTAssertEqual(retrieved.blinkIntervalMinutes, minutes)
         }
     }
     

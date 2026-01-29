@@ -7,13 +7,17 @@ import Combine
 import Foundation
 
 @MainActor
-protocol SettingsProviding: AnyObject, Observable {
+protocol TimerSettingsProviding {
+    func allTimerSettings() -> [TimerType: (enabled: Bool, intervalMinutes: Int)]
+    func isTimerEnabled(for type: TimerType) -> Bool
+    func timerIntervalMinutes(for type: TimerType) -> Int
+}
+
+@MainActor
+protocol SettingsProviding: AnyObject, Observable, TimerSettingsProviding {
     var settings: AppSettings { get set }
     var settingsPublisher: AnyPublisher<AppSettings, Never> { get }
-    
-    func timerConfiguration(for type: TimerType) -> TimerConfiguration
-    func updateTimerConfiguration(for type: TimerType, configuration: TimerConfiguration)
-    func allTimerConfigurations() -> [TimerType: TimerConfiguration]
+
     func save()
     func saveImmediately()
     func load()

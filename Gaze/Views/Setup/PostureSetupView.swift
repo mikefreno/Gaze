@@ -46,17 +46,16 @@ struct PostureSetupView: View {
                     intervalSettings: Binding(
                         get: {
                             RangeChoice(
-                                val: settingsManager.settings.postureTimer.intervalSeconds / 60,
+                                value: settingsManager.settings.postureIntervalMinutes,
                                 range: Range(bounds: 5...60, step: 5)
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.postureTimer.intervalSeconds =
-                                (newValue.val ?? 30) * 60
+                            settingsManager.settings.postureIntervalMinutes = newValue.value ?? 30
                         }
                     ),
                     countdownSettings: nil,
-                    enabled: $settingsManager.settings.postureTimer.enabled,
+                    enabled: $settingsManager.settings.postureEnabled,
                     type: "Posture",
                     previewFunc: showPreviewWindow
                 )

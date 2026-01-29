@@ -18,6 +18,7 @@ class TimerEngine: ObservableObject {
     private let stateManager = TimerStateManager()
     private let scheduler: TimerScheduler
     private let reminderService: ReminderTriggerService
+    private let configurationHelper: TimerConfigurationHelper
     private let smartModeCoordinator = SmartModeCoordinator()
     private var cancellables = Set<AnyCancellable>()
 
@@ -44,6 +45,7 @@ class TimerEngine: ObservableObject {
             settingsProvider: settingsManager,
             enforceModeService: enforceModeService ?? EnforceModeService.shared
         )
+        self.configurationHelper = TimerConfigurationHelper(settingsProvider: settingsManager)
 
         Task { @MainActor in
             enforceModeService?.setTimerEngine(self)
@@ -94,7 +96,7 @@ class TimerEngine: ObservableObject {
         // Initial start - create all timer states
         stop()
         stateManager.initializeTimers(
-            using: timerConfigurations(),
+            using: configurationHelper.configurations(),
             userTimers: settingsProvider.settings.userTimers
         )
         scheduler.start()
@@ -108,7 +110,7 @@ class TimerEngine: ObservableObject {
     private func updateConfigurations() {
         logDebug("Updating timer configurations")
         stateManager.updateConfigurations(
-            using: timerConfigurations(),
+            using: configurationHelper.configurations(),
             userTimers: settingsProvider.settings.userTimers
         )
     }
@@ -141,17 +143,7 @@ class TimerEngine: ObservableObject {
 
     /// Unified way to get interval for any timer type
     private func getTimerInterval(for identifier: TimerIdentifier) -> Int {
-        switch identifier {
-        case .builtIn(let type):
-            let config = settingsProvider.timerConfiguration(for: type)
-            return config.intervalSeconds
-        case .user(let id):
-            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id })
-            else {
-                return 0
-            }
-            return userTimer.intervalMinutes * 60
-        }
+        configurationHelper.intervalSeconds(for: identifier)
     }
 
     func dismissReminder() {
@@ -170,7 +162,7 @@ class TimerEngine: ObservableObject {
             guard !state.isPaused else { continue }
             guard state.isActive else { continue }
 
-            if state.targetDate < timeProvider.now() - 3.0 {
+            if state.targetDate(using: timeProvider) < timeProvider.now() - 3.0 {
                 skipNext(identifier: identifier)
                 continue
             }
@@ -218,13 +210,9 @@ class TimerEngine: ObservableObject {
     }
 
     private func timerConfigurations() -> [TimerIdentifier: TimerConfiguration] {
-        var configurations: [TimerIdentifier: TimerConfiguration] = [:]
-        for timerType in TimerType.allCases {
-            let config = settingsProvider.timerConfiguration(for: timerType)
-            configurations[.builtIn(timerType)] = config
-        }
-        return configurations
+        configurationHelper.configurations()
     }
+
 }
 
 extension TimerEngine: TimerSchedulerDelegate {

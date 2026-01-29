@@ -38,14 +38,12 @@ class TimerManager: ObservableObject {
         
         // Add built-in timers (using unified approach)
         for timerType in TimerType.allCases {
-            let config = settingsProvider.timerConfiguration(for: timerType)
-            if config.enabled {
+            let intervalSeconds = settingsProvider.timerIntervalMinutes(for: timerType) * 60
+            if settingsProvider.isTimerEnabled(for: timerType) {
                 let identifier = TimerIdentifier.builtIn(timerType)
-                newStates[identifier] = TimerState(
+                newStates[identifier] = TimerStateBuilder.make(
                     identifier: identifier,
-                    intervalSeconds: config.intervalSeconds,
-                    isPaused: false,
-                    isActive: true
+                    intervalSeconds: intervalSeconds
                 )
             }
         }
@@ -53,11 +51,9 @@ class TimerManager: ObservableObject {
         // Add user timers (using unified approach)
         for userTimer in settingsProvider.settings.userTimers where userTimer.enabled {
             let identifier = TimerIdentifier.user(id: userTimer.id)
-            newStates[identifier] = TimerState(
+            newStates[identifier] = TimerStateBuilder.make(
                 identifier: identifier,
-                intervalSeconds: userTimer.intervalMinutes * 60,
-                isPaused: false,
-                isActive: true
+                intervalSeconds: userTimer.intervalMinutes * 60
             )
         }
         
@@ -85,35 +81,30 @@ class TimerManager: ObservableObject {
         
         // Update built-in timers (using unified approach)
         for timerType in TimerType.allCases {
-            let config = settingsProvider.timerConfiguration(for: timerType)
+            let intervalSeconds = settingsProvider.timerIntervalMinutes(for: timerType) * 60
             let identifier = TimerIdentifier.builtIn(timerType)
-            
-            if config.enabled {
+
+            if settingsProvider.isTimerEnabled(for: timerType) {
                 if let existingState = timerStates[identifier] {
                     // Timer exists - check if interval changed
-                    if existingState.originalIntervalSeconds != config.intervalSeconds {
+                    if existingState.originalIntervalSeconds != intervalSeconds {
                         // Interval changed - reset with new interval
-                        newStates[identifier] = TimerState(
-                            identifier: identifier,
-                            intervalSeconds: config.intervalSeconds,
-                            isPaused: existingState.isPaused,
-                            isActive: true
-                        )
+                        var updatedState = existingState
+                        updatedState.reset(intervalSeconds: intervalSeconds, keepPaused: true)
+                        newStates[identifier] = updatedState
                     } else {
                         // Interval unchanged - keep existing state
                         newStates[identifier] = existingState
                     }
                 } else {
                     // Timer was just enabled - create new state
-                    newStates[identifier] = TimerState(
+                    newStates[identifier] = TimerStateBuilder.make(
                         identifier: identifier,
-                        intervalSeconds: config.intervalSeconds,
-                        isPaused: false,
-                        isActive: true
+                        intervalSeconds: intervalSeconds
                     )
                 }
             }
-            // If config.enabled is false and timer exists, it will be removed
+            // If timer is disabled, it will be removed
         }
         
         // Update user timers (using unified approach)
@@ -126,23 +117,18 @@ class TimerManager: ObservableObject {
                     // Check if interval changed
                     if existingState.originalIntervalSeconds != newIntervalSeconds {
                         // Interval changed - reset with new interval
-                        newStates[identifier] = TimerState(
-                            identifier: identifier,
-                            intervalSeconds: newIntervalSeconds,
-                            isPaused: existingState.isPaused,
-                            isActive: true
-                        )
+                        var updatedState = existingState
+                        updatedState.reset(intervalSeconds: newIntervalSeconds, keepPaused: true)
+                        newStates[identifier] = updatedState
                     } else {
                         // Interval unchanged - keep existing state
                         newStates[identifier] = existingState
                     }
                 } else {
                     // New timer - create state
-                    newStates[identifier] = TimerState(
+                    newStates[identifier] = TimerStateBuilder.make(
                         identifier: identifier,
-                        intervalSeconds: newIntervalSeconds,
-                        isPaused: false,
-                        isActive: true
+                        intervalSeconds: newIntervalSeconds
                     )
                 }
             }
@@ -158,7 +144,7 @@ class TimerManager: ObservableObject {
             guard !state.isPaused else { continue }
             guard state.isActive else { continue }
             
-            if state.targetDate < timeProvider.now() - 3.0 {
+            if state.targetDate(using: timeProvider) < timeProvider.now() - 3.0 {
                 // Timer has expired but with some grace period
                 continue
             }
@@ -211,20 +197,16 @@ class TimerManager: ObservableObject {
         // Unified approach to get interval - no more separate handling for user timers
         let intervalSeconds = getTimerInterval(for: identifier)
         
-        timerStates[identifier] = TimerState(
-            identifier: identifier,
-            intervalSeconds: intervalSeconds,
-            isPaused: state.isPaused,
-            isActive: state.isActive
-        )
+        var updatedState = state
+        updatedState.reset(intervalSeconds: intervalSeconds, keepPaused: true)
+        timerStates[identifier] = updatedState
     }
     
     /// Unified way to get interval for any timer type
     private func getTimerInterval(for identifier: TimerIdentifier) -> Int {
         switch identifier {
         case .builtIn(let type):
-            let config = settingsProvider.timerConfiguration(for: type)
-            return config.intervalSeconds
+            return settingsProvider.timerIntervalMinutes(for: type) * 60
         case .user(let id):
             guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else {
                 return 0
@@ -234,8 +216,7 @@ class TimerManager: ObservableObject {
     }
     
     func getTimeRemaining(for identifier: TimerIdentifier) -> TimeInterval {
-        guard let state = timerStates[identifier] else { return 0 }
-        return TimeInterval(state.remainingSeconds)
+        timerStates[identifier]?.remainingDuration ?? 0
     }
     
     func getFormattedTimeRemaining(for identifier: TimerIdentifier) -> String {

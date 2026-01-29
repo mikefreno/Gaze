@@ -30,29 +30,18 @@ struct LookAwaySetupView: View {
                     intervalSettings: Binding(
                         get: {
                             RangeChoice(
-                                val: settingsManager.settings.lookAwayTimer.intervalSeconds / 60,
+                                value: settingsManager.settings.lookAwayIntervalMinutes,
                                 range: Range(bounds: 5...60, step: 5)
                             )
                         },
                         set: { newValue in
-                            settingsManager.settings.lookAwayTimer.intervalSeconds =
-                                (newValue.val ?? 20) * 60
+                            settingsManager.settings.lookAwayIntervalMinutes = newValue.value ?? 30
                         }
                     ),
-                    countdownSettings: Binding(
-                        get: {
-                            RangeChoice(
-                                val: settingsManager.settings.lookAwayCountdownSeconds,
-                                range: Range(bounds: 5...60, step: 5)
-                            )
-                        },
-                        set: { newValue in
-                            settingsManager.settings.lookAwayCountdownSeconds = newValue.val ?? 20
-                        }
-                    ),
-                    enabled: $settingsManager.settings.lookAwayTimer.enabled,
-                    type: "Look away",
-                    previewFunc: showPreviewWindow
+                    countdownSettings: nil,
+                    enabled: $settingsManager.settings.lookAwayEnabled,
+                    type: "Look Away",
+                    previewFunc: previewLookAway
                 )
             }
 
@@ -63,11 +52,12 @@ struct LookAwaySetupView: View {
         .background(.clear)
     }
 
-    private func showPreviewWindow() {
+    private func previewLookAway() {
         guard let screen = NSScreen.main else { return }
-        let countdownSeconds = settingsManager.settings.lookAwayCountdownSeconds
+        let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
+        let lookAwayIntervalMinutes = settingsManager.settings.lookAwayIntervalMinutes
         PreviewWindowHelper.showPreview(on: screen) { dismiss in
-            LookAwayReminderView(countdownSeconds: countdownSeconds, onDismiss: dismiss)
+            LookAwayReminderView(countdownSeconds: lookAwayIntervalMinutes * 60, onDismiss: dismiss)
         }
     }
 }

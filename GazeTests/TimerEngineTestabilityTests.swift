@@ -40,9 +40,9 @@ final class TimerEngineTestabilityTests: XCTestCase {
 
     func testTimerEngineUsesInjectedSettings() {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.enabled = true
-        settings.blinkTimer.enabled = false
-        settings.postureTimer.enabled = false
+        settings.lookAwayEnabled = true
+        settings.blinkEnabled = false
+        settings.postureEnabled = false
 
         testEnv.settingsManager.settings = settings
         let timerEngine = testEnv.container.timerEngine

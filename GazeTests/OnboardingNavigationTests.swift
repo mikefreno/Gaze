@@ -79,30 +79,22 @@ final class OnboardingNavigationTests: XCTestCase {
 
     func testSettingsPersistDuringNavigation() {
         // Configure lookaway timer
-        var config = testEnv.settingsManager.settings.lookAwayTimer
-        config.enabled = true
-        config.intervalSeconds = 1200
-        testEnv.settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
+        testEnv.settingsManager.settings.lookAwayEnabled = true
+        testEnv.settingsManager.settings.lookAwayIntervalMinutes = 20
 
         // Verify settings persisted
-        let retrieved = testEnv.settingsManager.timerConfiguration(for: .lookAway)
-        XCTAssertTrue(retrieved.enabled)
-        XCTAssertEqual(retrieved.intervalSeconds, 1200)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 20)
 
         // Configure blink timer
-        var blinkConfig = testEnv.settingsManager.settings.blinkTimer
-        blinkConfig.enabled = false
-        blinkConfig.intervalSeconds = 300
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: blinkConfig)
+        testEnv.settingsManager.settings.blinkEnabled = false
+        testEnv.settingsManager.settings.blinkIntervalMinutes = 5
 
         // Verify both settings persist
-        let lookAway = testEnv.settingsManager.timerConfiguration(for: .lookAway)
-        let blink = testEnv.settingsManager.timerConfiguration(for: .blink)
-
-        XCTAssertTrue(lookAway.enabled)
-        XCTAssertEqual(lookAway.intervalSeconds, 1200)
-        XCTAssertFalse(blink.enabled)
-        XCTAssertEqual(blink.intervalSeconds, 300)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 20)
+        XCTAssertFalse(testEnv.settingsManager.settings.blinkEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.blinkIntervalMinutes, 5)
     }
 
     func testOnboardingCompletion() {
@@ -118,45 +110,26 @@ final class OnboardingNavigationTests: XCTestCase {
 
     func testAllTimersConfiguredDuringOnboarding() {
         // Configure all three built-in timers
-        var lookAwayConfig = testEnv.settingsManager.settings.lookAwayTimer
-        lookAwayConfig.enabled = true
-        lookAwayConfig.intervalSeconds = 1200
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .lookAway, configuration: lookAwayConfig)
-
-        var blinkConfig = testEnv.settingsManager.settings.blinkTimer
-        blinkConfig.enabled = true
-        blinkConfig.intervalSeconds = 300
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: blinkConfig)
-
-        var postureConfig = testEnv.settingsManager.settings.postureTimer
-        postureConfig.enabled = true
-        postureConfig.intervalSeconds = 1800
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .posture, configuration: postureConfig)
+        testEnv.settingsManager.settings.lookAwayEnabled = true
+        testEnv.settingsManager.settings.lookAwayIntervalMinutes = 20
+        testEnv.settingsManager.settings.blinkEnabled = true
+        testEnv.settingsManager.settings.blinkIntervalMinutes = 5
+        testEnv.settingsManager.settings.postureEnabled = true
+        testEnv.settingsManager.settings.postureIntervalMinutes = 30
 
         // Verify all configurations
-        let allConfigs = testEnv.settingsManager.allTimerConfigurations()
-
-        XCTAssertEqual(allConfigs[.lookAway]?.intervalSeconds, 1200)
-        XCTAssertEqual(allConfigs[.blink]?.intervalSeconds, 300)
-        XCTAssertEqual(allConfigs[.posture]?.intervalSeconds, 1800)
-
-        XCTAssertTrue(allConfigs[.lookAway]?.enabled ?? false)
-        XCTAssertTrue(allConfigs[.blink]?.enabled ?? false)
-        XCTAssertTrue(allConfigs[.posture]?.enabled ?? false)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 20)
+        XCTAssertTrue(testEnv.settingsManager.settings.blinkEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.blinkIntervalMinutes, 5)
+        XCTAssertTrue(testEnv.settingsManager.settings.postureEnabled)
+        XCTAssertEqual(testEnv.settingsManager.settings.postureIntervalMinutes, 30)
     }
 
     func testNavigationWithPartialConfiguration() {
         // Configure only some timers
-        var lookAwayConfig = testEnv.settingsManager.settings.lookAwayTimer
-        lookAwayConfig.enabled = true
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .lookAway, configuration: lookAwayConfig)
-
-        var blinkConfig = testEnv.settingsManager.settings.blinkTimer
-        blinkConfig.enabled = false
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: blinkConfig)
+        testEnv.settingsManager.settings.lookAwayEnabled = true
+        testEnv.settingsManager.settings.blinkEnabled = false
 
         // Should still be able to complete onboarding
         testEnv.settingsManager.settings.hasCompletedOnboarding = true
@@ -181,23 +154,15 @@ final class OnboardingNavigationTests: XCTestCase {
         // Page 1: MenuBar Welcome - no configuration needed
 
         // Page 2: LookAway Setup
-        var lookAwayConfig = testEnv.settingsManager.settings.lookAwayTimer
-        lookAwayConfig.enabled = true
-        lookAwayConfig.intervalSeconds = 1200
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .lookAway, configuration: lookAwayConfig)
+        testEnv.settingsManager.settings.lookAwayEnabled = true
+        testEnv.settingsManager.settings.lookAwayIntervalMinutes = 20
 
         // Page 2: Blink Setup
-        var blinkConfig = testEnv.settingsManager.settings.blinkTimer
-        blinkConfig.enabled = true
-        blinkConfig.intervalSeconds = 300
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: blinkConfig)
+        testEnv.settingsManager.settings.blinkEnabled = true
+        testEnv.settingsManager.settings.blinkIntervalMinutes = 5
 
         // Page 3: Posture Setup
-        var postureConfig = testEnv.settingsManager.settings.postureTimer
-        postureConfig.enabled = false  // User chooses to disable this one
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .posture, configuration: postureConfig)
+        testEnv.settingsManager.settings.postureEnabled = false  // User chooses to disable this one
 
         // Page 4: General Settings
         testEnv.settingsManager.settings.playSounds = true
@@ -209,10 +174,9 @@ final class OnboardingNavigationTests: XCTestCase {
         // Verify final state
         XCTAssertTrue(testEnv.settingsManager.settings.hasCompletedOnboarding)
 
-        let finalConfigs = testEnv.settingsManager.allTimerConfigurations()
-        XCTAssertTrue(finalConfigs[.lookAway]?.enabled ?? false)
-        XCTAssertTrue(finalConfigs[.blink]?.enabled ?? false)
-        XCTAssertFalse(finalConfigs[.posture]?.enabled ?? true)
+        XCTAssertTrue(testEnv.settingsManager.settings.lookAwayEnabled)
+        XCTAssertTrue(testEnv.settingsManager.settings.blinkEnabled)
+        XCTAssertFalse(testEnv.settingsManager.settings.postureEnabled)
 
         XCTAssertTrue(testEnv.settingsManager.settings.playSounds)
         XCTAssertFalse(testEnv.settingsManager.settings.launchAtLogin)
@@ -220,24 +184,17 @@ final class OnboardingNavigationTests: XCTestCase {
 
     func testNavigatingBackPreservesSettings() {
         // Configure on page 1
-        var lookAwayConfig = testEnv.settingsManager.settings.lookAwayTimer
-        lookAwayConfig.intervalSeconds = 1500
-        testEnv.settingsManager.updateTimerConfiguration(
-            for: .lookAway, configuration: lookAwayConfig)
+        testEnv.settingsManager.settings.lookAwayIntervalMinutes = 25
 
         // Move forward to page 2
-        var blinkConfig = testEnv.settingsManager.settings.blinkTimer
-        blinkConfig.intervalSeconds = 250
-        testEnv.settingsManager.updateTimerConfiguration(for: .blink, configuration: blinkConfig)
+        testEnv.settingsManager.settings.blinkIntervalMinutes = 4
 
         // Navigate back to page 1
         // Verify lookaway settings still exist
-        let lookAway = testEnv.settingsManager.timerConfiguration(for: .lookAway)
-        XCTAssertEqual(lookAway.intervalSeconds, 1500)
+        XCTAssertEqual(testEnv.settingsManager.settings.lookAwayIntervalMinutes, 25)
 
         // Navigate forward again to page 2
         // Verify blink settings still exist
-        let blink = testEnv.settingsManager.timerConfiguration(for: .blink)
-        XCTAssertEqual(blink.intervalSeconds, 250)
+        XCTAssertEqual(testEnv.settingsManager.settings.blinkIntervalMinutes, 4)
     }
 }

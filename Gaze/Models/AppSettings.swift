@@ -7,8 +7,6 @@
 
 import Foundation
 
-// MARK: - Reminder Size
-
 enum ReminderSize: String, Codable, CaseIterable, Sendable {
     case small
     case medium
@@ -32,16 +30,17 @@ enum ReminderSize: String, Codable, CaseIterable, Sendable {
 }
 
 struct AppSettings: Codable, Equatable, Hashable, Sendable {
-    var lookAwayTimer: TimerConfiguration
-    var lookAwayCountdownSeconds: Int
-    var blinkTimer: TimerConfiguration
-    var postureTimer: TimerConfiguration
-    var enforcementMode: Bool = false
+    var lookAwayEnabled: Bool
+    var lookAwayIntervalMinutes: Int
+    var blinkEnabled: Bool
+    var blinkIntervalMinutes: Int
+    var postureEnabled: Bool
+    var postureIntervalMinutes: Int
 
     var userTimers: [UserTimer]
 
     var subtleReminderSize: ReminderSize
-    
+
     var smartMode: SmartModeSettings
 
     var hasCompletedOnboarding: Bool
@@ -49,24 +48,25 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     var playSounds: Bool
 
     init(
-        lookAwayTimer: TimerConfiguration = TimerConfiguration(
-            enabled: true, intervalSeconds: 20 * 60),
-        lookAwayCountdownSeconds: Int = 20,
-        blinkTimer: TimerConfiguration = TimerConfiguration(
-            enabled: false, intervalSeconds: 7 * 60),
-        postureTimer: TimerConfiguration = TimerConfiguration(
-            enabled: true, intervalSeconds: 30 * 60),
+        lookAwayEnabled: Bool = DefaultSettingsBuilder.lookAwayEnabled,
+        lookAwayIntervalMinutes: Int = DefaultSettingsBuilder.lookAwayIntervalMinutes,
+        blinkEnabled: Bool = DefaultSettingsBuilder.blinkEnabled,
+        blinkIntervalMinutes: Int = DefaultSettingsBuilder.blinkIntervalMinutes,
+        postureEnabled: Bool = DefaultSettingsBuilder.postureEnabled,
+        postureIntervalMinutes: Int = DefaultSettingsBuilder.postureIntervalMinutes,
         userTimers: [UserTimer] = [],
-        subtleReminderSize: ReminderSize = .medium,
-        smartMode: SmartModeSettings = .defaults,
-        hasCompletedOnboarding: Bool = false,
-        launchAtLogin: Bool = false,
-        playSounds: Bool = true
+        subtleReminderSize: ReminderSize = DefaultSettingsBuilder.subtleReminderSize,
+        smartMode: SmartModeSettings = DefaultSettingsBuilder.smartMode,
+        hasCompletedOnboarding: Bool = DefaultSettingsBuilder.hasCompletedOnboarding,
+        launchAtLogin: Bool = DefaultSettingsBuilder.launchAtLogin,
+        playSounds: Bool = DefaultSettingsBuilder.playSounds
     ) {
-        self.lookAwayTimer = lookAwayTimer
-        self.lookAwayCountdownSeconds = lookAwayCountdownSeconds
-        self.blinkTimer = blinkTimer
-        self.postureTimer = postureTimer
+        self.lookAwayEnabled = lookAwayEnabled
+        self.lookAwayIntervalMinutes = lookAwayIntervalMinutes
+        self.blinkEnabled = blinkEnabled
+        self.blinkIntervalMinutes = blinkIntervalMinutes
+        self.postureEnabled = postureEnabled
+        self.postureIntervalMinutes = postureIntervalMinutes
         self.userTimers = userTimers
         self.subtleReminderSize = subtleReminderSize
         self.smartMode = smartMode
@@ -76,17 +76,6 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     }
 
     static var defaults: AppSettings {
-        AppSettings(
-            lookAwayTimer: TimerConfiguration(enabled: true, intervalSeconds: 20 * 60),
-            lookAwayCountdownSeconds: 20,
-            blinkTimer: TimerConfiguration(enabled: false, intervalSeconds: 7 * 60),
-            postureTimer: TimerConfiguration(enabled: true, intervalSeconds: 30 * 60),
-            userTimers: [],
-            subtleReminderSize: .medium,
-            smartMode: .defaults,
-            hasCompletedOnboarding: false,
-            launchAtLogin: false,
-            playSounds: true
-        )
+        DefaultSettingsBuilder.makeDefaults()
     }
 }

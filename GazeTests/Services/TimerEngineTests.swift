@@ -282,9 +282,9 @@ final class TimerEngineTests: XCTestCase {
 
     func testDisabledTimersNotInitialized() {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.enabled = false
-        settings.blinkTimer.enabled = false
-        settings.postureTimer.enabled = false
+        settings.lookAwayEnabled = false
+        settings.blinkEnabled = false
+        settings.postureEnabled = false
 
         let settingsManager = EnhancedMockSettingsManager(settings: settings)
         let engine = TimerEngine(settingsManager: settingsManager)
@@ -296,9 +296,9 @@ final class TimerEngineTests: XCTestCase {
 
     func testPartiallyEnabledTimers() {
         var settings = AppSettings.defaults
-        settings.lookAwayTimer.enabled = true
-        settings.blinkTimer.enabled = false
-        settings.postureTimer.enabled = false
+        settings.lookAwayEnabled = true
+        settings.blinkEnabled = false
+        settings.postureEnabled = false
 
         let settingsManager = EnhancedMockSettingsManager(settings: settings)
         let engine = TimerEngine(settingsManager: settingsManager)

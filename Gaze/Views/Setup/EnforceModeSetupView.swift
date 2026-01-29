@@ -61,7 +61,9 @@ struct EnforceModeSetupView: View {
                             "",
                             isOn: Binding(
                                 get: {
-                                    settingsManager.settings.enforcementMode
+                                    settingsManager.isTimerEnabled(for: .lookAway) ||
+                                    settingsManager.isTimerEnabled(for: .blink) ||
+                                    settingsManager.isTimerEnabled(for: .posture)
                                 },
                                 set: { newValue in
                                     print("🎛️ Toggle changed to: \(newValue)")
@@ -69,7 +71,6 @@ struct EnforceModeSetupView: View {
                                         print("⚠️ Already processing toggle")
                                         return
                                     }
-                                    settingsManager.settings.enforcementMode = newValue
                                     handleEnforceModeToggle(enabled: newValue)
                                 }
                             )
@@ -390,7 +391,6 @@ struct EnforceModeSetupView: View {
             if enabled {
                 guard cameraHardwareAvailable else {
                     print("⚠️ Cannot enable enforce mode - no camera hardware")
-                    settingsManager.settings.enforcementMode = false
                     return
                 }
                 print("🎛️ Enabling enforce mode...")
@@ -399,7 +399,6 @@ struct EnforceModeSetupView: View {
 
                 if !enforceModeService.isEnforceModeEnabled {
                     print("⚠️ Failed to activate, reverting toggle")
-                    settingsManager.settings.enforcementMode = false
                 }
             } else {
                 print("🎛️ Disabling enforce mode...")

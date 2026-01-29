@@ -38,52 +38,42 @@ final class SettingsManagerTests: XCTestCase {
     func testDefaultSettingsValues() {
         let defaults = AppSettings.defaults
         
-        XCTAssertTrue(defaults.lookAwayTimer.enabled)
-        XCTAssertFalse(defaults.blinkTimer.enabled)  // Blink timer is disabled by default
-        XCTAssertTrue(defaults.postureTimer.enabled)
+        XCTAssertTrue(defaults.lookAwayEnabled)
+        XCTAssertFalse(defaults.blinkEnabled)  // Blink timer is disabled by default
+        XCTAssertTrue(defaults.postureEnabled)
         XCTAssertFalse(defaults.hasCompletedOnboarding)
     }
     
     // MARK: - Timer Configuration Tests
     
     func testGetTimerConfiguration() {
-        let lookAwayConfig = settingsManager.timerConfiguration(for: .lookAway)
-        XCTAssertNotNil(lookAwayConfig)
-        XCTAssertTrue(lookAwayConfig.enabled)
+        XCTAssertTrue(settingsManager.settings.lookAwayEnabled)
     }
     
     func testUpdateTimerConfiguration() {
-        var config = settingsManager.timerConfiguration(for: .lookAway)
-        config.intervalSeconds = 1500
-        config.enabled = false
+        settingsManager.settings.lookAwayEnabled = false
+        settingsManager.settings.lookAwayIntervalMinutes = 25
         
-        settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
-        
-        let updated = settingsManager.timerConfiguration(for: .lookAway)
-        XCTAssertEqual(updated.intervalSeconds, 1500)
-        XCTAssertFalse(updated.enabled)
+        XCTAssertFalse(settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(settingsManager.settings.lookAwayIntervalMinutes, 25)
     }
     
     func testAllTimerConfigurations() {
-        let allConfigs = settingsManager.allTimerConfigurations()
-        
-        XCTAssertEqual(allConfigs.count, 3)
-        XCTAssertNotNil(allConfigs[.lookAway])
-        XCTAssertNotNil(allConfigs[.blink])
-        XCTAssertNotNil(allConfigs[.posture])
+        XCTAssertEqual(settingsManager.settings.lookAwayEnabled, true)
+        XCTAssertEqual(settingsManager.settings.blinkEnabled, false)
+        XCTAssertEqual(settingsManager.settings.postureEnabled, true)
     }
     
     func testUpdateMultipleTimerConfigurations() {
-        var lookAway = settingsManager.timerConfiguration(for: .lookAway)
-        lookAway.intervalSeconds = 1000
-        settingsManager.updateTimerConfiguration(for: .lookAway, configuration: lookAway)
+        settingsManager.settings.lookAwayEnabled = true
+        settingsManager.settings.lookAwayIntervalMinutes = 16
+        settingsManager.settings.blinkEnabled = true
+        settingsManager.settings.blinkIntervalMinutes = 4
         
-        var blink = settingsManager.timerConfiguration(for: .blink)
-        blink.intervalSeconds = 250
-        settingsManager.updateTimerConfiguration(for: .blink, configuration: blink)
-        
-        XCTAssertEqual(settingsManager.timerConfiguration(for: .lookAway).intervalSeconds, 1000)
-        XCTAssertEqual(settingsManager.timerConfiguration(for: .blink).intervalSeconds, 250)
+        XCTAssertTrue(settingsManager.settings.lookAwayEnabled)
+        XCTAssertEqual(settingsManager.settings.lookAwayIntervalMinutes, 16)
+        XCTAssertTrue(settingsManager.settings.blinkEnabled)
+        XCTAssertEqual(settingsManager.settings.blinkIntervalMinutes, 4)
     }
     
     // MARK: - Settings Publisher Tests
@@ -138,9 +128,8 @@ final class SettingsManagerTests: XCTestCase {
         // Modify settings
         settingsManager.settings.playSounds = false
         settingsManager.settings.launchAtLogin = true
-        var config = settingsManager.timerConfiguration(for: .lookAway)
-        config.intervalSeconds = 5000
-        settingsManager.updateTimerConfiguration(for: .lookAway, configuration: config)
+        settingsManager.settings.lookAwayEnabled = false
+        settingsManager.settings.lookAwayIntervalMinutes = 10
         
         // Reset
         settingsManager.resetToDefaults()
@@ -149,6 +138,8 @@ final class SettingsManagerTests: XCTestCase {
         let defaults = AppSettings.defaults
         XCTAssertEqual(settingsManager.settings.playSounds, defaults.playSounds)
         XCTAssertEqual(settingsManager.settings.launchAtLogin, defaults.launchAtLogin)
+        XCTAssertEqual(settingsManager.settings.lookAwayEnabled, defaults.lookAwayEnabled)
+        XCTAssertEqual(settingsManager.settings.lookAwayIntervalMinutes, defaults.lookAwayIntervalMinutes)
     }
     
     // MARK: - Onboarding Tests

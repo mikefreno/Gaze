@@ -96,7 +96,7 @@ class TimerEngine: ObservableObject {
         // Initial start - create all timer states
         stop()
         stateManager.initializeTimers(
-            using: configurationHelper.configurations(),
+            using: timerConfigurations(),
             userTimers: settingsProvider.settings.userTimers
         )
         scheduler.start()
@@ -110,7 +110,7 @@ class TimerEngine: ObservableObject {
     private func updateConfigurations() {
         logDebug("Updating timer configurations")
         stateManager.updateConfigurations(
-            using: configurationHelper.configurations(),
+            using: timerConfigurations(),
             userTimers: settingsProvider.settings.userTimers
         )
     }
@@ -209,8 +209,14 @@ class TimerEngine: ObservableObject {
         return stateManager.isTimerPaused(identifier)
     }
 
-    private func timerConfigurations() -> [TimerIdentifier: TimerConfiguration] {
-        configurationHelper.configurations()
+    private func timerConfigurations() -> [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)] {
+        var configs: [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)] = [:]
+        for timerType in TimerType.allCases {
+            if let config = configurationHelper.configuration(for: .builtIn(timerType)) {
+                configs[.builtIn(timerType)] = config
+            }
+        }
+        return configs
     }
 
 }

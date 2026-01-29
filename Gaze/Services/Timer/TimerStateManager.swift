@@ -13,11 +13,11 @@ final class TimerStateManager: ObservableObject {
     @Published private(set) var timerStates: [TimerIdentifier: TimerState] = [:]
     @Published private(set) var activeReminder: ReminderEvent?
 
-    func initializeTimers(using configurations: [TimerIdentifier: TimerConfiguration], userTimers: [UserTimer]) {
+    func initializeTimers(using configurations: [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)], userTimers: [UserTimer]) {
         timerStates = buildInitialStates(configurations: configurations, userTimers: userTimers)
     }
 
-    func updateConfigurations(using configurations: [TimerIdentifier: TimerConfiguration], userTimers: [UserTimer]) {
+    func updateConfigurations(using configurations: [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)], userTimers: [UserTimer]) {
         timerStates = buildUpdatedStates(configurations: configurations, userTimers: userTimers)
     }
 
@@ -77,7 +77,7 @@ final class TimerStateManager: ObservableObject {
     }
 
     private func buildInitialStates(
-        configurations: [TimerIdentifier: TimerConfiguration],
+        configurations: [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)],
         userTimers: [UserTimer]
     ) -> [TimerIdentifier: TimerState] {
         var newStates: [TimerIdentifier: TimerState] = [:]
@@ -101,7 +101,7 @@ final class TimerStateManager: ObservableObject {
     }
 
     private func buildUpdatedStates(
-        configurations: [TimerIdentifier: TimerConfiguration],
+        configurations: [TimerIdentifier: (enabled: Bool, intervalSeconds: Int)],
         userTimers: [UserTimer]
     ) -> [TimerIdentifier: TimerState] {
         var newStates: [TimerIdentifier: TimerState] = [:]

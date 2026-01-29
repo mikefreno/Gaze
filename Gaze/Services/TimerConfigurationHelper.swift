@@ -22,15 +22,16 @@ struct TimerConfigurationHelper {
         }
     }
 
-    func configurations() -> [TimerIdentifier: TimerConfiguration] {
-        var configurations: [TimerIdentifier: TimerConfiguration] = [:]
-        for timerType in TimerType.allCases {
-            let intervalSeconds = settingsProvider.timerIntervalMinutes(for: timerType) * 60
-            configurations[.builtIn(timerType)] = TimerConfiguration(
-                enabled: settingsProvider.isTimerEnabled(for: timerType),
-                intervalSeconds: intervalSeconds
-            )
+    func configuration(for identifier: TimerIdentifier) -> (enabled: Bool, intervalSeconds: Int)? {
+        switch identifier {
+        case .builtIn(let type):
+            let intervalSeconds = settingsProvider.timerIntervalMinutes(for: type) * 60
+            return (enabled: settingsProvider.isTimerEnabled(for: type), intervalSeconds: intervalSeconds)
+        case .user(let id):
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }), userTimer.enabled else {
+                return nil
+            }
+            return (enabled: true, intervalSeconds: userTimer.intervalMinutes * 60)
         }
-        return configurations
     }
 }

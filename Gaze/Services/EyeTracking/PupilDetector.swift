@@ -92,19 +92,19 @@ enum GazeDirection: String, Sendable, CaseIterable {
 }
 
 /// Calibration state for adaptive thresholding (matches Python Calibration class)
-final class PupilCalibration: Sendable {
-    private let lock = NSLock()
-    private let targetFrames = 20
-    private var thresholdsLeft: [Int] = []
-    private var thresholdsRight: [Int] = []
+final class PupilCalibration: @unchecked Sendable {
+    private nonisolated let lock = NSLock()
+    private nonisolated let targetFrames = 20
+    private nonisolated(unsafe) var thresholdsLeft: [Int] = []
+    private nonisolated(unsafe) var thresholdsRight: [Int] = []
 
-    var isComplete: Bool {
+    nonisolated func isComplete() -> Bool {
         lock.lock()
         defer { lock.unlock() }
         return thresholdsLeft.count >= targetFrames && thresholdsRight.count >= targetFrames
     }
 
-    func threshold(forSide side: Int) -> Int {
+    nonisolated func threshold(forSide side: Int) -> Int {
         lock.lock()
         defer { lock.unlock() }
         let thresholds = side == 0 ? thresholdsLeft : thresholdsRight
@@ -113,7 +113,7 @@ final class PupilCalibration: Sendable {
         return thresholds.reduce(0, +) / thresholds.count
     }
 
-    func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
+    nonisolated func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
         let bestThreshold = findBestThreshold(eyeData: eyeData, width: width, height: height)
         lock.lock()
         defer { lock.unlock() }
@@ -124,7 +124,7 @@ final class PupilCalibration: Sendable {
         }
     }
 
-    private func findBestThreshold(
+    private nonisolated func findBestThreshold(
         eyeData: UnsafePointer<UInt8>, width: Int, height: Int
     ) -> Int {
         let averageIrisSize = 0.48
@@ -154,7 +154,7 @@ final class PupilCalibration: Sendable {
         return bestThreshold
     }
 
-    private static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int)
+    private nonisolated static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int)
         -> Double
     {
         let margin = 5
@@ -177,7 +177,7 @@ final class PupilCalibration: Sendable {
         return totalCount > 0 ? Double(blackCount) / Double(totalCount) : 0
     }
 
-    func reset() {
+    nonisolated func reset() {
         lock.lock()
         defer { lock.unlock() }
         thresholdsLeft.removeAll()
@@ -192,7 +192,7 @@ struct PupilDetectorMetrics: Sendable {
     var frameCount: Int = 0
     var processedFrameCount: Int = 0
 
-    mutating func recordProcessingTime(_ ms: Double) {
+    nonisolated mutating func recordProcessingTime(_ ms: Double) {
         lastProcessingTimeMs = ms
         processedFrameCount += 1
         let alpha = 0.1
@@ -445,7 +445,7 @@ final class PupilDetector: @unchecked Sendable {
         let effectiveThreshold: Int
         if let manualThreshold = threshold {
             effectiveThreshold = manualThreshold
-        } else if calibration.isComplete {
+        } else if calibration.isComplete() {
             effectiveThreshold = calibration.threshold(forSide: side)
         } else {
             calibration.evaluate(eyeData: eyeBuf, width: eyeWidth, height: eyeHeight, side: side)

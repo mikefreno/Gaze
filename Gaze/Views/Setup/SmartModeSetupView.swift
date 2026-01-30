@@ -25,7 +25,7 @@ struct SmartModeSetupView: View {
             VStack(spacing: 24) {
                 fullscreenSection
                 idleSection
-                #if TRACK_READY
+                #if DEBUG
                     usageTrackingSection
                 #endif
             }

@@ -39,7 +39,7 @@ struct AdditionalModifiersView: View {
                     .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                #if !ENFORCE_READY
+                #if !DEBUG
                     Text("More to come soon")
                         .font(isCompact ? .subheadline : .title3)
                         .foregroundStyle(.secondary)
@@ -49,7 +49,7 @@ struct AdditionalModifiersView: View {
                 Spacer()
 
                 ZStack {
-                    #if ENFORCE_READY
+                    #if DEBUG
                         cardView(for: 0, width: cardWidth, height: cardHeight)
                             .zIndex(zIndex(for: 0))
                             .scaleEffect(scale(for: 0))
@@ -65,7 +65,7 @@ struct AdditionalModifiersView: View {
 
                 Spacer()
 
-                #if ENFORCE_READY
+                #if DEBUG
                     HStack(spacing: isCompact ? 12 : 20) {
                         Button(action: { swapCards() }) {
                             Image(systemName: "chevron.left")
@@ -375,7 +375,7 @@ struct AdditionalModifiersView: View {
                     isOn: $settingsManager.settings.smartMode.autoPauseOnIdle
                 )
 
-                #if TRACK_READY
+                #if DEBUG
                     smartModeToggle(
                         icon: "chart.line.uptrend.xyaxis",
                         iconColor: .green,

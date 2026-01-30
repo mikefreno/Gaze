@@ -39,15 +39,22 @@ struct AdditionalModifiersView: View {
                     .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+                #if !ENFORCE_READY
+                    Text("More to come soon")
+                        .font(isCompact ? .subheadline : .title3)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                #endif
 
                 Spacer()
 
                 ZStack {
-                    cardView(for: 0, width: cardWidth, height: cardHeight)
-                        .zIndex(zIndex(for: 0))
-                        .scaleEffect(scale(for: 0))
-                        .offset(x: xOffset(for: 0), y: yOffset(for: 0))
-
+                    #if ENFORCE_READY
+                        cardView(for: 0, width: cardWidth, height: cardHeight)
+                            .zIndex(zIndex(for: 0))
+                            .scaleEffect(scale(for: 0))
+                            .offset(x: xOffset(for: 0), y: yOffset(for: 0))
+                    #endif
                     cardView(for: 1, width: cardWidth, height: cardHeight)
                         .zIndex(zIndex(for: 1))
                         .scaleEffect(scale(for: 1))
@@ -58,41 +65,42 @@ struct AdditionalModifiersView: View {
 
                 Spacer()
 
-                // Navigation controls
-                HStack(spacing: isCompact ? 12 : 20) {
-                    Button(action: { swapCards() }) {
-                        Image(systemName: "chevron.left")
-                            .font(isCompact ? .body : .title2)
-                            .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffectIfAvailable(
-                        GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
-                    )
-                    .opacity(frontCardIndex == 0 ? 0.3 : 1.0)
-                    .disabled(frontCardIndex == 0)
+                #if ENFORCE_READY
+                    HStack(spacing: isCompact ? 12 : 20) {
+                        Button(action: { swapCards() }) {
+                            Image(systemName: "chevron.left")
+                                .font(isCompact ? .body : .title2)
+                                .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffectIfAvailable(
+                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
+                        )
+                        .opacity(frontCardIndex == 0 ? 0.3 : 1.0)
+                        .disabled(frontCardIndex == 0)
 
-                    // Page indicators with labels
-                    HStack(spacing: isCompact ? 10 : 16) {
-                        cardIndicator(index: 0, icon: "video.fill", label: "Enforce")
-                        cardIndicator(index: 1, icon: "brain.fill", label: "Smart")
-                    }.padding(.all, 20)
+                        // Page indicators with labels
+                        HStack(spacing: isCompact ? 10 : 16) {
+                            cardIndicator(index: 0, icon: "video.fill", label: "Enforce")
+                            cardIndicator(index: 1, icon: "brain.fill", label: "Smart")
+                        }.padding(.all, 20)
 
-                    Button(action: { swapCards() }) {
-                        Image(systemName: "chevron.right")
-                            .font(isCompact ? .body : .title2)
-                            .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
-                            .contentShape(.rect)
+                        Button(action: { swapCards() }) {
+                            Image(systemName: "chevron.right")
+                                .font(isCompact ? .body : .title2)
+                                .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .glassEffectIfAvailable(
+                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
+                        )
+                        .opacity(frontCardIndex == 1 ? 0.3 : 1.0)
+                        .disabled(frontCardIndex == 1)
                     }
-                    .buttonStyle(.plain)
-                    .glassEffectIfAvailable(
-                        GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
-                    )
-                    .opacity(frontCardIndex == 1 ? 0.3 : 1.0)
-                    .disabled(frontCardIndex == 1)
-                }
-                .padding(.bottom, isCompact ? 6 : 10)
+                    .padding(.bottom, isCompact ? 6 : 10)
+                #endif
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()
@@ -254,20 +262,23 @@ struct AdditionalModifiersView: View {
                         }
                     }
                     Spacer()
-                    Toggle("", isOn: Binding(
-                        get: {
-                            settingsManager.isTimerEnabled(for: .lookAway) ||
-                            settingsManager.isTimerEnabled(for: .blink) ||
-                            settingsManager.isTimerEnabled(for: .posture)
-                        },
-                        set: { newValue in
-                            if newValue {
-                                Task { @MainActor in
-                                    try await cameraService.requestCameraAccess()
+                    Toggle(
+                        "",
+                        isOn: Binding(
+                            get: {
+                                settingsManager.isTimerEnabled(for: .lookAway)
+                                    || settingsManager.isTimerEnabled(for: .blink)
+                                    || settingsManager.isTimerEnabled(for: .posture)
+                            },
+                            set: { newValue in
+                                if newValue {
+                                    Task { @MainActor in
+                                        try await cameraService.requestCameraAccess()
+                                    }
                                 }
                             }
-                        }
-                    ))
+                        )
+                    )
                     .labelsHidden()
                     .disabled(!cameraService.hasCameraHardware)
                     .controlSize(isCompact ? .small : .regular)
@@ -364,13 +375,15 @@ struct AdditionalModifiersView: View {
                     isOn: $settingsManager.settings.smartMode.autoPauseOnIdle
                 )
 
-                smartModeToggle(
-                    icon: "chart.line.uptrend.xyaxis",
-                    iconColor: .green,
-                    title: "Track Usage Statistics",
-                    subtitle: "Monitor active and idle time",
-                    isOn: $settingsManager.settings.smartMode.trackUsage
-                )
+                #if TRACK_READY
+                    smartModeToggle(
+                        icon: "chart.line.uptrend.xyaxis",
+                        iconColor: .green,
+                        title: "Track Usage Statistics",
+                        subtitle: "Monitor active and idle time",
+                        isOn: $settingsManager.settings.smartMode.trackUsage
+                    )
+                #endif
             }
 
             Spacer()

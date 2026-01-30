@@ -28,7 +28,7 @@ struct SettingsWindowView: View {
                     settingsContent
 
                     #if DEBUG
-                    debugFooter(isCompact: isCompact)
+                        debugFooter(isCompact: isCompact)
                     #endif
                 }
             }
@@ -42,7 +42,8 @@ struct SettingsWindowView: View {
         )
         .onReceive(tabSwitchPublisher) { notification in
             if let tab = notification.object as? Int,
-               let section = SettingsSection(rawValue: tab) {
+                let section = SettingsSection(rawValue: tab)
+            {
                 selectedSection = section
             }
         }
@@ -78,8 +79,10 @@ struct SettingsWindowView: View {
             BlinkSetupView(settingsManager: settingsManager)
         case .posture:
             PostureSetupView(settingsManager: settingsManager)
-        case .enforceMode:
-            EnforceModeSetupView(settingsManager: settingsManager)
+        #if ENFORCE_READY
+            case .enforceMode:
+                EnforceModeSetupView(settingsManager: settingsManager)
+        #endif
         case .userTimers:
             UserTimersView(
                 userTimers: Binding(
@@ -99,27 +102,27 @@ struct SettingsWindowView: View {
     }
 
     #if DEBUG
-    @ViewBuilder
-    private func debugFooter(isCompact: Bool) -> some View {
-        Divider()
-        HStack {
-            Button("Retrigger Onboarding") {
-                retriggerOnboarding()
+        @ViewBuilder
+        private func debugFooter(isCompact: Bool) -> some View {
+            Divider()
+            HStack {
+                Button("Retrigger Onboarding") {
+                    retriggerOnboarding()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(isCompact ? .small : .regular)
+                Spacer()
             }
-            .buttonStyle(.bordered)
-            .controlSize(isCompact ? .small : .regular)
-            Spacer()
+            .padding(isCompact ? 8 : 16)
         }
-        .padding(isCompact ? 8 : 16)
-    }
 
-    private func retriggerOnboarding() {
-        SettingsWindowPresenter.shared.close()
-        settingsManager.settings.hasCompletedOnboarding = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            OnboardingWindowPresenter.shared.show(settingsManager: settingsManager)
+        private func retriggerOnboarding() {
+            SettingsWindowPresenter.shared.close()
+            settingsManager.settings.hasCompletedOnboarding = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                OnboardingWindowPresenter.shared.show(settingsManager: settingsManager)
+            }
         }
-    }
     #endif
 }
 

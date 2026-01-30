@@ -12,7 +12,6 @@ import Foundation
     import Sparkle
 #endif
 
-@MainActor
 class UpdateManager: NSObject, ObservableObject {
     static let shared = UpdateManager()
 
@@ -49,9 +48,7 @@ class UpdateManager: NSObject, ObservableObject {
                 options: [.new, .initial]
             ) { [weak self] _, change in
                 guard let self = self, let newValue = change.newValue else { return }
-                Task { @MainActor in
-                    self.automaticallyChecksForUpdates = newValue
-                }
+                self.automaticallyChecksForUpdates = newValue
             }
 
             lastCheckDateObservation = updater.observe(
@@ -59,9 +56,7 @@ class UpdateManager: NSObject, ObservableObject {
                 options: [.new, .initial]
             ) { [weak self] _, change in
                 guard let self = self else { return }
-                Task { @MainActor in
-                    self.lastUpdateCheckDate = change.newValue ?? nil
-                }
+                self.lastUpdateCheckDate = change.newValue ?? nil
             }
         }
     #endif

@@ -9,7 +9,6 @@ import Combine
 import Foundation
 
 /// Protocol for fullscreen detection functionality
-@MainActor
 protocol FullscreenDetectionProviding: AnyObject, ObservableObject {
     /// Whether a fullscreen app is currently active
     var isFullscreenActive: Bool { get }
@@ -22,7 +21,6 @@ protocol FullscreenDetectionProviding: AnyObject, ObservableObject {
 }
 
 /// Protocol for idle monitoring functionality
-@MainActor
 protocol IdleMonitoringProviding: AnyObject, ObservableObject {
     /// Whether the user is currently idle
     var isIdle: Bool { get }

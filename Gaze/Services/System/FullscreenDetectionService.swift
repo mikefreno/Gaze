@@ -62,7 +62,6 @@ struct SystemFullscreenEnvironmentProvider: FullscreenEnvironmentProviding {
     }
 }
 
-@MainActor
 final class FullscreenDetectionService: ObservableObject {
     @Published private(set) var isFullscreenActive = false
 
@@ -113,9 +112,7 @@ final class FullscreenDetectionService: ObservableObject {
         let notificationCenter = workspace.notificationCenter
 
         let stateChangeHandler: (Notification) -> Void = { [weak self] _ in
-            Task { @MainActor in
-                self?.checkFullscreenState()
-            }
+            self?.checkFullscreenState()
         }
 
         let notifications: [(NSNotification.Name, Any?)] = [

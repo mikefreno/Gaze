@@ -10,7 +10,6 @@ import Foundation
 
 /// Protocol that defines the interface for timer engine functionality.
 /// This abstraction allows for dependency injection and easy mocking in tests.
-@MainActor
 protocol TimerEngineProviding: AnyObject, ObservableObject {
     /// Current timer states for all active timers
     var timerStates: [TimerIdentifier: TimerState] { get }

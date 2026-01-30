@@ -9,7 +9,6 @@ import Combine
 import Foundation
 
 /// Protocol that defines the interface for enforce mode functionality.
-@MainActor
 protocol EnforceModeProviding: AnyObject, ObservableObject {
     /// Whether enforce mode is currently enabled
     var isEnforceModeEnabled: Bool { get }

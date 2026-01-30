@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 
-@MainActor
 class TimerEngine: ObservableObject {
     @Published var timerStates: [TimerIdentifier: TimerState] = [:]
     @Published var activeReminder: ReminderEvent?
@@ -47,9 +46,7 @@ class TimerEngine: ObservableObject {
         )
         self.configurationHelper = TimerConfigurationHelper(settingsProvider: settingsManager)
 
-        Task { @MainActor in
-            enforceModeService?.setTimerEngine(self)
-        }
+        enforceModeService?.setTimerEngine(self)
 
         scheduler.delegate = self
         smartModeCoordinator.delegate = self
@@ -175,7 +172,7 @@ class TimerEngine: ObservableObject {
                 for: identifier,
                 secondsRemaining: updatedState.remainingSeconds
             ) {
-                Task { @MainActor in
+                Task {
                     await reminderService.prepareEnforceMode(
                         secondsRemaining: updatedState.remainingSeconds)
                 }

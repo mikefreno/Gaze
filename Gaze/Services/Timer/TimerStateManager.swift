@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 
-@MainActor
 final class TimerStateManager: ObservableObject {
     @Published private(set) var timerStates: [TimerIdentifier: TimerState] = [:]
     @Published private(set) var activeReminder: ReminderEvent?

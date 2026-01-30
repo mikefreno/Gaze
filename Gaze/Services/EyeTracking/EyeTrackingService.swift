@@ -10,7 +10,6 @@ import AVFoundation
 import Combine
 import Foundation
 
-@MainActor
 class EyeTrackingService: NSObject, ObservableObject {
     static let shared = EyeTrackingService()
 
@@ -100,18 +99,22 @@ class EyeTrackingService: NSObject, ObservableObject {
         }
 
         try await cameraManager.start()
-        isEyeTrackingActive = true
+        await MainActor.run {
+            self.isEyeTrackingActive = true
+        }
         print("✓ Eye tracking active")
     }
 
     func stopEyeTracking() {
         cameraManager.stop()
-        isEyeTrackingActive = false
-        isEyesClosed = false
-        userLookingAtScreen = true
-        faceDetected = false
-        debugAdapter.clear()
-        syncDebugState()
+        Task { @MainActor in
+            isEyeTrackingActive = false
+            isEyesClosed = false
+            userLookingAtScreen = true
+            faceDetected = false
+            debugAdapter.clear()
+            syncDebugState()
+        }
     }
 
     private func syncDebugState() {
@@ -134,7 +137,6 @@ class EyeTrackingService: NSObject, ObservableObject {
         debugImageSize = debugAdapter.imageSize
     }
 
-    @MainActor
     private func updateGazeConfiguration() {
         let configuration = GazeDetector.Configuration(
             thresholds: CalibrationState.shared.thresholds,
@@ -184,7 +186,8 @@ extension EyeTrackingService: CameraSessionDelegate {
             }
         }
 
-        Task { @MainActor in
+        Task { @MainActor [weak self] in
+            guard let self else { return }
             self.faceDetected = result.faceDetected
             self.isEyesClosed = result.isEyesClosed
             self.userLookingAtScreen = result.userLookingAtScreen
@@ -220,7 +223,6 @@ enum EyeTrackingError: Error, LocalizedError {
 
 // MARK: - Debug State Adapter
 
-@MainActor
 final class EyeDebugStateAdapter {
     var leftPupilRatio: Double?
     var rightPupilRatio: Double?

@@ -8,7 +8,6 @@
 import AppKit
 import Foundation
 
-@MainActor
 final class SystemSleepManager {
     private let settingsManager: any SettingsProviding
     private weak var timerEngine: (any TimerEngineProviding)?

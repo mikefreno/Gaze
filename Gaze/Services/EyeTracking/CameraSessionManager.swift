@@ -45,7 +45,6 @@ final class CameraSessionManager: NSObject, ObservableObject {
         return layer
     }
 
-    @MainActor
     func start() async throws {
         guard !isRunning else { return }
 
@@ -63,7 +62,6 @@ final class CameraSessionManager: NSObject, ObservableObject {
         isRunning = true
     }
 
-    @MainActor
     func stop() {
         captureSession?.stopRunning()
         captureSession = nil

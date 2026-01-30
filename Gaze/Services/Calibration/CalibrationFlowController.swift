@@ -8,7 +8,6 @@
 import Combine
 import Foundation
 
-@MainActor
 final class CalibrationFlowController: ObservableObject {
     @Published private(set) var currentStep: CalibrationStep?
     @Published private(set) var currentStepIndex = 0

@@ -8,20 +8,23 @@
 import Foundation
 import os.log
 
-#if DEBUG
-    let isLoggingEnabled = true
-#else
-    let isLoggingEnabled = false
-#endif
+nonisolated private let loggingSubsystem = "com.mikefreno.Gaze"
+nonisolated private let isLoggingEnabled: Bool = {
+    #if DEBUG
+        return true
+    #else
+        return false
+    #endif
+}()
 
 /// A centralized logging manager that provides structured, subsystem-aware logging
 /// for the Gaze application to ensure logs are captured by the run script.
-final class LoggingManager {
+final class LoggingManager: @unchecked Sendable {
     static let shared = LoggingManager()
 
     // MARK: - Private Properties
 
-    private let subsystem = "com.mikefreno.Gaze"
+    private let subsystem = loggingSubsystem
 
     // MARK: - Public Loggers
 
@@ -84,30 +87,39 @@ final class LoggingManager {
 }
 
 /// Log an info message using the shared LoggingManager
-public func logInfo(_ message: String, category: String = "General") {
-    LoggingManager.shared.info(message, category: category)
+nonisolated public func logInfo(_ message: String, category: String = "General") {
+    guard isLoggingEnabled else { return }
+    let logger = Logger(subsystem: loggingSubsystem, category: category)
+    logger.info("\(message, privacy: .public)")
 }
 
 /// Log a debug message using the shared LoggingManager
-public func logDebug(_ message: String, category: String = "General") {
-    LoggingManager.shared.debug(message, category: category)
+nonisolated public func logDebug(_ message: String, category: String = "General") {
+    guard isLoggingEnabled else { return }
+    let logger = Logger(subsystem: loggingSubsystem, category: category)
+    logger.debug("\(message, privacy: .public)")
 }
 
 /// Log an error message using the shared LoggingManager
-public func logError(_ message: String, category: String = "General") {
-    LoggingManager.shared.error(message, category: category)
+nonisolated public func logError(_ message: String, category: String = "General") {
+    guard isLoggingEnabled else { return }
+    let logger = Logger(subsystem: loggingSubsystem, category: category)
+    logger.error("\(message, privacy: .public)")
 }
 
 /// Log a warning message using the shared LoggingManager
-public func logWarning(_ message: String, category: String = "General") {
-    LoggingManager.shared.warning(message, category: category)
+nonisolated public func logWarning(_ message: String, category: String = "General") {
+    guard isLoggingEnabled else { return }
+    let logger = Logger(subsystem: loggingSubsystem, category: category)
+    logger.warning("\(message, privacy: .public)")
 }
 
 // MARK: - Additional Helper Functions
 
 /// Log a verbose message (only enabled in DEBUG builds)
-public func logVerbose(_ message: String, category: String = "General") {
+nonisolated public func logVerbose(_ message: String, category: String = "General") {
     #if DEBUG
-        LoggingManager.shared.debug(message, category: category)
+        let logger = Logger(subsystem: loggingSubsystem, category: category)
+        logger.debug("\(message, privacy: .public)")
     #endif
 }

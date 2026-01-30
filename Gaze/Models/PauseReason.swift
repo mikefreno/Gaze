@@ -13,3 +13,5 @@ enum PauseReason: Codable, Equatable, Hashable {
     case idle
     case system
 }
+
+extension PauseReason: Sendable {}

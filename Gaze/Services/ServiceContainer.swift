@@ -8,7 +8,6 @@
 import Foundation
 
 /// A simple dependency injection container for managing service instances.
-@MainActor
 final class ServiceContainer {
     
     /// Shared instance for production use

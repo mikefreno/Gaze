@@ -14,7 +14,6 @@ enum ComplianceResult {
     case faceNotDetected
 }
 
-@MainActor
 class EnforceModeService: ObservableObject {
     static let shared = EnforceModeService()
 
@@ -224,10 +223,8 @@ class EnforceModeService: ObservableObject {
     private func startFaceDetectionTimer() {
         stopFaceDetectionTimer()
 
-        faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-            Task { @MainActor [weak self] in
-                self?.checkFaceDetectionTimeout()
-            }
+        faceDetectionTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+            self?.checkFaceDetectionTimeout()
         }
     }
 

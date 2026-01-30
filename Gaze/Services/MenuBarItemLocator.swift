@@ -12,7 +12,6 @@ struct MenuBarLocationResult {
     let frame: CGRect
 }
 
-@MainActor
 final class MenuBarItemLocator {
     static let shared = MenuBarItemLocator()
 

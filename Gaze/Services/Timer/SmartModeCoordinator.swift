@@ -13,7 +13,6 @@ protocol SmartModeCoordinatorDelegate: AnyObject {
     func smartModeDidRequestResumeAll(_ coordinator: SmartModeCoordinator, reason: PauseReason)
 }
 
-@MainActor
 final class SmartModeCoordinator {
     weak var delegate: SmartModeCoordinatorDelegate?
 
@@ -35,17 +34,13 @@ final class SmartModeCoordinator {
 
         fullscreenService?.$isFullscreenActive
             .sink { [weak self] isFullscreen in
-                Task { @MainActor in
-                    self?.handleFullscreenChange(isFullscreen: isFullscreen)
-                }
+                self?.handleFullscreenChange(isFullscreen: isFullscreen)
             }
             .store(in: &cancellables)
 
         idleService?.$isIdle
             .sink { [weak self] isIdle in
-                Task { @MainActor in
-                    self?.handleIdleChange(isIdle: isIdle)
-                }
+                self?.handleIdleChange(isIdle: isIdle)
             }
             .store(in: &cancellables)
     }

@@ -8,7 +8,6 @@
 import AVFoundation
 import Combine
 
-@MainActor
 class CameraAccessService: ObservableObject {
     static let shared = CameraAccessService()
 

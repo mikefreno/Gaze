@@ -7,7 +7,6 @@
 
 import Foundation
 
-@MainActor
 final class ReminderTriggerService {
     private let settingsProvider: any SettingsProviding
     private let enforceModeService: EnforceModeService?

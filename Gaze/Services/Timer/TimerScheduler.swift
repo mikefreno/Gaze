@@ -12,7 +12,6 @@ protocol TimerSchedulerDelegate: AnyObject {
     func schedulerDidTick(_ scheduler: TimerScheduler)
 }
 
-@MainActor
 final class TimerScheduler {
     weak var delegate: TimerSchedulerDelegate?
 

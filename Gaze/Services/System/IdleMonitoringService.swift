@@ -9,7 +9,6 @@ import AppKit
 import Combine
 import Foundation
 
-@MainActor
 class IdleMonitoringService: ObservableObject {
     @Published private(set) var isIdle = false
     @Published private(set) var idleTimeSeconds: TimeInterval = 0
@@ -34,9 +33,7 @@ class IdleMonitoringService: ObservableObject {
     private func startMonitoring() {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            Task { @MainActor in
-                self.checkIdleState()
-            }
+            self.checkIdleState()
         }
     }
     
@@ -82,7 +79,6 @@ struct UsageStatistics: Codable {
     }
 }
 
-@MainActor
 class UsageTrackingService: ObservableObject {
     @Published private(set) var statistics: UsageStatistics
 
@@ -120,9 +116,7 @@ class UsageTrackingService: ObservableObject {
 
         idleService.$isIdle
             .sink { [weak self] isIdle in
-                Task { @MainActor in
-                    self?.updateTracking(isIdle: isIdle)
-                }
+                self?.updateTracking(isIdle: isIdle)
             }
             .store(in: &cancellables)
     }
@@ -135,9 +129,7 @@ class UsageTrackingService: ObservableObject {
     private func startTracking() {
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            Task { @MainActor in
-                self.tick()
-            }
+            self.tick()
         }
     }
 

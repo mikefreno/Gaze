@@ -21,7 +21,6 @@ public enum ScreenCaptureAuthorizationStatus: Equatable {
     }
 }
 
-@MainActor
 protocol ScreenCapturePermissionManaging: AnyObject {
     var authorizationStatus: ScreenCaptureAuthorizationStatus { get }
     var authorizationStatusPublisher: AnyPublisher<ScreenCaptureAuthorizationStatus, Never> { get }
@@ -31,7 +30,6 @@ protocol ScreenCapturePermissionManaging: AnyObject {
     func openSystemSettings()
 }
 
-@MainActor
 final class ScreenCapturePermissionManager: ObservableObject, ScreenCapturePermissionManaging {
     static let shared = ScreenCapturePermissionManager()
 

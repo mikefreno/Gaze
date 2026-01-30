@@ -9,7 +9,6 @@ import Combine
 import Foundation
 import Observation
 
-@MainActor
 @Observable
 final class SettingsManager {
     static let shared = SettingsManager()

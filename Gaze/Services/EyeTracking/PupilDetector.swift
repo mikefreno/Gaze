@@ -92,19 +92,19 @@ enum GazeDirection: String, Sendable, CaseIterable {
 }
 
 /// Calibration state for adaptive thresholding (matches Python Calibration class)
-final class PupilCalibration: @unchecked Sendable {
+final class PupilCalibration: Sendable {
     private let lock = NSLock()
     private let targetFrames = 20
     private var thresholdsLeft: [Int] = []
     private var thresholdsRight: [Int] = []
 
-    nonisolated var isComplete: Bool {
+    var isComplete: Bool {
         lock.lock()
         defer { lock.unlock() }
         return thresholdsLeft.count >= targetFrames && thresholdsRight.count >= targetFrames
     }
 
-    nonisolated func threshold(forSide side: Int) -> Int {
+    func threshold(forSide side: Int) -> Int {
         lock.lock()
         defer { lock.unlock() }
         let thresholds = side == 0 ? thresholdsLeft : thresholdsRight
@@ -113,7 +113,7 @@ final class PupilCalibration: @unchecked Sendable {
         return thresholds.reduce(0, +) / thresholds.count
     }
 
-    nonisolated func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
+    func evaluate(eyeData: UnsafePointer<UInt8>, width: Int, height: Int, side: Int) {
         let bestThreshold = findBestThreshold(eyeData: eyeData, width: width, height: height)
         lock.lock()
         defer { lock.unlock() }
@@ -124,7 +124,7 @@ final class PupilCalibration: @unchecked Sendable {
         }
     }
 
-    private nonisolated func findBestThreshold(
+    private func findBestThreshold(
         eyeData: UnsafePointer<UInt8>, width: Int, height: Int
     ) -> Int {
         let averageIrisSize = 0.48
@@ -154,7 +154,7 @@ final class PupilCalibration: @unchecked Sendable {
         return bestThreshold
     }
 
-    private nonisolated static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int)
+    private static func irisSize(data: UnsafePointer<UInt8>, width: Int, height: Int)
         -> Double
     {
         let margin = 5
@@ -177,7 +177,7 @@ final class PupilCalibration: @unchecked Sendable {
         return totalCount > 0 ? Double(blackCount) / Double(totalCount) : 0
     }
 
-    nonisolated func reset() {
+    func reset() {
         lock.lock()
         defer { lock.unlock() }
         thresholdsLeft.removeAll()
@@ -245,34 +245,34 @@ final class PupilDetector: @unchecked Sendable {
     nonisolated(unsafe) static var debugRightEyeRegion: EyeRegion?
     nonisolated(unsafe) static var debugImageSize: CGSize?
 
-    nonisolated(unsafe) static let calibration = PupilCalibration()
+    nonisolated static let calibration = PupilCalibration()
 
     // MARK: - Convenience Properties
 
-    private nonisolated static var debugImageCounter: Int {
+    private nonisolated(unsafe) static var debugImageCounter: Int {
         get { _debugImageCounter }
         set { _debugImageCounter = newValue }
     }
 
-    private nonisolated static var frameCounter: Int {
+    private nonisolated(unsafe) static var frameCounter: Int {
         get { _frameCounter }
         set { _frameCounter = newValue }
     }
 
-    private nonisolated static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?)
+    private nonisolated(unsafe) static var lastPupilPositions: (left: PupilPosition?, right: PupilPosition?)
     {
         get { _lastPupilPositions }
         set { _lastPupilPositions = newValue }
     }
 
-    private nonisolated static var metrics: PupilDetectorMetrics {
+    private nonisolated(unsafe) static var metrics: PupilDetectorMetrics {
         get { _metrics }
         set { _metrics = newValue }
     }
 
     // MARK: - Precomputed Tables
 
-    private nonisolated(unsafe) static let spatialWeightsLUT: [[Float]] = {
+    private nonisolated static let spatialWeightsLUT: [[Float]] = {
         let d = 10
         let radius = d / 2
         let sigmaSpace: Float = 15.0
@@ -287,7 +287,7 @@ final class PupilDetector: @unchecked Sendable {
         return weights
     }()
 
-    private nonisolated(unsafe) static let colorWeightsLUT: [Float] = {
+    private nonisolated static let colorWeightsLUT: [Float] = {
         let sigmaColor: Float = 15.0
         var lut = [Float](repeating: 0, count: 256)
         for diff in 0..<256 {

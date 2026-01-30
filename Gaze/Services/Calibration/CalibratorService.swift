@@ -10,7 +10,6 @@ import Foundation
 import AppKit
 import SwiftUI
 
-@MainActor
 final class CalibratorService: ObservableObject {
     static let shared = CalibratorService()
 
@@ -280,8 +279,8 @@ final class CalibratorService: ObservableObject {
         rightVertical: Double? = nil,
         faceWidthRatio: Double = 0
     ) {
-        Task { @MainActor in
-            collectSample(
+        Task { [weak self] in
+            self?.collectSample(
                 leftRatio: leftRatio,
                 rightRatio: rightRatio,
                 leftVertical: leftVertical,

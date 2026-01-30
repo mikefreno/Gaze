@@ -9,6 +9,19 @@ import Foundation
 import Vision
 import simd
 
+struct EyeTrackingProcessingResult: Sendable {
+    let faceDetected: Bool
+    let isEyesClosed: Bool
+    let userLookingAtScreen: Bool
+    let leftPupilRatio: Double?
+    let rightPupilRatio: Double?
+    let leftVerticalRatio: Double?
+    let rightVerticalRatio: Double?
+    let yaw: Double?
+    let pitch: Double?
+    let faceWidthRatio: Double?
+}
+
 final class GazeDetector: @unchecked Sendable {
     struct GazeResult: Sendable {
         let isLookingAway: Bool

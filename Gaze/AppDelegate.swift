@@ -16,6 +16,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private let windowManager: WindowManaging
     private var updateManager: UpdateManager?
     private var systemSleepManager: SystemSleepManager?
+    private var fullscreenService: FullscreenDetectionService?
+    private var idleService: IdleMonitoringService?
+    private var usageTrackingService: UsageTrackingService?
     private var cancellables = Set<AnyCancellable>()
     private var hasStartedTimers = false
 
@@ -53,7 +56,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
         )
         systemSleepManager?.startObserving()
 
-        serviceContainer.setupSmartModeServices()
+        setupSmartModeServices()
 
         // Initialize update manager after onboarding is complete
         if settingsManager.settings.hasCompletedOnboarding {
@@ -82,16 +85,43 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
             .removeDuplicates()
             .sink { [weak self] smartMode in
                 guard let self = self else { return }
-                self.serviceContainer.idleService?.updateThreshold(
+                self.idleService?.updateThreshold(
                     minutes: smartMode.idleThresholdMinutes)
-                self.serviceContainer.usageTrackingService?.updateResetThreshold(
+                self.usageTrackingService?.updateResetThreshold(
                     minutes: smartMode.usageResetAfterMinutes)
 
                 // Force state check when settings change to apply immediately
-                self.serviceContainer.fullscreenService?.forceUpdate()
-                self.serviceContainer.idleService?.forceUpdate()
+                self.fullscreenService?.forceUpdate()
+                self.idleService?.forceUpdate()
             }
             .store(in: &cancellables)
+    }
+
+    private func setupSmartModeServices() {
+        let settings = settingsManager.settings
+
+        Task { @MainActor in
+            fullscreenService = await FullscreenDetectionService.create()
+            idleService = IdleMonitoringService(
+                idleThresholdMinutes: settings.smartMode.idleThresholdMinutes
+            )
+            if settings.smartMode.trackUsage {
+                usageTrackingService = UsageTrackingService(
+                    resetThresholdMinutes: settings.smartMode.usageResetAfterMinutes
+                )
+            } else {
+                usageTrackingService = nil
+            }
+
+            if let idleService = idleService {
+                usageTrackingService?.setupIdleMonitoring(idleService)
+            }
+
+            timerEngine?.setupSmartMode(
+                fullscreenService: fullscreenService,
+                idleService: idleService
+            )
+        }
     }
 
     func onboardingCompleted() {

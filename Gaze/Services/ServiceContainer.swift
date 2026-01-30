@@ -23,15 +23,6 @@ final class ServiceContainer {
     /// The timer engine instance (created lazily)
     private var _timerEngine: TimerEngine?
     
-    /// The fullscreen detection service
-    private(set) var fullscreenService: FullscreenDetectionService?
-    
-    /// The idle monitoring service
-    private(set) var idleService: IdleMonitoringService?
-    
-    /// The usage tracking service
-    private(set) var usageTrackingService: UsageTrackingService?
-    
     /// Creates a production container with real services
     private init() {
         self.settingsManager = SettingsManager.shared
@@ -62,32 +53,6 @@ final class ServiceContainer {
         )
         _timerEngine = engine
         return engine
-    }
-    
-    /// Sets up smart mode services
-    func setupSmartModeServices() {
-        let settings = settingsManager.settings
-        
-        Task { @MainActor in
-            fullscreenService = await FullscreenDetectionService.create()
-            idleService = IdleMonitoringService(
-                idleThresholdMinutes: settings.smartMode.idleThresholdMinutes
-            )
-            usageTrackingService = UsageTrackingService(
-                resetThresholdMinutes: settings.smartMode.usageResetAfterMinutes
-            )
-            
-            // Connect idle service to usage tracking
-            if let idleService = idleService {
-                usageTrackingService?.setupIdleMonitoring(idleService)
-            }
-            
-            // Connect services to timer engine
-            timerEngine.setupSmartMode(
-                fullscreenService: fullscreenService,
-                idleService: idleService
-            )
-        }
     }
     
 }

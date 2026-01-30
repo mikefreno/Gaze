@@ -7,11 +7,34 @@
 
 import Foundation
 
-enum PauseReason: Codable, Equatable, Hashable {
+enum PauseReason: Codable, Sendable, Equatable, Hashable {
     case manual
     case fullscreen
     case idle
     case system
-}
 
-extension PauseReason: Sendable {}
+    nonisolated static func == (lhs: PauseReason, rhs: PauseReason) -> Bool {
+        switch (lhs, rhs) {
+        case (.manual, .manual),
+            (.fullscreen, .fullscreen),
+            (.idle, .idle),
+            (.system, .system):
+            return true
+        default:
+            return false
+        }
+    }
+
+    nonisolated func hash(into hasher: inout Hasher) {
+        switch self {
+        case .manual:
+            hasher.combine(0)
+        case .fullscreen:
+            hasher.combine(1)
+        case .idle:
+            hasher.combine(2)
+        case .system:
+            hasher.combine(3)
+        }
+    }
+}

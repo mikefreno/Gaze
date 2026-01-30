@@ -1,5 +1,5 @@
 {
-  "originHash" : "513d974fbede884a919977d3446360023f6e3239ac314f4fbd9657e80aca7560",
+  "originHash" : "83c4b4b69555e54712e60721606a120fe3f01308b1af84957cd0941e93e64f8a",
   "pins" : [
     {
       "identity" : "lottie-spm",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "69faaefa7721fba9e434a52c16adf4329c9084db",
         "version" : "4.6.0"
+      }
+    },
+    {
+      "identity" : "macrovisionkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/TheBoredTeam/MacroVisionKit.git",
+      "state" : {
+        "revision" : "da481a6be8d8b1bf7fcb218507a72428bbcae7b0",
+        "version" : "0.2.0"
       }
     },
     {

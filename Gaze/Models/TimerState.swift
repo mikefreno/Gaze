@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct TimerState: Equatable, Hashable {
+struct TimerState: Equatable, Hashable, Sendable {
     let identifier: TimerIdentifier
     var remainingSeconds: Int
     var isPaused: Bool
@@ -45,7 +45,7 @@ struct TimerState: Equatable, Hashable {
     }
 }
 
-enum TimerStateBuilder {
+enum TimerStateBuilder: Sendable {
     static func make(
         identifier: TimerIdentifier,
         intervalSeconds: Int,

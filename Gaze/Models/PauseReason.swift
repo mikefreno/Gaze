@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum PauseReason: Codable, Sendable, Equatable, Hashable {
+enum PauseReason: nonisolated Codable, nonisolated Sendable, nonisolated Equatable, nonisolated Hashable {
     case manual
     case fullscreen
     case idle
@@ -38,3 +38,4 @@ enum PauseReason: Codable, Sendable, Equatable, Hashable {
         }
     }
 }
+

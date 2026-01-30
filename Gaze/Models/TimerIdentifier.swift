@@ -8,7 +8,7 @@
 import Foundation
 
 /// Unified identifier for both built-in and user-defined timers
-enum TimerIdentifier: Hashable, Codable {
+enum TimerIdentifier: Hashable, Codable, Sendable {
     case builtIn(TimerType)
     case user(id: String)
     

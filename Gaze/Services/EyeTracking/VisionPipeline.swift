@@ -6,15 +6,19 @@
 //
 
 import Foundation
-import Vision
+@preconcurrency import Vision
 
 final class VisionPipeline: @unchecked Sendable {
     struct FaceAnalysis: Sendable {
         let faceDetected: Bool
-        let face: VNFaceObservation?
+        let face: NonSendableFaceObservation?
         let imageSize: CGSize
         let debugYaw: Double?
         let debugPitch: Double?
+    }
+
+    struct NonSendableFaceObservation: @unchecked Sendable {
+        nonisolated(unsafe) let value: VNFaceObservation
     }
 
     nonisolated func analyze(
@@ -46,7 +50,7 @@ final class VisionPipeline: @unchecked Sendable {
             )
         }
 
-        guard let face = (request.results as? [VNFaceObservation])?.first else {
+        guard let face = request.results?.first else {
             return FaceAnalysis(
                 faceDetected: false,
                 face: nil,
@@ -58,7 +62,7 @@ final class VisionPipeline: @unchecked Sendable {
 
         return FaceAnalysis(
             faceDetected: true,
-            face: face,
+            face: NonSendableFaceObservation(value: face),
             imageSize: imageSize,
             debugYaw: face.yaw?.doubleValue,
             debugPitch: face.pitch?.doubleValue

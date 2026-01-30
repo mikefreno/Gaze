@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Vision
+@preconcurrency import Vision
 import simd
 
 struct EyeTrackingProcessingResult: Sendable {
@@ -54,19 +54,19 @@ final class GazeDetector: @unchecked Sendable {
     }
 
     private let lock = NSLock()
-    private var configuration: Configuration
+    private nonisolated(unsafe) var configuration: Configuration
 
-    init(configuration: Configuration) {
+    nonisolated init(configuration: Configuration) {
         self.configuration = configuration
     }
 
-    func updateConfiguration(_ configuration: Configuration) {
+    nonisolated func updateConfiguration(_ configuration: Configuration) {
         lock.lock()
         self.configuration = configuration
         lock.unlock()
     }
 
-    nonisolated func process(
+    func process(
         analysis: VisionPipeline.FaceAnalysis,
         pixelBuffer: CVPixelBuffer
     ) -> EyeTrackingProcessingResult {
@@ -75,7 +75,7 @@ final class GazeDetector: @unchecked Sendable {
         config = configuration
         lock.unlock()
 
-        guard analysis.faceDetected, let face = analysis.face else {
+        guard analysis.faceDetected, let face = analysis.face?.value else {
             return EyeTrackingProcessingResult(
                 faceDetected: false,
                 isEyesClosed: false,

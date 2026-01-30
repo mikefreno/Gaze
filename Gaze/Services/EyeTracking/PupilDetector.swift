@@ -18,7 +18,7 @@ import Accelerate
 import CoreImage
 import ImageIO
 import UniformTypeIdentifiers
-import Vision
+@preconcurrency import Vision
 
 struct PupilPosition: Equatable, Sendable {
     let x: CGFloat

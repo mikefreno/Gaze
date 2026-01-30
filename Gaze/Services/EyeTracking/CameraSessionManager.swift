@@ -10,16 +10,20 @@ import Combine
 import Foundation
 
 protocol CameraSessionDelegate: AnyObject {
-    nonisolated func cameraSession(
+    @MainActor func cameraSession(
         _ manager: CameraSessionManager,
         didOutput pixelBuffer: CVPixelBuffer,
         imageSize: CGSize
     )
 }
 
+private struct PixelBufferBox: @unchecked Sendable {
+    let buffer: CVPixelBuffer
+}
+
 final class CameraSessionManager: NSObject, ObservableObject {
     @Published private(set) var isRunning = false
-    weak var delegate: CameraSessionDelegate?
+    nonisolated(unsafe) weak var delegate: CameraSessionDelegate?
 
     private var captureSession: AVCaptureSession?
     private var videoOutput: AVCaptureVideoDataOutput?
@@ -116,6 +120,11 @@ extension CameraSessionManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             height: CVPixelBufferGetHeight(pixelBuffer)
         )
 
-        delegate?.cameraSession(self, didOutput: pixelBuffer, imageSize: size)
+        let bufferBox = PixelBufferBox(buffer: pixelBuffer)
+
+        DispatchQueue.main.async { [weak self, bufferBox] in
+            guard let self else { return }
+            self.delegate?.cameraSession(self, didOutput: bufferBox.buffer, imageSize: size)
+        }
     }
 }

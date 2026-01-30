@@ -76,7 +76,10 @@ final class MenuBarGuideOverlayPresenter {
     private func startCheckTimer() {
         checkTimer?.invalidate()
         checkTimer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] _ in
-            self?.checkWindowFrame()
+            guard let self else { return }
+            Task { @MainActor in
+                self.checkWindowFrame()
+            }
         }
     }
 
@@ -129,7 +132,10 @@ final class MenuBarGuideOverlayPresenter {
         // Set up KVO for window frame changes
         onboardingWindowObserver = onboardingWindow.observe(\.frame, options: [.new, .old]) {
             [weak self] _, _ in
-            self?.checkWindowFrame()
+            guard let self else { return }
+            Task { @MainActor in
+                self.checkWindowFrame()
+            }
         }
 
         // Add observer for when the onboarding window is closed
@@ -145,7 +151,10 @@ final class MenuBarGuideOverlayPresenter {
             }
 
             // Hide the overlay when onboarding window closes
-            self?.hide()
+            guard let self else { return }
+            Task { @MainActor in
+                self.hide()
+            }
         }
     }
 }

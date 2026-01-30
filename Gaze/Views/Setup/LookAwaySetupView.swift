@@ -54,7 +54,6 @@ struct LookAwaySetupView: View {
 
     private func previewLookAway() {
         guard let screen = NSScreen.main else { return }
-        let sizePercentage = settingsManager.settings.subtleReminderSize.percentage
         let lookAwayIntervalMinutes = settingsManager.settings.lookAwayIntervalMinutes
         PreviewWindowHelper.showPreview(on: screen) { dismiss in
             LookAwayReminderView(countdownSeconds: lookAwayIntervalMinutes * 60, onDismiss: dismiss)

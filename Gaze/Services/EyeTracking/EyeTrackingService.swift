@@ -161,7 +161,7 @@ class EyeTrackingService: NSObject, ObservableObject {
 }
 
 extension EyeTrackingService: CameraSessionDelegate {
-    nonisolated func cameraSession(
+    @MainActor func cameraSession(
         _ manager: CameraSessionManager,
         didOutput pixelBuffer: CVPixelBuffer,
         imageSize: CGSize
@@ -174,28 +174,23 @@ extension EyeTrackingService: CameraSessionDelegate {
         if let leftRatio = result.leftPupilRatio,
            let rightRatio = result.rightPupilRatio,
            let faceWidth = result.faceWidthRatio {
-            Task { @MainActor in
-                guard CalibratorService.shared.isCalibrating else { return }
-                CalibratorService.shared.submitSampleToBridge(
-                    leftRatio: leftRatio,
-                    rightRatio: rightRatio,
-                    leftVertical: result.leftVerticalRatio,
-                    rightVertical: result.rightVerticalRatio,
-                    faceWidthRatio: faceWidth
-                )
-            }
+            guard CalibratorService.shared.isCalibrating else { return }
+            CalibratorService.shared.submitSampleToBridge(
+                leftRatio: leftRatio,
+                rightRatio: rightRatio,
+                leftVertical: result.leftVerticalRatio,
+                rightVertical: result.rightVerticalRatio,
+                faceWidthRatio: faceWidth
+            )
         }
 
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            self.faceDetected = result.faceDetected
-            self.isEyesClosed = result.isEyesClosed
-            self.userLookingAtScreen = result.userLookingAtScreen
-            self.debugAdapter.update(from: result)
-            self.debugAdapter.updateEyeImages(from: PupilDetector.self)
-            self.syncDebugState()
-            self.updateGazeConfiguration()
-        }
+        self.faceDetected = result.faceDetected
+        self.isEyesClosed = result.isEyesClosed
+        self.userLookingAtScreen = result.userLookingAtScreen
+        self.debugAdapter.update(from: result)
+        self.debugAdapter.updateEyeImages(from: PupilDetector.self)
+        self.syncDebugState()
+        self.updateGazeConfiguration()
     }
 }
 

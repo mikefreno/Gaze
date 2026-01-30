@@ -79,7 +79,7 @@ struct SettingsWindowView: View {
             BlinkSetupView(settingsManager: settingsManager)
         case .posture:
             PostureSetupView(settingsManager: settingsManager)
-        #if ENFORCE_READY
+        #if DEBUG
             case .enforceMode:
                 EnforceModeSetupView(settingsManager: settingsManager)
         #endif

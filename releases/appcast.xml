@@ -3,6 +3,17 @@
     <channel>
         <title>Gaze</title>
         <item>
+            <title>0.5.0</title>
+            <pubDate>Fri, 30 Jan 2026 12:58:57 -0500</pubDate>
+            <sparkle:version>10</sparkle:version>
+            <sparkle:shortVersionString>0.5.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
+            <enclosure url="https://freno.me/api/downloads/Gaze-0.5.0.dmg" length="5253164" type="application/octet-stream" sparkle:edSignature="eXTeHXkMiAO4O1drqvdeYYn6oY9bpilm4toHNZ5BGvWVeNOtwzFC9YOWb+abPEYDRMmu5oodbPBFyPE65w6BDg=="/>
+            <sparkle:deltas>
+                <enclosure url="https://freno.me/api/downloads/Gaze10-9.delta" sparkle:deltaFrom="9" length="721382" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="860560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="kO4XClM9nikVhnhX4QypN5zFIikIhVdnVcOQDsvL8ciBD6opGM/IH7pqnCRKRwP6N8SRobgAQTHsee6oOZyWCA=="/>
+            </sparkle:deltas>
+        </item>
+        <item>
             <title>0.4.1</title>
             <pubDate>Tue, 13 Jan 2026 17:27:46 -0500</pubDate>
             <sparkle:version>9</sparkle:version>
@@ -61,14 +72,6 @@
             <sparkle:deltas>
                 <enclosure url="https://freno.me/api/downloads/Gaze2-1.delta" sparkle:deltaFrom="1" length="94254" type="application/octet-stream" sparkle:deltaFromSparkleExecutableSize="858560" sparkle:deltaFromSparkleLocales="de,he,ar,el,ja,fa,uk" sparkle:edSignature="qfxSfqD9iVJ7GVL19V8T4OuOTz0ZgqJNceBH6W+dwoKel1R+BTPkU9Ia8xR12v07GoXkyyqc+ba79OOL7jIpBw=="/>
             </sparkle:deltas>
-        </item>
-        <item>
-            <title>0.1.1</title>
-            <pubDate>Sun, 11 Jan 2026 18:07:02 -0500</pubDate>
-            <sparkle:version>1</sparkle:version>
-            <sparkle:shortVersionString>0.2.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.6</sparkle:minimumSystemVersion>
-            <enclosure url="https://freno.me/api/downloads/Gaze-0.2.0.dmg" length="4831161" type="application/octet-stream" sparkle:edSignature="zCEmiiO4Q7HV7uGbI/CQcfJElm1uqrYorznE6uCWaKm/Zg1bUrWaeTRf9+Uv9f9+0iptyiS2FNdglLQB8RKkCA=="/>
         </item>
     </channel>
 </rss>

@@ -26,7 +26,7 @@ final class ReminderTriggerService {
             switch type {
             case .lookAway:
                 return .lookAwayTriggered(
-                    countdownSeconds: settingsProvider.settings.lookAwayIntervalMinutes * 60
+                    intervalMinutes: settingsProvider.settings.lookAwayIntervalMinutes
                 )
             case .blink:
                 return .blinkTriggered

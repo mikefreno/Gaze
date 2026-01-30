@@ -8,7 +8,7 @@
 import Foundation
 
 enum ReminderEvent: Equatable {
-    case lookAwayTriggered(countdownSeconds: Int)
+    case lookAwayTriggered(intervalMinutes: Int)
     case blinkTriggered
     case postureTriggered
     case userTimerTriggered(UserTimer)
@@ -42,7 +42,7 @@ enum ReminderEvent: Equatable {
     var displayName: String {
         switch self {
         case .lookAwayTriggered:
-            return "Look Away"
+            return lookAwayTitle
         case .blinkTriggered:
             return "Blink"
         case .postureTriggered:
@@ -50,6 +50,10 @@ enum ReminderEvent: Equatable {
         case .userTimerTriggered(let timer):
             return timer.title
         }
+    }
+
+    private var lookAwayTitle: String {
+        return "Look Away"
     }
 }
 

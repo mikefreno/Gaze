@@ -5,6 +5,7 @@
 //  Created by Mike Freno on 1/18/26.
 //
 
+import AVFoundation
 import SwiftUI
 
 struct AdditionalModifiersView: View {
@@ -12,6 +13,13 @@ struct AdditionalModifiersView: View {
     @State private var frontCardIndex: Int = 0
     @State private var dragOffset: CGFloat = 0
     @State private var isDragging: Bool = false
+    @State private var isTestModeActive = false
+    @State private var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
+    @State private var showAdvancedSettings = false
+    @State private var showCalibrationWindow = false
+    @State private var isViewActive = false
+    @State private var isProcessingToggle = false
+    @ObservedObject var cameraService = CameraAccessService.shared
     @Environment(\.isCompactLayout) private var isCompact
 
     private var backCardOffset: CGFloat { isCompact ? 20 : AdaptiveLayout.Card.backOffset }
@@ -50,15 +58,40 @@ struct AdditionalModifiersView: View {
 
                 ZStack {
                     #if DEBUG
-                        cardView(for: 0, width: cardWidth, height: cardHeight)
-                            .zIndex(zIndex(for: 0))
-                            .scaleEffect(scale(for: 0))
-                            .offset(x: xOffset(for: 0), y: yOffset(for: 0))
+                        setupCard(
+                            presentation: .card,
+                            content: EnforceModeSetupContent(
+                                settingsManager: settingsManager,
+                                presentation: .card,
+                                isTestModeActive: $isTestModeActive,
+                                cachedPreviewLayer: $cachedPreviewLayer,
+                                showAdvancedSettings: $showAdvancedSettings,
+                                showCalibrationWindow: $showCalibrationWindow,
+                                isViewActive: $isViewActive,
+                                isProcessingToggle: isProcessingToggle,
+                                handleEnforceModeToggle: { enabled in
+                                    if enabled {
+                                        Task { @MainActor in
+                                            try await cameraService.requestCameraAccess()
+                                        }
+                                    }
+                                }
+                            ),
+                            width: cardWidth,
+                            height: cardHeight,
+                            index: 0
+                        )
                     #endif
-                    cardView(for: 1, width: cardWidth, height: cardHeight)
-                        .zIndex(zIndex(for: 1))
-                        .scaleEffect(scale(for: 1))
-                        .offset(x: xOffset(for: 1), y: yOffset(for: 1))
+                    setupCard(
+                        presentation: .card,
+                        content: SmartModeSetupContent(
+                            settingsManager: settingsManager,
+                            presentation: .card
+                        ),
+                        width: cardWidth,
+                        height: cardHeight,
+                        index: 1
+                    )
                 }
                 .padding(isCompact ? 12 : 20)
                 .gesture(dragGesture)
@@ -198,226 +231,26 @@ struct AdditionalModifiersView: View {
     // MARK: - Card Views
 
     @ViewBuilder
-    private func cardView(for index: Int, width: CGFloat, height: CGFloat) -> some View {
+    private func setupCard(
+        presentation: SetupPresentation,
+        content: some View,
+        width: CGFloat,
+        height: CGFloat,
+        index: Int
+    ) -> some View {
         ZStack {
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(NSColor.windowBackgroundColor))
                 .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 4)
 
-            Group {
-                if index == 0 {
-                    enforceModeContent
-                } else {
-                    smartModeContent
-                }
-            }
-            .padding(isCompact ? 12 : 20)
+            content
+                .padding(isCompact ? 12 : 20)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .frame(width: width, height: height)
-    }
-
-    @ObservedObject var cameraService = CameraAccessService.shared
-
-    private var enforceModeContent: some View {
-        VStack(spacing: isCompact ? 10 : 16) {
-            Image(systemName: "video.fill")
-                .font(
-                    .system(
-                        size: isCompact
-                            ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon)
-                )
-                .foregroundStyle(Color.accentColor)
-
-            Text("Enforce Mode")
-                .font(isCompact ? .headline : .title2)
-                .fontWeight(.bold)
-
-            if !cameraService.hasCameraHardware {
-                Text("Camera hardware not detected")
-                    .font(isCompact ? .caption : .subheadline)
-                    .foregroundStyle(.orange)
-                    .multilineTextAlignment(.center)
-            } else {
-                Text("Use your camera to ensure you take breaks")
-                    .font(isCompact ? .caption : .subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            Spacer()
-
-            VStack(spacing: isCompact ? 10 : 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Enable Enforce Mode")
-                            .font(isCompact ? .subheadline : .headline)
-                        if !cameraService.hasCameraHardware {
-                            Text("No camera hardware detected")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                        } else {
-                            Text("Camera activates before lookaway reminders")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    Toggle(
-                        "",
-                        isOn: Binding(
-                            get: {
-                                settingsManager.isTimerEnabled(for: .lookAway)
-                                    || settingsManager.isTimerEnabled(for: .blink)
-                                    || settingsManager.isTimerEnabled(for: .posture)
-                            },
-                            set: { newValue in
-                                if newValue {
-                                    Task { @MainActor in
-                                        try await cameraService.requestCameraAccess()
-                                    }
-                                }
-                            }
-                        )
-                    )
-                    .labelsHidden()
-                    .disabled(!cameraService.hasCameraHardware)
-                    .controlSize(isCompact ? .small : .regular)
-                }
-                .padding(isCompact ? 10 : 16)
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Camera Access")
-                            .font(isCompact ? .subheadline : .headline)
-
-                        if !cameraService.hasCameraHardware {
-                            Label("No camera", systemImage: "xmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.orange)
-                        } else if cameraService.isCameraAuthorized {
-                            Label("Authorized", systemImage: "checkmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                        } else if let error = cameraService.cameraError {
-                            Label(
-                                error.localizedDescription,
-                                systemImage: "exclamationmark.triangle.fill"
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                        } else {
-                            Label("Not authorized", systemImage: "xmark.circle.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    if !cameraService.isCameraAuthorized {
-                        Button("Request Access") {
-                            Task { @MainActor in
-                                do {
-                                    try await cameraService.requestCameraAccess()
-                                } catch {
-                                    print("Camera access failed: \(error.localizedDescription)")
-                                }
-                            }
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(isCompact ? .small : .regular)
-                    }
-                }
-                .padding(isCompact ? 10 : 16)
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 12))
-            }
-
-            Spacer()
-        }
-    }
-
-    private var smartModeContent: some View {
-        VStack(spacing: isCompact ? 10 : 16) {
-            Image(systemName: "brain.fill")
-                .font(
-                    .system(
-                        size: isCompact
-                            ? AdaptiveLayout.Font.cardIconSmall : AdaptiveLayout.Font.cardIcon)
-                )
-                .foregroundStyle(.purple)
-
-            Text("Smart Mode")
-                .font(isCompact ? .headline : .title2)
-                .fontWeight(.bold)
-
-            Text("Automatically manage timers based on activity")
-                .font(isCompact ? .caption : .subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-
-            Spacer()
-
-            VStack(spacing: isCompact ? 8 : 12) {
-                smartModeToggle(
-                    icon: "arrow.up.left.and.arrow.down.right",
-                    iconColor: .blue,
-                    title: "Auto-pause on Fullscreen",
-                    subtitle: "Pause during videos, games, presentations",
-                    isOn: $settingsManager.settings.smartMode.autoPauseOnFullscreen
-                )
-
-                smartModeToggle(
-                    icon: "moon.zzz.fill",
-                    iconColor: .indigo,
-                    title: "Auto-pause on Idle",
-                    subtitle: "Pause when you're inactive",
-                    isOn: $settingsManager.settings.smartMode.autoPauseOnIdle
-                )
-
-                #if DEBUG
-                    smartModeToggle(
-                        icon: "chart.line.uptrend.xyaxis",
-                        iconColor: .green,
-                        title: "Track Usage Statistics",
-                        subtitle: "Monitor active and idle time",
-                        isOn: $settingsManager.settings.smartMode.trackUsage
-                    )
-                #endif
-            }
-
-            Spacer()
-        }
-    }
-
-    @ViewBuilder
-    private func smartModeToggle(
-        icon: String, iconColor: Color, title: String, subtitle: String, isOn: Binding<Bool>
-    ) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundStyle(iconColor)
-                .frame(width: isCompact ? 20 : 24)
-
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(isCompact ? .caption : .subheadline)
-                    .fontWeight(.medium)
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Toggle("", isOn: isOn)
-                .labelsHidden()
-                .controlSize(.small)
-        }
-        .padding(.horizontal, isCompact ? 8 : 12)
-        .padding(.vertical, isCompact ? 6 : 10)
-        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: 10))
+        .zIndex(zIndex(for: index))
+        .scaleEffect(scale(for: index))
+        .offset(x: xOffset(for: index), y: yOffset(for: index))
     }
 
     // MARK: - Gestures & Navigation

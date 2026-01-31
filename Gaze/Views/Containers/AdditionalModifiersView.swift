@@ -60,23 +60,24 @@ struct AdditionalModifiersView: View {
                     #if DEBUG
                         setupCard(
                             presentation: .card,
-                            content: EnforceModeSetupContent(
-                                settingsManager: settingsManager,
-                                presentation: .card,
-                                isTestModeActive: $isTestModeActive,
-                                cachedPreviewLayer: $cachedPreviewLayer,
-                                showAdvancedSettings: $showAdvancedSettings,
-                                showCalibrationWindow: $showCalibrationWindow,
-                                isViewActive: $isViewActive,
-                                isProcessingToggle: isProcessingToggle,
-                                handleEnforceModeToggle: { enabled in
-                                    if enabled {
-                                        Task { @MainActor in
-                                            try await cameraService.requestCameraAccess()
+                            content:
+                                EnforceModeSetupContent(
+                                    settingsManager: settingsManager,
+                                    presentation: .card,
+                                    isTestModeActive: $isTestModeActive,
+                                    cachedPreviewLayer: $cachedPreviewLayer,
+                                    showAdvancedSettings: $showAdvancedSettings,
+                                    showCalibrationWindow: $showCalibrationWindow,
+                                    isViewActive: $isViewActive,
+                                    isProcessingToggle: isProcessingToggle,
+                                    handleEnforceModeToggle: { enabled in
+                                        if enabled {
+                                            Task { @MainActor in
+                                                try await cameraService.requestCameraAccess()
+                                            }
                                         }
                                     }
-                                }
-                            ),
+                                ),
                             width: cardWidth,
                             height: cardHeight,
                             index: 0
@@ -243,9 +244,11 @@ struct AdditionalModifiersView: View {
                 .fill(Color(NSColor.windowBackgroundColor))
                 .shadow(color: Color.black.opacity(0.2), radius: 10, x: 0, y: 4)
 
-            content
-                .padding(isCompact ? 12 : 20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+            ScrollView {
+                content
+                    .padding(isCompact ? 12 : 20)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .frame(width: width, height: height)
         .zIndex(zIndex(for: index))

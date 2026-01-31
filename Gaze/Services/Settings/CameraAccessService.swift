@@ -5,6 +5,7 @@
 //  Created by Mike Freno on 1/13/26.
 //
 
+import AppKit
 import AVFoundation
 import Combine
 
@@ -33,11 +34,20 @@ class CameraAccessService: ObservableObject {
             return
         }
 
+        let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
+        if currentStatus == .denied || currentStatus == .restricted {
+            checkCameraAuthorizationStatus()
+            openSystemSettings()
+            throw CameraAccessError.accessDenied
+        }
+
         print("🎥 Calling AVCaptureDevice.requestAccess...")
         let status = await AVCaptureDevice.requestAccess(for: .video)
         print("🎥 Permission result: \(status)")
         
         if !status {
+            checkCameraAuthorizationStatus()
+            openSystemSettings()
             throw CameraAccessError.accessDenied
         }
 
@@ -69,6 +79,27 @@ class CameraAccessService: ObservableObject {
         }
     }
 
+    func openSystemSettings() {
+        let possibleUrls = [
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera",
+            "x-apple.systempreferences:Privacy?Camera",
+            "x-apple.systempreferences:com.apple.preference.security",
+            "x-apple.systempreferences:Privacy",
+            "x-apple.systempreferences:com.apple.preferences.security",
+        ]
+
+        for urlString in possibleUrls {
+            if let url = URL(string: urlString),
+                NSWorkspace.shared.open(url)
+            {
+                print("Successfully opened: \(urlString)")
+                return
+            }
+        }
+
+        print("⚠️ Failed to open System Settings")
+    }
+
     func checkCameraHardware() {
         let devices = AVCaptureDevice.DiscoverySession(
             deviceTypes: [.builtInWideAngleCamera],
@@ -97,7 +128,7 @@ enum CameraAccessError: Error, LocalizedError {
         switch self {
         case .accessDenied:
             return
-                "Camera access was denied. Please enable camera permissions in System Preferences."
+                "Camera access was denied. Please enable camera permissions in System Settings."
         case .unsupportedOS:
             return "This feature requires macOS 12 or later."
         case .unknown:

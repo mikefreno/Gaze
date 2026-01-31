@@ -75,6 +75,22 @@ class EnforceModeService: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+
+        settingsManager._settingsSubject
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.refreshEnforceModeState()
+            }
+            .store(in: &cancellables)
+    }
+
+    private func refreshEnforceModeState() {
+        let cameraService = CameraAccessService.shared
+        let enabled = isEnforcementEnabled && cameraService.isCameraAuthorized
+        if isEnforceModeEnabled != enabled {
+            isEnforceModeEnabled = enabled
+            logDebug("🔄 Enforce mode state refreshed: \(enabled)")
+        }
     }
 
     // MARK: - Enable/Disable

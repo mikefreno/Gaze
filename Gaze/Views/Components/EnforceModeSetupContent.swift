@@ -339,9 +339,7 @@ struct EnforceModeSetupContent: View {
                 "",
                 isOn: Binding(
                     get: {
-                        settingsManager.isTimerEnabled(for: .lookAway)
-                            || settingsManager.isTimerEnabled(for: .blink)
-                            || settingsManager.isTimerEnabled(for: .posture)
+                        enforceModeService.isEnforceModeEnabled
                     },
                     set: { newValue in
                         guard !isProcessingToggle else { return }

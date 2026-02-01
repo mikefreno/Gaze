@@ -43,6 +43,7 @@ final class SettingsManager {
         .posture: \.postureIntervalMinutes,
     ]
 
+
     private init() {
         self.settings = Self.loadSettings()
         _settingsSubject.send(settings)
@@ -64,8 +65,43 @@ final class SettingsManager {
         do {
             return try JSONDecoder().decode(AppSettings.self, from: data)
         } catch {
+            if let migrated = migrateLegacySettings(from: data) {
+                return migrated
+            }
             return .defaults
         }
+    }
+
+    private static func migrateLegacySettings(from data: Data) -> AppSettings? {
+        guard let legacy = try? JSONDecoder().decode(LegacyAppSettings.self, from: data) else {
+            return nil
+        }
+
+        var settings = AppSettings(
+            lookAwayEnabled: legacy.lookAwayEnabled,
+            lookAwayIntervalMinutes: legacy.lookAwayIntervalMinutes,
+            lookAwayCountdownSeconds: DefaultSettingsBuilder.lookAwayCountdownSeconds,
+            blinkEnabled: legacy.blinkEnabled,
+            blinkIntervalMinutes: legacy.blinkIntervalMinutes,
+            postureEnabled: legacy.postureEnabled,
+            postureIntervalMinutes: legacy.postureIntervalMinutes,
+            userTimers: legacy.userTimers,
+            subtleReminderSize: legacy.subtleReminderSize,
+            smartMode: legacy.smartMode,
+            enforceModeEyeBoxWidthFactor: legacy.enforceModeEyeBoxWidthFactor,
+            enforceModeEyeBoxHeightFactor: legacy.enforceModeEyeBoxHeightFactor,
+            enforceModeCalibration: legacy.enforceModeCalibration,
+            hasCompletedOnboarding: legacy.hasCompletedOnboarding,
+            launchAtLogin: legacy.launchAtLogin,
+            playSounds: legacy.playSounds
+        )
+
+        for index in settings.userTimers.indices {
+            if settings.userTimers[index].type == .overlay {
+                settings.userTimers[index].enforceModeEnabled = true
+            }
+        }
+        return settings
     }
 
     func save() {
@@ -122,4 +158,22 @@ final class SettingsManager {
             result[type] = (enabled: isTimerEnabled(for: type), intervalMinutes: timerIntervalMinutes(for: type))
         }
     }
+}
+
+private struct LegacyAppSettings: Codable {
+    let lookAwayEnabled: Bool
+    let lookAwayIntervalMinutes: Int
+    let blinkEnabled: Bool
+    let blinkIntervalMinutes: Int
+    let postureEnabled: Bool
+    let postureIntervalMinutes: Int
+    let userTimers: [UserTimer]
+    let subtleReminderSize: ReminderSize
+    let smartMode: SmartModeSettings
+    let enforceModeEyeBoxWidthFactor: Double
+    let enforceModeEyeBoxHeightFactor: Double
+    let enforceModeCalibration: EnforceModeCalibration?
+    let hasCompletedOnboarding: Bool
+    let launchAtLogin: Bool
+    let playSounds: Bool
 }

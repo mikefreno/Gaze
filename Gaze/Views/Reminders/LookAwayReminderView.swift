@@ -55,6 +55,15 @@ struct LookAwayReminderView: View {
                 .frame(width: 200, height: 200)
                 .padding(.vertical, 30)
 
+                if let enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    let shouldShowWarning = enforceModeService.shouldAdvanceLookAwayCountdown() == false
+                    if shouldShowWarning {
+                        Text("Look away to continue")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
+                }
+
                 // Countdown display
                 ZStack {
                     Circle()

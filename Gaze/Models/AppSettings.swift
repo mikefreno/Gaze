@@ -32,6 +32,7 @@ enum ReminderSize: String, Codable, CaseIterable, Sendable {
 struct AppSettings: Codable, Equatable, Hashable, Sendable {
     var lookAwayEnabled: Bool
     var lookAwayIntervalMinutes: Int
+    var lookAwayCountdownSeconds: Int
     var blinkEnabled: Bool
     var blinkIntervalMinutes: Int
     var postureEnabled: Bool
@@ -42,7 +43,6 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     var subtleReminderSize: ReminderSize
 
     var smartMode: SmartModeSettings
-    var enforceModeStrictness: Double
     var enforceModeEyeBoxWidthFactor: Double
     var enforceModeEyeBoxHeightFactor: Double
     var enforceModeCalibration: EnforceModeCalibration?
@@ -54,6 +54,7 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     init(
         lookAwayEnabled: Bool = DefaultSettingsBuilder.lookAwayEnabled,
         lookAwayIntervalMinutes: Int = DefaultSettingsBuilder.lookAwayIntervalMinutes,
+        lookAwayCountdownSeconds: Int = DefaultSettingsBuilder.lookAwayCountdownSeconds,
         blinkEnabled: Bool = DefaultSettingsBuilder.blinkEnabled,
         blinkIntervalMinutes: Int = DefaultSettingsBuilder.blinkIntervalMinutes,
         postureEnabled: Bool = DefaultSettingsBuilder.postureEnabled,
@@ -61,7 +62,6 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         userTimers: [UserTimer] = [],
         subtleReminderSize: ReminderSize = DefaultSettingsBuilder.subtleReminderSize,
         smartMode: SmartModeSettings = DefaultSettingsBuilder.smartMode,
-        enforceModeStrictness: Double = DefaultSettingsBuilder.enforceModeStrictness,
         enforceModeEyeBoxWidthFactor: Double = DefaultSettingsBuilder.enforceModeEyeBoxWidthFactor,
         enforceModeEyeBoxHeightFactor: Double = DefaultSettingsBuilder.enforceModeEyeBoxHeightFactor,
         enforceModeCalibration: EnforceModeCalibration? = DefaultSettingsBuilder.enforceModeCalibration,
@@ -71,6 +71,7 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     ) {
         self.lookAwayEnabled = lookAwayEnabled
         self.lookAwayIntervalMinutes = lookAwayIntervalMinutes
+        self.lookAwayCountdownSeconds = lookAwayCountdownSeconds
         self.blinkEnabled = blinkEnabled
         self.blinkIntervalMinutes = blinkIntervalMinutes
         self.postureEnabled = postureEnabled
@@ -78,7 +79,6 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         self.userTimers = userTimers
         self.subtleReminderSize = subtleReminderSize
         self.smartMode = smartMode
-        self.enforceModeStrictness = enforceModeStrictness
         self.enforceModeEyeBoxWidthFactor = enforceModeEyeBoxWidthFactor
         self.enforceModeEyeBoxHeightFactor = enforceModeEyeBoxHeightFactor
         self.enforceModeCalibration = enforceModeCalibration

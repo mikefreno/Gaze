@@ -77,9 +77,6 @@ struct EnforceModeSetupContent: View {
                     eyeTrackingStatusView
                     trackingConstantsView
                 }
-                if enforceModeService.isEnforceModeEnabled {
-                    strictnessControlView
-                }
                 calibrationActionView
                 privacyInfoView
             }
@@ -364,31 +361,6 @@ struct EnforceModeSetupContent: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-            }
-        }
-        .padding(sectionPadding)
-        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
-    }
-
-    private var strictnessControlView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Tracking Strictness")
-                .font(headerFont)
-
-            Slider(
-                value: $settingsManager.settings.enforceModeStrictness,
-                in: 0...1
-            )
-            .controlSize(.small)
-
-            HStack {
-                Text("Lenient")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("Strict")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
             }
         }
         .padding(sectionPadding)

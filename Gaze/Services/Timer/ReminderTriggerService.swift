@@ -24,9 +24,7 @@ final class ReminderTriggerService {
         case .builtIn(let type):
             switch type {
             case .lookAway:
-                return .lookAwayTriggered(
-                    intervalMinutes: settingsProvider.settings.lookAwayIntervalMinutes
-                )
+                return .lookAwayTriggered(countdownSeconds: settingsProvider.settings.lookAwayCountdownSeconds)
             case .blink:
                 return .blinkTriggered
             case .posture:
@@ -42,7 +40,15 @@ final class ReminderTriggerService {
 
     func shouldPrepareEnforceMode(for identifier: TimerIdentifier, secondsRemaining: Int) -> Bool {
         guard secondsRemaining <= 3 else { return false }
-        return enforceModeService?.shouldEnforceBreak(for: identifier) ?? false
+        switch identifier {
+        case .builtIn:
+            return enforceModeService?.shouldEnforceBreak(for: identifier) ?? false
+        case .user(let id):
+            guard let userTimer = settingsProvider.settings.userTimers.first(where: { $0.id == id }) else {
+                return false
+            }
+            return enforceModeService?.shouldEnforceUserTimer(userTimer) ?? false
+        }
     }
 
     func prepareEnforceMode(secondsRemaining: Int) async {

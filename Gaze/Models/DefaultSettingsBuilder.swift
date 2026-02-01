@@ -10,13 +10,13 @@ import Foundation
 struct DefaultSettingsBuilder {
     static let lookAwayEnabled = true
     static let lookAwayIntervalMinutes = 20
+    static let lookAwayCountdownSeconds = 20
     static let blinkEnabled = false
     static let blinkIntervalMinutes = 7
     static let postureEnabled = true
     static let postureIntervalMinutes = 30
     static let subtleReminderSize: ReminderSize = .medium
     static let smartMode: SmartModeSettings = .defaults
-    static let enforceModeStrictness = 0.4
     static let enforceModeEyeBoxWidthFactor = 0.20
     static let enforceModeEyeBoxHeightFactor = 0.02
     static let enforceModeCalibration: EnforceModeCalibration? = nil
@@ -35,7 +35,6 @@ struct DefaultSettingsBuilder {
             userTimers: [],
             subtleReminderSize: subtleReminderSize,
             smartMode: smartMode,
-            enforceModeStrictness: enforceModeStrictness,
             enforceModeEyeBoxWidthFactor: enforceModeEyeBoxWidthFactor,
             enforceModeEyeBoxHeightFactor: enforceModeEyeBoxHeightFactor,
             enforceModeCalibration: enforceModeCalibration,

@@ -209,7 +209,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
 
         case .userTimerTriggered(let timer):
             if timer.type == .overlay {
-                let view = UserTimerOverlayReminderView(timer: timer) { [weak self] in
+                let view = UserTimerOverlayReminderView(
+                    timer: timer,
+                    enforceModeService: EnforceModeService.shared
+                ) { [weak self] in
                     self?.timerEngine?.dismissReminder()
                 }
                 windowManager.showReminderWindow(view, windowType: .overlay)

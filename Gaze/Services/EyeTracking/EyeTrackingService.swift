@@ -41,21 +41,17 @@ class EyeTrackingService: NSObject, ObservableObject {
         SettingsManager.shared._settingsSubject
             .receive(on: RunLoop.main)
             .sink { [weak self] settings in
-                self?.applyStrictness(settings.enforceModeStrictness)
+                self?.applyStrictness(settings)
             }
             .store(in: &cancellables)
 
-        applyStrictness(SettingsManager.shared.settings.enforceModeStrictness)
+        applyStrictness(SettingsManager.shared.settings)
     }
 
-    private func applyStrictness(_ strictness: Double) {
-        let settings = SettingsManager.shared.settings
+    private func applyStrictness(_ settings: AppSettings) {
         let widthFactor = settings.enforceModeEyeBoxWidthFactor
         let heightFactor = settings.enforceModeEyeBoxHeightFactor
         let calibration = settings.enforceModeCalibration
-
-        let clamped = min(1, max(0, strictness))
-        let scale = 1.6 - (0.8 * clamped)
 
         let horizontalThreshold: Double
         let verticalThreshold: Double
@@ -67,15 +63,15 @@ class EyeTrackingService: NSObject, ObservableObject {
             let halfWidth = max(0.01, (calibration.horizontalMax - calibration.horizontalMin) / 2)
             let halfHeight = max(0.01, (calibration.verticalMax - calibration.verticalMin) / 2)
             let marginScale = 0.15
-            horizontalThreshold = halfWidth * (1.0 + marginScale) * scale
-            verticalThreshold = halfHeight * (1.0 + marginScale) * scale
+            horizontalThreshold = halfWidth * (1.0 + marginScale)
+            verticalThreshold = halfHeight * (1.0 + marginScale)
             baselineEnabled = false
             centerHorizontal = (calibration.horizontalMin + calibration.horizontalMax) / 2
             centerVertical = (calibration.verticalMin + calibration.verticalMax) / 2
             processor.setFaceWidthBaseline(calibration.faceWidthRatio)
         } else {
-            horizontalThreshold = TrackingConfig.default.horizontalAwayThreshold * scale
-            verticalThreshold = TrackingConfig.default.verticalAwayThreshold * scale
+            horizontalThreshold = TrackingConfig.default.horizontalAwayThreshold
+            verticalThreshold = TrackingConfig.default.verticalAwayThreshold
             baselineEnabled = TrackingConfig.default.baselineEnabled
             centerHorizontal = TrackingConfig.default.defaultCenterHorizontal
             centerVertical = TrackingConfig.default.defaultCenterVertical

@@ -167,6 +167,12 @@ class EnforceModeService: ObservableObject {
         }
     }
 
+    func shouldEnforceUserTimer(_ timer: UserTimer) -> Bool {
+        guard isEnforceModeEnabled else { return false }
+        guard timer.type == .overlay, timer.enforceModeEnabled else { return false }
+        return true
+    }
+
     func shouldEnforceBreak(for timerIdentifier: TimerIdentifier) -> Bool {
         guard isEnforceModeEnabled else { return false }
         return shouldEnforce(timerIdentifier: timerIdentifier)
@@ -344,8 +350,13 @@ class EnforceModeService: ObservableObject {
             lastLookAwayTime = Date()
             return true
         }
+        return false
+    }
 
-        return Date().timeIntervalSince(lastLookAwayTime) <= 0.25
+    func shouldAdvanceCountdown(for timer: UserTimer) -> Bool {
+        guard timer.type == .overlay else { return true }
+        guard timer.enforceModeEnabled else { return true }
+        return shouldAdvanceLookAwayCountdown()
     }
 
     // MARK: - Test Mode

@@ -8,7 +8,7 @@
 import Foundation
 
 enum ReminderEvent: Equatable {
-    case lookAwayTriggered(intervalMinutes: Int)
+    case lookAwayTriggered(countdownSeconds: Int)
     case blinkTriggered
     case postureTriggered
     case userTimerTriggered(UserTimer)
@@ -56,4 +56,3 @@ enum ReminderEvent: Equatable {
         return "Look Away"
     }
 }
-

@@ -18,6 +18,7 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable, Sendable {
     var message: String?
     var colorHex: String
     var enabled: Bool
+    var enforceModeEnabled: Bool
 
     init(
         id: String = UUID().uuidString,
@@ -27,7 +28,8 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable, Sendable {
         intervalMinutes: Int = 15,
         message: String? = nil,
         colorHex: String? = nil,
-        enabled: Bool = true
+        enabled: Bool = true,
+        enforceModeEnabled: Bool? = nil
     ) {
         self.id = id
         self.title = title ?? "User Reminder"
@@ -38,6 +40,20 @@ struct UserTimer: Codable, Equatable, Identifiable, Hashable, Sendable {
         self.message = message
         self.colorHex = colorHex ?? UserTimer.defaultColors[0]
         self.enabled = enabled
+        self.enforceModeEnabled = enforceModeEnabled ?? (type == .overlay)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        type = try container.decode(UserTimerType.self, forKey: .type)
+        timeOnScreenSeconds = try container.decode(Int.self, forKey: .timeOnScreenSeconds)
+        intervalMinutes = try container.decode(Int.self, forKey: .intervalMinutes)
+        message = try container.decodeIfPresent(String.self, forKey: .message)
+        colorHex = try container.decode(String.self, forKey: .colorHex)
+        enabled = try container.decode(Bool.self, forKey: .enabled)
+        enforceModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .enforceModeEnabled) ?? (type == .overlay)
     }
     
     // Default color palette for user timers
@@ -115,4 +131,3 @@ enum UserTimerType: String, Codable, CaseIterable, Identifiable, Sendable {
         }
     }
 }
-

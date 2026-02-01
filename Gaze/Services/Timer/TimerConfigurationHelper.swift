@@ -34,4 +34,8 @@ struct TimerConfigurationHelper {
             return (enabled: true, intervalSeconds: userTimer.intervalMinutes * 60)
         }
     }
+
+    func lookAwayCountdownSeconds() -> Int {
+        settingsProvider.settings.lookAwayCountdownSeconds
+    }
 }

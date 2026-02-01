@@ -165,12 +165,10 @@ struct UserTimerRow: View {
                     .font(isCompact ? .caption : .subheadline)
                     .fontWeight(.medium)
                     .lineLimit(1)
-                Text(
-                    "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
-                )
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+                Text(timerDetailsText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -214,6 +212,12 @@ struct UserTimerRow: View {
             isHovered = hovering
         }
     }
+
+    private var timerDetailsText: String {
+        let base = "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
+        guard timer.type == .overlay else { return base }
+        return base + (timer.enforceModeEnabled ? " • Enforce On" : " • Enforce Off")
+    }
 }
 
 struct UserTimerEditSheet: View {
@@ -228,6 +232,7 @@ struct UserTimerEditSheet: View {
     @State private var timeOnScreen: Int
     @State private var intervalMinutes: Int
     @State private var selectedColorHex: String
+    @State private var enforceModeEnabled: Bool
 
     init(
         timer: UserTimer?,
@@ -253,6 +258,7 @@ struct UserTimerEditSheet: View {
         _selectedColorHex = State(
             initialValue: timer?.colorHex
                 ?? UserTimer.defaultColors[existingTimersCount % UserTimer.defaultColors.count])
+        _enforceModeEnabled = State(initialValue: timer?.enforceModeEnabled ?? (timerType == .overlay))
     }
 
     var body: some View {
@@ -314,8 +320,10 @@ struct UserTimerEditSheet: View {
                     .onChange(of: type) { _, newType in
                         if newType == .subtle {
                             timeOnScreen = 3
+                            enforceModeEnabled = false
                         } else if timeOnScreen == 3 {
                             timeOnScreen = 10
+                            enforceModeEnabled = true
                         }
                     }
 
@@ -347,6 +355,22 @@ struct UserTimerEditSheet: View {
                                 .monospacedDigit()
                                 .font(.caption)
                         }
+                    }
+
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Enforce Mode")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                            Text("Require looking away during overlay countdown")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Toggle("", isOn: $enforceModeEnabled)
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
                     }
                 }
 
@@ -400,7 +424,8 @@ struct UserTimerEditSheet: View {
                         intervalMinutes: intervalMinutes,
                         message: message.isEmpty ? nil : message,
                         colorHex: selectedColorHex,
-                        enabled: timer?.enabled ?? true
+                        enabled: timer?.enabled ?? true,
+                        enforceModeEnabled: enforceModeEnabled
                     )
                     onSave(newTimer)
                 }
@@ -425,7 +450,8 @@ struct UserTimerEditSheet: View {
                 intervalMinutes: 15, message: "Take a break", colorHex: "9B59B6"),
             UserTimer(
                 id: "2", title: "User Reminder 2", type: .overlay, timeOnScreenSeconds: 60,
-                intervalMinutes: 30, message: "Stretch your legs", colorHex: "3498DB"),
+                intervalMinutes: 30, message: "Stretch your legs", colorHex: "3498DB",
+                enforceModeEnabled: false),
         ])
     )
 }

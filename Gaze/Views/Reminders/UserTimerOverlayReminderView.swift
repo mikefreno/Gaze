@@ -11,15 +11,23 @@ import SwiftUI
 struct UserTimerOverlayReminderView: View {
     let timer: UserTimer
     var onDismiss: () -> Void
+    var enforceModeService: EnforceModeService?
 
     @State private var remainingSeconds: Int
+    @State private var remainingTime: TimeInterval
     @State private var countdownTimer: Timer?
     @State private var keyMonitor: Any?
 
-    init(timer: UserTimer, onDismiss: @escaping () -> Void) {
+    init(
+        timer: UserTimer,
+        enforceModeService: EnforceModeService? = nil,
+        onDismiss: @escaping () -> Void
+    ) {
         self.timer = timer
+        self.enforceModeService = enforceModeService
         self.onDismiss = onDismiss
         self._remainingSeconds = State(initialValue: timer.timeOnScreenSeconds)
+        self._remainingTime = State(initialValue: TimeInterval(timer.timeOnScreenSeconds))
     }
 
     var body: some View {
@@ -40,6 +48,15 @@ struct UserTimerOverlayReminderView: View {
                         .foregroundStyle(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 40)
+                }
+
+                if timer.enforceModeEnabled {
+                    let shouldShowWarning = enforceModeService?.shouldAdvanceCountdown(for: timer) == false
+                    if shouldShowWarning {
+                        Text("Look away to continue")
+                            .font(.title3)
+                            .foregroundStyle(.white.opacity(0.9))
+                    }
                 }
 
                 Image(systemName: "clock.fill")
@@ -97,19 +114,26 @@ struct UserTimerOverlayReminderView: View {
     }
 
     private var progress: CGFloat {
-        CGFloat(remainingSeconds) / CGFloat(timer.timeOnScreenSeconds)
+        guard timer.timeOnScreenSeconds > 0 else { return 0 }
+        return CGFloat(remainingTime) / CGFloat(timer.timeOnScreenSeconds)
     }
 
     private func startCountdown() {
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [self] _ in
-            if remainingSeconds > 0 {
-                remainingSeconds -= 1
-            } else {
+        let tickInterval: TimeInterval = 0.25
+        let countdownTimer = Timer(timeInterval: tickInterval, repeats: true) { [self] _ in
+            guard remainingTime > 0 else {
                 dismiss()
+                return
+            }
+
+            let shouldAdvance = enforceModeService?.shouldAdvanceCountdown(for: timer) ?? true
+            if shouldAdvance {
+                remainingTime = max(0, remainingTime - tickInterval)
+                remainingSeconds = max(0, Int(ceil(remainingTime)))
             }
         }
-        RunLoop.current.add(timer, forMode: .common)
-        countdownTimer = timer
+        RunLoop.current.add(countdownTimer, forMode: .common)
+        self.countdownTimer = countdownTimer
     }
 
     private func dismiss() {

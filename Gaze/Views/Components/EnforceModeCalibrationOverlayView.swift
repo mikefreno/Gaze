@@ -37,7 +37,7 @@ struct EnforceModeCalibrationOverlayView: View {
                     .foregroundStyle(.white)
 
                 Text(
-                    "Use the sliders to fit the boxes around your eyes. When it looks right, continue."
+                    "Use the sliders to fit the boxes around your eyes. It need not be perfect."
                 )
                 .font(.callout)
                 .multilineTextAlignment(.center)
@@ -66,7 +66,7 @@ struct EnforceModeCalibrationOverlayView: View {
                 )
             }
             .padding(16)
-            .background(.black.opacity(0.6))
+            .background(.black.opacity(0.3))
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .frame(maxWidth: 420)
             .frame(maxHeight: .infinity, alignment: .center)

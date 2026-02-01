@@ -65,7 +65,8 @@ class EyeTrackingService: NSObject, ObservableObject {
             faceWidthScaleMax: 1.4,
             eyeBoundsHorizontalPadding: TrackingConfig.default.eyeBoundsHorizontalPadding,
             eyeBoundsVerticalPaddingUp: TrackingConfig.default.eyeBoundsVerticalPaddingUp,
-            eyeBoundsVerticalPaddingDown: TrackingConfig.default.eyeBoundsVerticalPaddingDown
+            eyeBoundsVerticalPaddingDown: TrackingConfig.default.eyeBoundsVerticalPaddingDown,
+            eyeBoundsSmoothing: TrackingConfig.default.eyeBoundsSmoothing
         )
 
         processor.updateConfig(config)

@@ -18,6 +18,7 @@ struct LookAwayReminderView: View {
     @State private var remainingTime: TimeInterval
     @State private var timer: Timer?
     @State private var keyMonitor: Any?
+    @State private var dismissBufferActive = false
 
     init(
         countdownSeconds: Int,
@@ -39,9 +40,19 @@ struct LookAwayReminderView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 40) {
-                Text("Look Away")
-                    .font(.system(size: 64, weight: .bold))
-                    .foregroundStyle(.white)
+                HStack {
+                    Text("Look Away")
+                        .font(.system(size: 64, weight: .bold))
+                        .foregroundStyle(.white)
+                    
+                    // Enforce mode indicator
+                    if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                        Image(systemName: "lock.shield")
+                            .foregroundColor(.white)
+                            .font(.system(size: 24))
+                            .padding(.leading, 8)
+                    }
+                }
 
                 Text("Look at something 20 feet away")
                     .font(.system(size: 28))
@@ -84,16 +95,22 @@ struct LookAwayReminderView: View {
                         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.countdownLabel)
                 }
 
-                Text("Press ESC or Space to skip")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    Text("Press CMD+Q to dismiss")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+                } else {
+                    Text("Press ESC or Space to skip")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
             }
 
             // Skip button in corner
             VStack {
                 HStack {
                     Spacer()
-                    Button(action: dismiss) {
+                    Button(action: handleDismiss) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 32))
                             .foregroundStyle(.white.opacity(0.7))
@@ -138,6 +155,19 @@ struct LookAwayReminderView: View {
         self.timer = timer
     }
 
+    private func handleDismiss() {
+        // Apply dismiss buffer to prevent accidental dismissals
+        guard !dismissBufferActive else { return }
+        
+        dismissBufferActive = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            dismissBufferActive = false
+        }
+        
+        timer?.invalidate()
+        onDismiss()
+    }
+
     private func dismiss() {
         timer?.invalidate()
         onDismiss()
@@ -146,10 +176,21 @@ struct LookAwayReminderView: View {
     private func setupKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 53 {  // ESC key
-                dismiss()
+                // In enforce mode, ignore ESC key
+                if let enforceModeService = self.enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    return event
+                }
+                handleDismiss()
                 return nil
             } else if event.keyCode == 49 {  // Space key
-                dismiss()
+                // In enforce mode, ignore Space key
+                if let enforceModeService = self.enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    return event
+                }
+                handleDismiss()
+                return nil
+            } else if event.keyCode == 12 ? event.modifierFlags.contains(.command) : false { // CMD+Q key
+                handleDismiss()
                 return nil
             }
             return event

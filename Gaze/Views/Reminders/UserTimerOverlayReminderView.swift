@@ -17,6 +17,7 @@ struct UserTimerOverlayReminderView: View {
     @State private var remainingTime: TimeInterval
     @State private var countdownTimer: Timer?
     @State private var keyMonitor: Any?
+    @State private var dismissBufferActive = false
 
     init(
         timer: UserTimer,
@@ -38,9 +39,19 @@ struct UserTimerOverlayReminderView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 40) {
-                Text(timer.title)
-                    .font(.system(size: 64, weight: .bold))
-                    .foregroundStyle(.white)
+                HStack {
+                    Text(timer.title)
+                        .font(.system(size: 64, weight: .bold))
+                        .foregroundStyle(.white)
+                    
+                    // Enforce mode indicator
+                    if timer.enforceModeEnabled, let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                        Image(systemName: "lock.shield")
+                            .foregroundColor(.white)
+                            .font(.system(size: 24))
+                            .padding(.leading, 8)
+                    }
+                }
 
                 if let message = timer.message, !message.isEmpty {
                     Text(message)
@@ -83,16 +94,22 @@ struct UserTimerOverlayReminderView: View {
                         .monospacedDigit()
                 }
 
-                Text("Press ESC or Space to dismiss")
-                    .font(.subheadline)
-                    .foregroundStyle(.white.opacity(0.6))
+                if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    Text("Press CMD+Q to dismiss")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+                } else {
+                    Text("Press ESC or Space to dismiss")
+                        .font(.subheadline)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
             }
 
             // Dismiss button in corner
             VStack {
                 HStack {
                     Spacer()
-                    Button(action: dismiss) {
+                    Button(action: handleDismiss) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 32))
                             .foregroundStyle(.white.opacity(0.7))
@@ -136,20 +153,55 @@ struct UserTimerOverlayReminderView: View {
         self.countdownTimer = countdownTimer
     }
 
+    private func handleDismiss() {
+        // Apply dismiss buffer for enforce mode overlays
+        if let enforceModeService = self.enforceModeService, 
+           enforceModeService.isEnforceModeEnabled,
+           !self.dismissBufferActive {
+            // Start the 0.5 second buffer
+            self.dismissBufferActive = true
+            
+            // After buffer period, allow dismissal
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.dismissBufferActive = false
+                self.onDismiss()
+            }
+        } else {
+            dismiss()
+        }
+    }
+
     private func dismiss() {
         countdownTimer?.invalidate()
         onDismiss()
     }
 
     private func setupKeyMonitor() {
-        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == 53 {  // ESC key
-                dismiss()
-                return nil
-            } else if event.keyCode == 49 {  // Space key
-                dismiss()
-                return nil
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [self] event in
+            // Check if we're in enforce mode and should block certain keys
+            if let enforceModeService = self.enforceModeService, 
+               enforceModeService.isEnforceModeEnabled {
+                // Block ESC and Space keys
+                if event.keyCode == 53 {  // ESC key
+                    return nil // Block it
+                } else if event.keyCode == 49 {  // Space key
+                    return nil // Block it
+                }
+                // Allow CMD+Q to pass through for force dismissal
+                else if event.modifierFlags.contains(.command) && event.keyCode == 12 { // CMD+Q
+                    return event // Let it pass through
+                }
+            } else {
+                // In non-enforce mode, allow ESC and Space keys normally
+                if event.keyCode == 53 {  // ESC key
+                    dismiss()
+                    return nil
+                } else if event.keyCode == 49 {  // Space key
+                    dismiss()
+                    return nil
+                }
             }
+            
             return event
         }
     }

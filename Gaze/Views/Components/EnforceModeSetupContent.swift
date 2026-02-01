@@ -5,8 +5,8 @@
 //  Created by Mike Freno on 1/30/26.
 //
 
-import AppKit
 import AVFoundation
+import AppKit
 import SwiftUI
 
 struct EnforceModeSetupContent: View {
@@ -79,6 +79,9 @@ struct EnforceModeSetupContent: View {
                 if enforceModeService.isEnforceModeEnabled {
                     strictnessControlView
                 }
+                if isTestModeActive && enforceModeService.isCameraActive {
+                    eyeBoxControlView
+                }
                 if enforceModeService.isCameraActive {
                     trackingLapButton
                 }
@@ -120,7 +123,6 @@ struct EnforceModeSetupContent: View {
         .controlSize(presentation.isCard ? .regular : .large)
     }
 
-
     private var testModePreviewView: some View {
         VStack(spacing: 16) {
             let lookingAway = eyeTrackingService.trackingResult.gazeState == .lookingAway
@@ -140,7 +142,9 @@ struct EnforceModeSetupContent: View {
                     }
                 }
                 .frame(height: presentation.isCard ? 180 : (isCompact ? 200 : 300))
-                .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
+                .glassEffectIfAvailable(
+                    GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius)
+                )
                 .onAppear {
                     if cachedPreviewLayer == nil {
                         cachedPreviewLayer = eyeTrackingService.previewLayer
@@ -249,7 +253,8 @@ struct EnforceModeSetupContent: View {
         }
         .padding(sectionPadding)
         .glassEffectIfAvailable(
-            GlassStyle.regular.tint(.blue.opacity(0.1)), in: .rect(cornerRadius: sectionCornerRadius)
+            GlassStyle.regular.tint(.blue.opacity(0.1)),
+            in: .rect(cornerRadius: sectionCornerRadius)
         )
     }
 
@@ -349,7 +354,8 @@ struct EnforceModeSetupContent: View {
                 }
 
                 if let horizontal = eyeTrackingService.debugState.normalizedHorizontal,
-                   let vertical = eyeTrackingService.debugState.normalizedVertical {
+                    let vertical = eyeTrackingService.debugState.normalizedVertical
+                {
                     HStack(spacing: 12) {
                         Text("Ratios:")
                             .font(.caption2)
@@ -387,6 +393,37 @@ struct EnforceModeSetupContent: View {
                 Text("Strict")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .padding(sectionPadding)
+        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
+    }
+
+    private var eyeBoxControlView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Eye Box Size")
+                .font(headerFont)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Width")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Slider(
+                    value: $settingsManager.settings.enforceModeEyeBoxWidthFactor,
+                    in: 0.12...0.25
+                )
+                .controlSize(.small)
+
+                Text("Height")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                Slider(
+                    value: $settingsManager.settings.enforceModeEyeBoxHeightFactor,
+                    in: 0.02...0.05
+                )
+                .controlSize(.small)
             }
         }
         .padding(sectionPadding)

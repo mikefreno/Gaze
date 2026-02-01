@@ -49,24 +49,56 @@ class EyeTrackingService: NSObject, ObservableObject {
     }
 
     private func applyStrictness(_ strictness: Double) {
+        let settings = SettingsManager.shared.settings
+        let widthFactor = settings.enforceModeEyeBoxWidthFactor
+        let heightFactor = settings.enforceModeEyeBoxHeightFactor
+        let calibration = settings.enforceModeCalibration
+
+        let clamped = min(1, max(0, strictness))
+        let scale = 1.6 - (0.8 * clamped)
+
+        let horizontalThreshold: Double
+        let verticalThreshold: Double
+        let baselineEnabled: Bool
+        let centerHorizontal: Double
+        let centerVertical: Double
+
+        if let calibration {
+            let halfWidth = max(0.01, (calibration.horizontalMax - calibration.horizontalMin) / 2)
+            let halfHeight = max(0.01, (calibration.verticalMax - calibration.verticalMin) / 2)
+            let marginScale = 0.15
+            horizontalThreshold = halfWidth * (1.0 + marginScale) * scale
+            verticalThreshold = halfHeight * (1.0 + marginScale) * scale
+            baselineEnabled = false
+            centerHorizontal = (calibration.horizontalMin + calibration.horizontalMax) / 2
+            centerVertical = (calibration.verticalMin + calibration.verticalMax) / 2
+        } else {
+            horizontalThreshold = TrackingConfig.default.horizontalAwayThreshold * scale
+            verticalThreshold = TrackingConfig.default.verticalAwayThreshold * scale
+            baselineEnabled = TrackingConfig.default.baselineEnabled
+            centerHorizontal = TrackingConfig.default.defaultCenterHorizontal
+            centerVertical = TrackingConfig.default.defaultCenterVertical
+        }
+
         let config = TrackingConfig(
-            horizontalAwayThreshold: 0.08,
-            verticalAwayThreshold: 0.12,
+            horizontalAwayThreshold: horizontalThreshold,
+            verticalAwayThreshold: verticalThreshold,
             minBaselineSamples: TrackingConfig.default.minBaselineSamples,
             baselineSmoothing: TrackingConfig.default.baselineSmoothing,
             baselineUpdateThreshold: TrackingConfig.default.baselineUpdateThreshold,
             minConfidence: TrackingConfig.default.minConfidence,
             eyeClosedThreshold: TrackingConfig.default.eyeClosedThreshold,
-            baselineEnabled: TrackingConfig.default.baselineEnabled,
-            defaultCenterHorizontal: TrackingConfig.default.defaultCenterHorizontal,
-            defaultCenterVertical: TrackingConfig.default.defaultCenterVertical,
+            baselineEnabled: baselineEnabled,
+            defaultCenterHorizontal: centerHorizontal,
+            defaultCenterVertical: centerVertical,
             faceWidthSmoothing: TrackingConfig.default.faceWidthSmoothing,
             faceWidthScaleMin: TrackingConfig.default.faceWidthScaleMin,
             faceWidthScaleMax: 1.4,
             eyeBoundsHorizontalPadding: TrackingConfig.default.eyeBoundsHorizontalPadding,
             eyeBoundsVerticalPaddingUp: TrackingConfig.default.eyeBoundsVerticalPaddingUp,
             eyeBoundsVerticalPaddingDown: TrackingConfig.default.eyeBoundsVerticalPaddingDown,
-            eyeBoundsSmoothing: TrackingConfig.default.eyeBoundsSmoothing
+            eyeBoxWidthFactor: widthFactor,
+            eyeBoxHeightFactor: heightFactor
         )
 
         processor.updateConfig(config)

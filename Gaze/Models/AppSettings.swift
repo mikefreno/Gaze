@@ -43,6 +43,9 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
 
     var smartMode: SmartModeSettings
     var enforceModeStrictness: Double
+    var enforceModeEyeBoxWidthFactor: Double
+    var enforceModeEyeBoxHeightFactor: Double
+    var enforceModeCalibration: EnforceModeCalibration?
 
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
@@ -59,6 +62,9 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         subtleReminderSize: ReminderSize = DefaultSettingsBuilder.subtleReminderSize,
         smartMode: SmartModeSettings = DefaultSettingsBuilder.smartMode,
         enforceModeStrictness: Double = DefaultSettingsBuilder.enforceModeStrictness,
+        enforceModeEyeBoxWidthFactor: Double = DefaultSettingsBuilder.enforceModeEyeBoxWidthFactor,
+        enforceModeEyeBoxHeightFactor: Double = DefaultSettingsBuilder.enforceModeEyeBoxHeightFactor,
+        enforceModeCalibration: EnforceModeCalibration? = DefaultSettingsBuilder.enforceModeCalibration,
         hasCompletedOnboarding: Bool = DefaultSettingsBuilder.hasCompletedOnboarding,
         launchAtLogin: Bool = DefaultSettingsBuilder.launchAtLogin,
         playSounds: Bool = DefaultSettingsBuilder.playSounds
@@ -73,6 +79,9 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         self.subtleReminderSize = subtleReminderSize
         self.smartMode = smartMode
         self.enforceModeStrictness = enforceModeStrictness
+        self.enforceModeEyeBoxWidthFactor = enforceModeEyeBoxWidthFactor
+        self.enforceModeEyeBoxHeightFactor = enforceModeEyeBoxHeightFactor
+        self.enforceModeCalibration = enforceModeCalibration
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.launchAtLogin = launchAtLogin
         self.playSounds = playSounds

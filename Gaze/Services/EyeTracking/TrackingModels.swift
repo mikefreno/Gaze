@@ -69,7 +69,8 @@ public struct TrackingConfig: Sendable {
         eyeBoundsHorizontalPadding: Double,
         eyeBoundsVerticalPaddingUp: Double,
         eyeBoundsVerticalPaddingDown: Double,
-        eyeBoundsSmoothing: Double
+        eyeBoxWidthFactor: Double,
+        eyeBoxHeightFactor: Double
     ) {
         self.horizontalAwayThreshold = horizontalAwayThreshold
         self.verticalAwayThreshold = verticalAwayThreshold
@@ -87,7 +88,8 @@ public struct TrackingConfig: Sendable {
         self.eyeBoundsHorizontalPadding = eyeBoundsHorizontalPadding
         self.eyeBoundsVerticalPaddingUp = eyeBoundsVerticalPaddingUp
         self.eyeBoundsVerticalPaddingDown = eyeBoundsVerticalPaddingDown
-        self.eyeBoundsSmoothing = eyeBoundsSmoothing
+        self.eyeBoxWidthFactor = eyeBoxWidthFactor
+        self.eyeBoxHeightFactor = eyeBoxHeightFactor
     }
 
     public let horizontalAwayThreshold: Double
@@ -106,7 +108,8 @@ public struct TrackingConfig: Sendable {
     public let eyeBoundsHorizontalPadding: Double
     public let eyeBoundsVerticalPaddingUp: Double
     public let eyeBoundsVerticalPaddingDown: Double
-    public let eyeBoundsSmoothing: Double
+    public let eyeBoxWidthFactor: Double
+    public let eyeBoxHeightFactor: Double
 
     public static let `default` = TrackingConfig(
         horizontalAwayThreshold: 0.08,
@@ -125,6 +128,7 @@ public struct TrackingConfig: Sendable {
         eyeBoundsHorizontalPadding: 0.1,
         eyeBoundsVerticalPaddingUp: 0.9,
         eyeBoundsVerticalPaddingDown: 0.4,
-        eyeBoundsSmoothing: 0.2
+        eyeBoxWidthFactor: 0.18,
+        eyeBoxHeightFactor: 0.10
     )
 }

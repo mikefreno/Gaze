@@ -32,8 +32,6 @@ final class VisionGazeProcessor: @unchecked Sendable {
     private let baselineModel = GazeBaselineModel()
     private var faceWidthBaseline: Double?
     private var faceWidthSmoothed: Double?
-    private var leftEyeFrameSmoothed: CGRect?
-    private var rightEyeFrameSmoothed: CGRect?
     private var config: TrackingConfig
 
     init(config: TrackingConfig) {
@@ -48,8 +46,6 @@ final class VisionGazeProcessor: @unchecked Sendable {
         baselineModel.reset()
         faceWidthBaseline = nil
         faceWidthSmoothed = nil
-        leftEyeFrameSmoothed = nil
-        rightEyeFrameSmoothed = nil
     }
 
     func process(analysis: VisionPipeline.FaceAnalysis) -> ObservationResult {
@@ -81,15 +77,13 @@ final class VisionGazeProcessor: @unchecked Sendable {
             eye: landmarks.leftEye,
             pupil: landmarks.leftPupil,
             face: face,
-            imageSize: analysis.imageSize,
-            smoothingRect: &leftEyeFrameSmoothed
+            imageSize: analysis.imageSize
         )
         let rightEye = makeEyeObservation(
             eye: landmarks.rightEye,
             pupil: landmarks.rightPupil,
             face: face,
-            imageSize: analysis.imageSize,
-            smoothingRect: &rightEyeFrameSmoothed
+            imageSize: analysis.imageSize
         )
 
         let eyesClosed = detectEyesClosed(left: leftEye, right: rightEye)
@@ -132,8 +126,7 @@ final class VisionGazeProcessor: @unchecked Sendable {
         eye: VNFaceLandmarkRegion2D?,
         pupil: VNFaceLandmarkRegion2D?,
         face: VNFaceObservation,
-        imageSize: CGSize,
-        smoothingRect: inout CGRect?
+        imageSize: CGSize
     ) -> EyeObservation? {
         guard let eye else { return nil }
 
@@ -149,10 +142,12 @@ final class VisionGazeProcessor: @unchecked Sendable {
             pupilPoint = bounds.center
         }
 
-        let rawFrame = CGRect(x: bounds.minX, y: bounds.minY, width: bounds.size.width, height: bounds.size.height)
-        let smoothedFrame = smoothRect(rawFrame, existing: &smoothingRect, smoothing: config.eyeBoundsSmoothing)
+        let eyeBox = makeFaceRelativeEyeBox(
+            center: bounds.center,
+            faceWidth: face.boundingBox.size.width * imageSize.width
+        )
         let paddedFrame = expandRect(
-            smoothedFrame,
+            eyeBox,
             horizontalPadding: config.eyeBoundsHorizontalPadding,
             verticalPaddingUp: config.eyeBoundsVerticalPaddingUp,
             verticalPaddingDown: config.eyeBoundsVerticalPaddingDown
@@ -247,24 +242,15 @@ final class VisionGazeProcessor: @unchecked Sendable {
         )
     }
 
-    private func smoothRect(_ rect: CGRect, existing: inout CGRect?, smoothing: Double) -> CGRect {
-        guard smoothing > 0, smoothing < 1 else {
-            existing = rect
-            return rect
-        }
-
-        if let current = existing {
-            let newOriginX = current.origin.x + (rect.origin.x - current.origin.x) * smoothing
-            let newOriginY = current.origin.y + (rect.origin.y - current.origin.y) * smoothing
-            let newWidth = current.size.width + (rect.size.width - current.size.width) * smoothing
-            let newHeight = current.size.height + (rect.size.height - current.size.height) * smoothing
-            let updated = CGRect(x: newOriginX, y: newOriginY, width: newWidth, height: newHeight)
-            existing = updated
-            return updated
-        }
-
-        existing = rect
-        return rect
+    private func makeFaceRelativeEyeBox(center: CGPoint, faceWidth: CGFloat) -> CGRect {
+        let width = faceWidth * CGFloat(config.eyeBoxWidthFactor)
+        let height = faceWidth * CGFloat(config.eyeBoxHeightFactor)
+        return CGRect(
+            x: center.x - width / 2,
+            y: center.y - height / 2,
+            width: width,
+            height: height
+        )
     }
 
     private func averageCoordinate(left: CGFloat?, right: CGFloat?, fallback: Double?) -> Double? {
@@ -342,9 +328,9 @@ final class VisionGazeProcessor: @unchecked Sendable {
         let lookingUp = vertical < baseline.vertical
         let verticalMultiplier: Double
         if lookingDown {
-            verticalMultiplier = 1.2
+            verticalMultiplier = 1.1
         } else if lookingUp {
-            verticalMultiplier = 1.8
+            verticalMultiplier = 1.4
         } else {
             verticalMultiplier = 1.0
         }

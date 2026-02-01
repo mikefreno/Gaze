@@ -100,6 +100,13 @@ final class CameraSessionManager: NSObject, ObservableObject {
         }
         session.addOutput(output)
 
+        if let connection = output.connection(with: .video) {
+            if connection.isVideoMirroringSupported {
+                connection.automaticallyAdjustsVideoMirroring = false
+                connection.isVideoMirrored = true
+            }
+        }
+
         self.captureSession = session
         self.videoOutput = output
     }

@@ -16,8 +16,7 @@ struct EnforceModeCalibrationOverlayView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.85)
-                .ignoresSafeArea()
+            cameraBackground
 
             switch calibrationService.currentStep {
             case .eyeBox:
@@ -31,19 +30,23 @@ struct EnforceModeCalibrationOverlayView: View {
     }
 
     private var eyeBoxStep: some View {
-        VStack(spacing: 24) {
-            Text("Adjust Eye Box")
-                .font(.title2)
-                .foregroundStyle(.white)
+        ZStack {
+            VStack(spacing: 16) {
+                Text("Adjust Eye Box")
+                    .font(.title2)
+                    .foregroundStyle(.white)
 
-            Text(
-                "Use the sliders to fit the boxes around your eyes. When it looks right, continue."
-            )
-            .font(.callout)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.white.opacity(0.8))
-
-            eyePreview
+                Text(
+                    "Use the sliders to fit the boxes around your eyes. When it looks right, continue."
+                )
+                .font(.callout)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.8))
+            }
+            .padding(.horizontal, 40)
+            .padding(.top, 40)
+            .frame(maxWidth: 520)
+            .frame(maxWidth: .infinity, alignment: .top)
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Width")
@@ -62,24 +65,29 @@ struct EnforceModeCalibrationOverlayView: View {
                     in: 0.01...0.10
                 )
             }
-            .padding()
-            .background(.white.opacity(0.1))
+            .padding(16)
+            .background(.black.opacity(0.6))
             .clipShape(RoundedRectangle(cornerRadius: 12))
+            .frame(maxWidth: 420)
+            .frame(maxHeight: .infinity, alignment: .center)
 
-            HStack(spacing: 12) {
-                Button("Cancel") {
-                    calibrationService.dismissOverlay()
-                    enforceModeService.stopTestMode()
-                }
-                .buttonStyle(.bordered)
+            VStack {
+                Spacer()
+                HStack(spacing: 12) {
+                    Button("Cancel") {
+                        calibrationService.dismissOverlay()
+                        enforceModeService.stopTestMode()
+                    }
+                    .buttonStyle(.bordered)
 
-                Button("Continue") {
-                    calibrationService.advance()
+                    Button("Continue") {
+                        calibrationService.advance()
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
+            .padding(.bottom, 40)
         }
-        .padding()
     }
 
     private var targetStep: some View {
@@ -99,10 +107,9 @@ struct EnforceModeCalibrationOverlayView: View {
             }
             .padding()
             .background(Color.black.opacity(0.7))
-            .frame(maxWidth: .infinity, alignment: .top)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
             targetDot
-
 
             VStack {
                 Spacer()
@@ -135,50 +142,56 @@ struct EnforceModeCalibrationOverlayView: View {
         }
     }
 
-    private var eyePreview: some View {
-        ZStack {
-            if let layer = eyeTrackingService.previewLayer {
-                CameraPreviewView(previewLayer: layer, borderColor: NSColor.systemBlue)
-                    .frame(height: 240)
-            }
-            GeometryReader { geometry in
-                EyeTrackingDebugOverlayView(
-                    debugState: eyeTrackingService.debugState,
-                    viewSize: geometry.size
-                )
-            }
-        }
-        .frame(height: 240)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
     private var targetDot: some View {
         GeometryReader { geometry in
             let target = calibrationService.currentTarget()
-            Circle()
-                .fill(Color.blue)
-                .frame(width: 100, height: 100)
-                .position(
-                    x: geometry.size.width * target.x,
-                    y: geometry.size.height * target.y
-                )
-                .overlay(
-                    Circle()
-                        .trim(from: 0, to: CGFloat(calibrationService.countdownProgress))
-                        .stroke(Color.blue.opacity(0.8), lineWidth: 6)
-                        .frame(width: 140, height: 140)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.linear(duration: 0.02), value: calibrationService.countdownProgress)
-                )
+            let center = CGPoint(
+                x: geometry.size.width * target.x,
+                y: geometry.size.height * target.y
+            )
+
+            ZStack {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 120, height: 120)
+
+                Circle()
+                    .trim(from: 0, to: CGFloat(calibrationService.countdownProgress))
+                    .stroke(Color.blue.opacity(0.8), lineWidth: 8)
+                    .frame(width: 160, height: 160)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 0.02), value: calibrationService.countdownProgress)
+            }
+            .position(center)
         }
         .ignoresSafeArea()
     }
 
-    private var countdownRing: some View {
-        Circle()
-            .trim(from: 0, to: CGFloat(calibrationService.countdownProgress))
-            .stroke(Color.blue.opacity(0.8), lineWidth: 6)
-            .frame(width: 120, height: 120)
-            .rotationEffect(.degrees(-90))
+    private var cameraBackground: some View {
+        ZStack {
+            if let layer = eyeTrackingService.previewLayer {
+                CameraPreviewView(
+                    previewLayer: layer,
+                    borderColor: .clear,
+                    showsBorder: false,
+                    cornerRadius: 0
+                )
+                .opacity(0.5)
+            }
+
+            if calibrationService.currentStep == .eyeBox {
+                GeometryReader { geometry in
+                    EyeTrackingDebugOverlayView(
+                        debugState: eyeTrackingService.debugState,
+                        viewSize: geometry.size
+                    )
+                    .opacity(0.8)
+                }
+            }
+
+            Color.black.opacity(0.35)
+                .ignoresSafeArea()
+        }
+        .ignoresSafeArea()
     }
 }

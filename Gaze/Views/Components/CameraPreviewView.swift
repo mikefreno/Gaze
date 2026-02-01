@@ -11,6 +11,20 @@ import AVFoundation
 struct CameraPreviewView: NSViewRepresentable {
     let previewLayer: AVCaptureVideoPreviewLayer
     let borderColor: NSColor
+    let showsBorder: Bool
+    let cornerRadius: CGFloat
+
+    init(
+        previewLayer: AVCaptureVideoPreviewLayer,
+        borderColor: NSColor,
+        showsBorder: Bool = true,
+        cornerRadius: CGFloat = 12
+    ) {
+        self.previewLayer = previewLayer
+        self.borderColor = borderColor
+        self.showsBorder = showsBorder
+        self.cornerRadius = cornerRadius
+    }
     
     func makeNSView(context: Context) -> PreviewContainerView {
         let view = PreviewContainerView()
@@ -21,6 +35,11 @@ struct CameraPreviewView: NSViewRepresentable {
             view.layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
             previewLayer.frame = view.bounds
             view.layer?.addSublayer(previewLayer)
+        }
+
+        if let connection = previewLayer.connection, connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = true
         }
         
         updateBorder(view: view, color: borderColor)
@@ -41,14 +60,23 @@ struct CameraPreviewView: NSViewRepresentable {
             // Same layer, just update frame
             previewLayer.frame = nsView.bounds
         }
+
+        if let connection = previewLayer.connection, connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = true
+        }
         
         updateBorder(view: nsView, color: borderColor)
     }
     
     private func updateBorder(view: NSView, color: NSColor) {
-        view.layer?.borderColor = color.cgColor
-        view.layer?.borderWidth = 4
-        view.layer?.cornerRadius = 12
+        if showsBorder {
+            view.layer?.borderColor = color.cgColor
+            view.layer?.borderWidth = 4
+        } else {
+            view.layer?.borderWidth = 0
+        }
+        view.layer?.cornerRadius = cornerRadius
         view.layer?.masksToBounds = true
     }
     

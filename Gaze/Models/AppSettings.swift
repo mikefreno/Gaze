@@ -42,6 +42,7 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
     var subtleReminderSize: ReminderSize
 
     var smartMode: SmartModeSettings
+    var enforceModeStrictness: Double
 
     var hasCompletedOnboarding: Bool
     var launchAtLogin: Bool
@@ -57,6 +58,7 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         userTimers: [UserTimer] = [],
         subtleReminderSize: ReminderSize = DefaultSettingsBuilder.subtleReminderSize,
         smartMode: SmartModeSettings = DefaultSettingsBuilder.smartMode,
+        enforceModeStrictness: Double = DefaultSettingsBuilder.enforceModeStrictness,
         hasCompletedOnboarding: Bool = DefaultSettingsBuilder.hasCompletedOnboarding,
         launchAtLogin: Bool = DefaultSettingsBuilder.launchAtLogin,
         playSounds: Bool = DefaultSettingsBuilder.playSounds
@@ -70,6 +72,7 @@ struct AppSettings: Codable, Equatable, Hashable, Sendable {
         self.userTimers = userTimers
         self.subtleReminderSize = subtleReminderSize
         self.smartMode = smartMode
+        self.enforceModeStrictness = enforceModeStrictness
         self.hasCompletedOnboarding = hasCompletedOnboarding
         self.launchAtLogin = launchAtLogin
         self.playSounds = playSounds

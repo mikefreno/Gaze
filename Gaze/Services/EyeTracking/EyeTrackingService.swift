@@ -19,6 +19,7 @@ class EyeTrackingService: NSObject, ObservableObject {
     private let cameraManager = CameraSessionManager()
     private let visionPipeline = VisionPipeline()
     private let processor: VisionGazeProcessor
+    private var cancellables = Set<AnyCancellable>()
 
     var previewLayer: AVCaptureVideoPreviewLayer? {
         cameraManager.previewLayer
@@ -33,6 +34,41 @@ class EyeTrackingService: NSObject, ObservableObject {
         self.processor = VisionGazeProcessor(config: config)
         super.init()
         cameraManager.delegate = self
+        setupSettingsObserver()
+    }
+
+    private func setupSettingsObserver() {
+        SettingsManager.shared._settingsSubject
+            .receive(on: RunLoop.main)
+            .sink { [weak self] settings in
+                self?.applyStrictness(settings.enforceModeStrictness)
+            }
+            .store(in: &cancellables)
+
+        applyStrictness(SettingsManager.shared.settings.enforceModeStrictness)
+    }
+
+    private func applyStrictness(_ strictness: Double) {
+        let config = TrackingConfig(
+            horizontalAwayThreshold: 0.08,
+            verticalAwayThreshold: 0.12,
+            minBaselineSamples: TrackingConfig.default.minBaselineSamples,
+            baselineSmoothing: TrackingConfig.default.baselineSmoothing,
+            baselineUpdateThreshold: TrackingConfig.default.baselineUpdateThreshold,
+            minConfidence: TrackingConfig.default.minConfidence,
+            eyeClosedThreshold: TrackingConfig.default.eyeClosedThreshold,
+            baselineEnabled: TrackingConfig.default.baselineEnabled,
+            defaultCenterHorizontal: TrackingConfig.default.defaultCenterHorizontal,
+            defaultCenterVertical: TrackingConfig.default.defaultCenterVertical,
+            faceWidthSmoothing: TrackingConfig.default.faceWidthSmoothing,
+            faceWidthScaleMin: TrackingConfig.default.faceWidthScaleMin,
+            faceWidthScaleMax: 1.4,
+            eyeBoundsHorizontalPadding: TrackingConfig.default.eyeBoundsHorizontalPadding,
+            eyeBoundsVerticalPaddingUp: TrackingConfig.default.eyeBoundsVerticalPaddingUp,
+            eyeBoundsVerticalPaddingDown: TrackingConfig.default.eyeBoundsVerticalPaddingDown
+        )
+
+        processor.updateConfig(config)
     }
 
     func startEyeTracking() async throws {

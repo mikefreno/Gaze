@@ -16,6 +16,7 @@ struct DefaultSettingsBuilder {
     static let postureIntervalMinutes = 30
     static let subtleReminderSize: ReminderSize = .medium
     static let smartMode: SmartModeSettings = .defaults
+    static let enforceModeStrictness = 0.4
     static let hasCompletedOnboarding = false
     static let launchAtLogin = false
     static let playSounds = true
@@ -31,6 +32,7 @@ struct DefaultSettingsBuilder {
             userTimers: [],
             subtleReminderSize: subtleReminderSize,
             smartMode: smartMode,
+            enforceModeStrictness: enforceModeStrictness,
             hasCompletedOnboarding: hasCompletedOnboarding,
             launchAtLogin: launchAtLogin,
             playSounds: playSounds

@@ -31,6 +31,8 @@ class EnforceModeService: ObservableObject {
     private var timerEngine: TimerEngine?
     private var cancellables = Set<AnyCancellable>()
     private var faceDetectionTimer: Timer?
+    private var trackingDebugTimer: Timer?
+    private var trackingLapStats = TrackingLapStats()
 
     // MARK: - Configuration
 
@@ -81,6 +83,17 @@ class EnforceModeService: ObservableObject {
             .receive(on: RunLoop.main)
             .sink { [weak self] _ in
                 self?.refreshEnforceModeState()
+            }
+            .store(in: &cancellables)
+
+        $isCameraActive
+            .removeDuplicates()
+            .sink { [weak self] isActive in
+                if isActive {
+                    self?.startTrackingDebugTimer()
+                } else {
+                    self?.stopTrackingDebugTimer()
+                }
             }
             .store(in: &cancellables)
     }
@@ -211,6 +224,7 @@ class EnforceModeService: ObservableObject {
         eyeTrackingService.stopEyeTracking()
         isCameraActive = false
         stopFaceDetectionTimer()
+        stopTrackingDebugTimer()
         userCompliedWithBreak = false
     }
 
@@ -257,6 +271,48 @@ class EnforceModeService: ObservableObject {
         faceDetectionTimer = nil
     }
 
+    private func startTrackingDebugTimer() {
+        stopTrackingDebugTimer()
+        trackingDebugTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
+            self?.logTrackingDebugSnapshot()
+        }
+    }
+
+    private func stopTrackingDebugTimer() {
+        trackingDebugTimer?.invalidate()
+        trackingDebugTimer = nil
+    }
+
+    private func logTrackingDebugSnapshot() {
+        guard isCameraActive else { return }
+
+        let debugState = eyeTrackingService.debugState
+        let faceWidth = debugState.faceWidthRatio.map { String(format: "%.3f", $0) } ?? "-"
+        let horizontal = debugState.normalizedHorizontal.map { String(format: "%.3f", $0) } ?? "-"
+        let vertical = debugState.normalizedVertical.map { String(format: "%.3f", $0) } ?? "-"
+
+        trackingLapStats.ingest(
+            faceWidth: debugState.faceWidthRatio,
+            horizontal: debugState.normalizedHorizontal,
+            vertical: debugState.normalizedVertical
+        )
+
+        logDebug(
+            "📊 Tracking | faceWidth=\(faceWidth) | h=\(horizontal) | v=\(vertical)",
+            category: "EyeTracking"
+        )
+    }
+
+    func logTrackingLap() {
+        logDebug("🏁 Tracking Lap", category: "EyeTracking")
+        logTrackingDebugSnapshot()
+
+        if let summary = trackingLapStats.summaryString() {
+            logDebug("📈 Lap Stats | \(summary)", category: "EyeTracking")
+        }
+        trackingLapStats.reset()
+    }
+
     private func checkFaceDetectionTimeout() {
         guard isCameraActive else {
             stopFaceDetectionTimer()
@@ -293,5 +349,47 @@ class EnforceModeService: ObservableObject {
         logDebug("🧪 Stopping test mode")
         stopCamera()
         isTestMode = false
+    }
+}
+
+private struct TrackingLapStats {
+    private var faceWidthValues: [Double] = []
+    private var horizontalValues: [Double] = []
+    private var verticalValues: [Double] = []
+
+    mutating func ingest(faceWidth: Double?, horizontal: Double?, vertical: Double?) {
+        if let faceWidth { faceWidthValues.append(faceWidth) }
+        if let horizontal { horizontalValues.append(horizontal) }
+        if let vertical { verticalValues.append(vertical) }
+    }
+
+    mutating func reset() {
+        faceWidthValues.removeAll(keepingCapacity: true)
+        horizontalValues.removeAll(keepingCapacity: true)
+        verticalValues.removeAll(keepingCapacity: true)
+    }
+
+    func summaryString() -> String? {
+        guard !faceWidthValues.isEmpty || !horizontalValues.isEmpty || !verticalValues.isEmpty else {
+            return nil
+        }
+
+        let faceWidth = stats(for: faceWidthValues)
+        let horizontal = stats(for: horizontalValues)
+        let vertical = stats(for: verticalValues)
+
+        return "faceWidth[\(faceWidth)] h[\(horizontal)] v[\(vertical)]"
+    }
+
+    private func stats(for values: [Double]) -> String {
+        guard let minValue = values.min(), let maxValue = values.max(), !values.isEmpty else {
+            return "-"
+        }
+        let mean = values.reduce(0, +) / Double(values.count)
+        return "min=\(format(minValue)) max=\(format(maxValue)) mean=\(format(mean))"
+    }
+
+    private func format(_ value: Double) -> String {
+        String(format: "%.3f", value)
     }
 }

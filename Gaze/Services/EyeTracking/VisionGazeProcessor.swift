@@ -30,6 +30,8 @@ final class VisionGazeProcessor: @unchecked Sendable {
     }
 
     private let baselineModel = GazeBaselineModel()
+    private var faceWidthBaseline: Double?
+    private var faceWidthSmoothed: Double?
     private var config: TrackingConfig
 
     init(config: TrackingConfig) {
@@ -42,6 +44,8 @@ final class VisionGazeProcessor: @unchecked Sendable {
 
     func resetBaseline() {
         baselineModel.reset()
+        faceWidthBaseline = nil
+        faceWidthSmoothed = nil
     }
 
     func process(analysis: VisionPipeline.FaceAnalysis) -> ObservationResult {
@@ -84,13 +88,16 @@ final class VisionGazeProcessor: @unchecked Sendable {
 
         let eyesClosed = detectEyesClosed(left: leftEye, right: rightEye)
         let (horizontal, vertical) = normalizePupilPosition(left: leftEye, right: rightEye)
+        let faceWidthRatio = Double(face.boundingBox.size.width)
+        let distanceScale = updateDistanceScale(faceWidthRatio: faceWidthRatio)
 
         let confidence = calculateConfidence(leftEye: leftEye, rightEye: rightEye)
         let gazeState = decideGazeState(
             horizontal: horizontal,
             vertical: vertical,
             confidence: confidence,
-            eyesClosed: eyesClosed
+            eyesClosed: eyesClosed,
+            distanceScale: distanceScale
         )
 
         let debugState = EyeTrackingDebugState(
@@ -98,7 +105,10 @@ final class VisionGazeProcessor: @unchecked Sendable {
             rightEyeRect: rightEye?.frame,
             leftPupil: leftEye?.pupil,
             rightPupil: rightEye?.pupil,
-            imageSize: analysis.imageSize
+            imageSize: analysis.imageSize,
+            faceWidthRatio: faceWidthRatio,
+            normalizedHorizontal: horizontal,
+            normalizedVertical: vertical
         )
 
         return ObservationResult(
@@ -132,10 +142,17 @@ final class VisionGazeProcessor: @unchecked Sendable {
             pupilPoint = bounds.center
         }
 
+        let paddedFrame = expandRect(
+            CGRect(x: bounds.minX, y: bounds.minY, width: bounds.size.width, height: bounds.size.height),
+            horizontalPadding: config.eyeBoundsHorizontalPadding,
+            verticalPaddingUp: config.eyeBoundsVerticalPaddingUp,
+            verticalPaddingDown: config.eyeBoundsVerticalPaddingDown
+        )
+
         let normalizedPupil: CGPoint?
         if let pupilPoint {
-            let nx = clamp((pupilPoint.x - bounds.minX) / bounds.size.width)
-            let ny = clamp((pupilPoint.y - bounds.minY) / bounds.size.height)
+            let nx = clamp((pupilPoint.x - paddedFrame.minX) / paddedFrame.size.width)
+            let ny = clamp((pupilPoint.y - paddedFrame.minY) / paddedFrame.size.height)
             normalizedPupil = CGPoint(x: nx, y: ny)
         } else {
             normalizedPupil = nil
@@ -146,7 +163,7 @@ final class VisionGazeProcessor: @unchecked Sendable {
             width: bounds.size.width,
             height: bounds.size.height,
             pupil: pupilPoint,
-            frame: CGRect(x: bounds.minX, y: bounds.minY, width: bounds.size.width, height: bounds.size.height),
+            frame: paddedFrame,
             normalizedPupil: normalizedPupil,
             hasPupilLandmarks: hasPupilLandmarks
         )
@@ -204,6 +221,23 @@ final class VisionGazeProcessor: @unchecked Sendable {
         min(1, max(0, value))
     }
 
+    private func expandRect(
+        _ rect: CGRect,
+        horizontalPadding: Double,
+        verticalPaddingUp: Double,
+        verticalPaddingDown: Double
+    ) -> CGRect {
+        let dx = rect.width * CGFloat(horizontalPadding)
+        let up = rect.height * CGFloat(verticalPaddingUp)
+        let down = rect.height * CGFloat(verticalPaddingDown)
+        return CGRect(
+            x: rect.origin.x - dx,
+            y: rect.origin.y - up,
+            width: rect.width + (dx * 2),
+            height: rect.height + up + down
+        )
+    }
+
     private func averageCoordinate(left: CGFloat?, right: CGFloat?, fallback: Double?) -> Double? {
         switch (left, right) {
         case let (left?, right?):
@@ -258,7 +292,8 @@ final class VisionGazeProcessor: @unchecked Sendable {
         horizontal: Double?,
         vertical: Double?,
         confidence: Double,
-        eyesClosed: Bool
+        eyesClosed: Bool,
+        distanceScale: Double
     ) -> GazeState {
         guard confidence >= config.minConfidence else { return .unknown }
         guard let horizontal, let vertical else { return .unknown }
@@ -271,7 +306,21 @@ final class VisionGazeProcessor: @unchecked Sendable {
 
         let deltaH = abs(horizontal - baseline.horizontal)
         let deltaV = abs(vertical - baseline.vertical)
-        let away = deltaH > config.horizontalAwayThreshold || deltaV > config.verticalAwayThreshold
+        let thresholdH = config.horizontalAwayThreshold * distanceScale
+        let thresholdV = config.verticalAwayThreshold * distanceScale
+
+        let lookingDown = vertical > baseline.vertical
+        let lookingUp = vertical < baseline.vertical
+        let verticalMultiplier: Double
+        if lookingDown {
+            verticalMultiplier = 1.2
+        } else if lookingUp {
+            verticalMultiplier = 1.8
+        } else {
+            verticalMultiplier = 1.0
+        }
+        let verticalAway = deltaV > (thresholdV * verticalMultiplier)
+        let away = deltaH > thresholdH || verticalAway
 
         if config.baselineEnabled {
             if baseline.sampleCount < config.minBaselineSamples {
@@ -293,5 +342,29 @@ final class VisionGazeProcessor: @unchecked Sendable {
         let stable = baseline.sampleCount >= config.minBaselineSamples || !config.baselineEnabled
         if !stable { return .unknown }
         return away ? .lookingAway : .lookingAtScreen
+    }
+
+    private func updateDistanceScale(faceWidthRatio: Double) -> Double {
+        let smoothed: Double
+        if let existing = faceWidthSmoothed {
+            smoothed = existing + (faceWidthRatio - existing) * config.faceWidthSmoothing
+        } else {
+            smoothed = faceWidthRatio
+        }
+        faceWidthSmoothed = smoothed
+
+        if faceWidthBaseline == nil {
+            faceWidthBaseline = smoothed
+            return 1.0
+        }
+
+        let baseline = faceWidthBaseline ?? smoothed
+        guard baseline > 0 else { return 1.0 }
+        let ratio = baseline / max(0.0001, smoothed)
+        return clampDouble(ratio, min: config.faceWidthScaleMin, max: config.faceWidthScaleMax)
+    }
+
+    private func clampDouble(_ value: Double, min: Double, max: Double) -> Double {
+        Swift.min(max, Swift.max(min, value))
     }
 }

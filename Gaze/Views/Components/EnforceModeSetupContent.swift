@@ -76,6 +76,12 @@ struct EnforceModeSetupContent: View {
                     eyeTrackingStatusView
                     trackingConstantsView
                 }
+                if enforceModeService.isEnforceModeEnabled {
+                    strictnessControlView
+                }
+                if enforceModeService.isCameraActive {
+                    trackingLapButton
+                }
                 privacyInfoView
             }
 
@@ -330,9 +336,76 @@ struct EnforceModeSetupContent: View {
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
+
+                if let faceWidth = eyeTrackingService.debugState.faceWidthRatio {
+                    HStack(spacing: 12) {
+                        Text("Face Width:")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text(String(format: "%.3f", faceWidth))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                if let horizontal = eyeTrackingService.debugState.normalizedHorizontal,
+                   let vertical = eyeTrackingService.debugState.normalizedVertical {
+                    HStack(spacing: 12) {
+                        Text("Ratios:")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("H \(String(format: "%.3f", horizontal))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("V \(String(format: "%.3f", vertical))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
         }
         .padding(sectionPadding)
         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
+    }
+
+    private var strictnessControlView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Tracking Strictness")
+                .font(headerFont)
+
+            Slider(
+                value: $settingsManager.settings.enforceModeStrictness,
+                in: 0...1
+            )
+            .controlSize(.small)
+
+            HStack {
+                Text("Lenient")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("Strict")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(sectionPadding)
+        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
+    }
+
+    private var trackingLapButton: some View {
+        Button(action: {
+            enforceModeService.logTrackingLap()
+        }) {
+            HStack {
+                Image(systemName: "flag.checkered")
+                Text("Lap Marker")
+                    .font(.headline)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.regular)
     }
 }

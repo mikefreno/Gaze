@@ -13,8 +13,6 @@ final class VisionPipeline: @unchecked Sendable {
         let faceDetected: Bool
         let face: NonSendableFaceObservation?
         let imageSize: CGSize
-        let debugYaw: Double?
-        let debugPitch: Double?
     }
 
     struct NonSendableFaceObservation: @unchecked Sendable {
@@ -44,9 +42,7 @@ final class VisionPipeline: @unchecked Sendable {
             return FaceAnalysis(
                 faceDetected: false,
                 face: nil,
-                imageSize: imageSize,
-                debugYaw: nil,
-                debugPitch: nil
+                imageSize: imageSize
             )
         }
 
@@ -54,18 +50,14 @@ final class VisionPipeline: @unchecked Sendable {
             return FaceAnalysis(
                 faceDetected: false,
                 face: nil,
-                imageSize: imageSize,
-                debugYaw: nil,
-                debugPitch: nil
+                imageSize: imageSize
             )
         }
 
         return FaceAnalysis(
             faceDetected: true,
             face: NonSendableFaceObservation(value: face),
-            imageSize: imageSize,
-            debugYaw: face.yaw?.doubleValue,
-            debugPitch: face.pitch?.doubleValue
+            imageSize: imageSize
         )
     }
 }

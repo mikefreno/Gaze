@@ -15,9 +15,6 @@ struct AdditionalModifiersView: View {
     @State private var isDragging: Bool = false
     @State private var isTestModeActive = false
     @State private var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
-    @State private var showAdvancedSettings = false
-    @State private var showCalibrationWindow = false
-    @State private var isViewActive = false
     @State private var isProcessingToggle = false
     @ObservedObject var cameraService = CameraAccessService.shared
     @Environment(\.isCompactLayout) private var isCompact
@@ -66,9 +63,6 @@ struct AdditionalModifiersView: View {
                                     presentation: .card,
                                     isTestModeActive: $isTestModeActive,
                                     cachedPreviewLayer: $cachedPreviewLayer,
-                                    showAdvancedSettings: $showAdvancedSettings,
-                                    showCalibrationWindow: $showCalibrationWindow,
-                                    isViewActive: $isViewActive,
                                     isProcessingToggle: isProcessingToggle,
                                     handleEnforceModeToggle: { enabled in
                                         if enabled {

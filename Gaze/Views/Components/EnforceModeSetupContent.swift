@@ -5,6 +5,7 @@
 //  Created by Mike Freno on 1/30/26.
 //
 
+import AppKit
 import AVFoundation
 import SwiftUI
 
@@ -13,15 +14,11 @@ struct EnforceModeSetupContent: View {
     @ObservedObject var cameraService = CameraAccessService.shared
     @ObservedObject var eyeTrackingService = EyeTrackingService.shared
     @ObservedObject var enforceModeService = EnforceModeService.shared
-    @ObservedObject var calibratorService = CalibratorService.shared
     @Environment(\.isCompactLayout) private var isCompact
 
     let presentation: SetupPresentation
     @Binding var isTestModeActive: Bool
     @Binding var cachedPreviewLayer: AVCaptureVideoPreviewLayer?
-    @Binding var showAdvancedSettings: Bool
-    @Binding var showCalibrationWindow: Bool
-    @Binding var isViewActive: Bool
     let isProcessingToggle: Bool
     let handleEnforceModeToggle: (Bool) -> Void
 
@@ -86,9 +83,6 @@ struct EnforceModeSetupContent: View {
                 Spacer(minLength: 0)
             }
         }
-        .sheet(isPresented: $showCalibrationWindow) {
-            EyeTrackingCalibrationView()
-        }
     }
 
     private var testModeButton: some View {
@@ -120,65 +114,10 @@ struct EnforceModeSetupContent: View {
         .controlSize(presentation.isCard ? .regular : .large)
     }
 
-    private var calibrationSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "target")
-                    .font(.title3)
-                    .foregroundStyle(.blue)
-                Text("Eye Tracking Calibration")
-                    .font(.headline)
-            }
-
-            if calibratorService.calibrationData.isComplete {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(calibratorService.getCalibrationSummary())
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    if calibratorService.needsRecalibration() {
-                        Label(
-                            "Calibration expired - recalibration recommended",
-                            systemImage: "exclamationmark.triangle.fill"
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                    } else {
-                        Label("Calibration active and valid", systemImage: "checkmark.circle.fill")
-                            .font(.caption)
-                            .foregroundStyle(.green)
-                    }
-                }
-            } else {
-                Text("Not calibrated - using default thresholds")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Button(action: {
-                showCalibrationWindow = true
-            }) {
-                HStack {
-                    Image(systemName: "target")
-                    Text(
-                        calibratorService.calibrationData.isComplete
-                            ? "Recalibrate" : "Run Calibration")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-        }
-        .padding(sectionPadding)
-        .glassEffectIfAvailable(
-            GlassStyle.regular.tint(.blue.opacity(0.1)), in: .rect(cornerRadius: sectionCornerRadius)
-        )
-    }
 
     private var testModePreviewView: some View {
         VStack(spacing: 16) {
-            let lookingAway = !eyeTrackingService.userLookingAtScreen
+            let lookingAway = eyeTrackingService.trackingResult.gazeState == .lookingAway
             let borderColor: NSColor = lookingAway ? .systemGreen : .systemRed
 
             let previewLayer = eyeTrackingService.previewLayer ?? cachedPreviewLayer
@@ -186,14 +125,12 @@ struct EnforceModeSetupContent: View {
             if let layer = previewLayer {
                 ZStack {
                     CameraPreviewView(previewLayer: layer, borderColor: borderColor)
-                    PupilOverlayView(eyeTrackingService: eyeTrackingService)
 
-                    VStack {
-                        HStack {
-                            Spacer()
-                            GazeOverlayView(eyeTrackingService: eyeTrackingService)
-                        }
-                        Spacer()
+                    GeometryReader { geometry in
+                        EyeTrackingDebugOverlayView(
+                            debugState: eyeTrackingService.debugState,
+                            viewSize: geometry.size
+                        )
                     }
                 }
                 .frame(height: presentation.isCard ? 180 : (isCompact ? 200 : 300))
@@ -256,13 +193,13 @@ struct EnforceModeSetupContent: View {
             HStack(spacing: 20) {
                 statusIndicator(
                     title: "Face Detected",
-                    isActive: eyeTrackingService.faceDetected,
+                    isActive: eyeTrackingService.trackingResult.faceDetected,
                     icon: "person.fill"
                 )
 
                 statusIndicator(
                     title: "Looking Away",
-                    isActive: !eyeTrackingService.userLookingAtScreen,
+                    isActive: eyeTrackingService.trackingResult.gazeState == .lookingAway,
                     icon: "arrow.turn.up.right"
                 )
             }
@@ -358,190 +295,41 @@ struct EnforceModeSetupContent: View {
     private var trackingConstantsView: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
-                Text("Tracking Sensitivity")
+                Text("Tracking Status")
                     .font(headerFont)
-                Spacer()
-                Button(action: {
-                    eyeTrackingService.enableDebugLogging.toggle()
-                }) {
-                    Image(
-                        systemName: eyeTrackingService.enableDebugLogging
-                            ? "ant.circle.fill" : "ant.circle"
-                    )
-                    .foregroundStyle(eyeTrackingService.enableDebugLogging ? .orange : .secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Toggle console debug logging")
-
-                Button(showAdvancedSettings ? "Hide Settings" : "Show Settings") {
-                    withAnimation {
-                        showAdvancedSettings.toggle()
-                    }
-                }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
             }
 
+            let gazeState = eyeTrackingService.trackingResult.gazeState
+            let stateLabel: String = {
+                switch gazeState {
+                case .lookingAway:
+                    return "Looking Away"
+                case .lookingAtScreen:
+                    return "Looking At Screen"
+                case .unknown:
+                    return "Unknown"
+                }
+            }()
+
             VStack(alignment: .leading, spacing: 8) {
-                Text("Live Values:")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(.secondary)
 
-                if let leftRatio = eyeTrackingService.debugLeftPupilRatio,
-                    let rightRatio = eyeTrackingService.debugRightPupilRatio
-                {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Left Pupil: \(String(format: "%.3f", leftRatio))")
-                                .font(.caption2)
-                                .foregroundStyle(
-                                    !EyeTrackingConstants.minPupilEnabled
-                                        && !EyeTrackingConstants.maxPupilEnabled
-                                        ? .secondary
-                                        : (leftRatio < EyeTrackingConstants.minPupilRatio
-                                            || leftRatio > EyeTrackingConstants.maxPupilRatio)
-                                            ? Color.orange : Color.green
-                                )
-                            Text("Right Pupil: \(String(format: "%.3f", rightRatio))")
-                                .font(.caption2)
-                                .foregroundStyle(
-                                    !EyeTrackingConstants.minPupilEnabled
-                                        && !EyeTrackingConstants.maxPupilEnabled
-                                        ? .secondary
-                                        : (rightRatio < EyeTrackingConstants.minPupilRatio
-                                            || rightRatio > EyeTrackingConstants.maxPupilRatio)
-                                            ? Color.orange : Color.green
-                                )
-                        }
+                HStack(spacing: 12) {
+                    Text("Gaze:")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(stateLabel)
+                        .font(.caption2)
+                        .foregroundStyle(gazeState == .lookingAway ? .green : .secondary)
+                }
 
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                             Text(
-                                "Range: \(String(format: "%.2f", EyeTrackingConstants.minPupilRatio)) - \(String(format: "%.2f", EyeTrackingConstants.maxPupilRatio))"
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            let bothEyesOut =
-                                (leftRatio < EyeTrackingConstants.minPupilRatio
-                                    || leftRatio > EyeTrackingConstants.maxPupilRatio)
-                                    && (rightRatio < EyeTrackingConstants.minPupilRatio
-                                        || rightRatio > EyeTrackingConstants.maxPupilRatio)
-                            Text(bothEyesOut ? "Both Out ⚠️" : "In Range ✓")
-                                .font(.caption2)
-                                .foregroundStyle(bothEyesOut ? .orange : .green)
-                        }
-                    }
-                } else {
-                    Text("Pupil data unavailable")
+                HStack(spacing: 12) {
+                    Text("Confidence:")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(String(format: "%.2f", eyeTrackingService.trackingResult.confidence))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
-
-                if let yaw = eyeTrackingService.debugYaw,
-                    let pitch = eyeTrackingService.debugPitch
-                {
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Yaw: \(String(format: "%.3f", yaw))")
-                                .font(.caption2)
-                                .foregroundStyle(
-                                    !EyeTrackingConstants.yawEnabled
-                                        ? .secondary
-                                        : abs(yaw) > EyeTrackingConstants.yawThreshold
-                                            ? Color.orange : Color.green
-                                )
-                            Text("Pitch: \(String(format: "%.3f", pitch))")
-                                .font(.caption2)
-                                .foregroundStyle(
-                                    !EyeTrackingConstants.pitchUpEnabled
-                                        && !EyeTrackingConstants.pitchDownEnabled
-                                        ? .secondary
-                                        : (pitch > EyeTrackingConstants.pitchUpThreshold
-                                            || pitch < EyeTrackingConstants.pitchDownThreshold)
-                                            ? Color.orange : Color.green
-                                )
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                             Text(
-                                "Yaw Max: \(String(format: "%.2f", EyeTrackingConstants.yawThreshold))"
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            Text(
-                                "Pitch: \(String(format: "%.2f", EyeTrackingConstants.pitchDownThreshold)) to \(String(format: "%.2f", EyeTrackingConstants.pitchUpThreshold))"
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .padding(.top, 4)
-
-            if showAdvancedSettings {
-                VStack(spacing: 16) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Current Threshold Values:")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-
-                        HStack {
-                            Text("Yaw Threshold:")
-                            Spacer()
-                             Text("\(String(format: "%.2f", EyeTrackingConstants.yawThreshold)) rad")
-                                .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("Pitch Up Threshold:")
-                            Spacer()
-                            Text(
-                                "\(String(format: "%.2f", EyeTrackingConstants.pitchUpThreshold)) rad"
-                            )
-                            .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("Pitch Down Threshold:")
-                            Spacer()
-                            Text(
-                                "\(String(format: "%.2f", EyeTrackingConstants.pitchDownThreshold)) rad"
-                            )
-                            .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("Min Pupil Ratio:")
-                            Spacer()
-                             Text("\(String(format: "%.2f", EyeTrackingConstants.minPupilRatio))")
-                                .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("Max Pupil Ratio:")
-                            Spacer()
-                            Text("\(String(format: "%.2f", EyeTrackingConstants.maxPupilRatio))")
-                                .foregroundStyle(.secondary)
-                        }
-
-                        HStack {
-                            Text("Eye Closed Threshold:")
-                            Spacer()
-                            Text(
-                                "\(String(format: "%.3f", EyeTrackingConstants.eyeClosedThreshold))"
-                            )
-                            .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.top, 8)
-                }
-                .padding(.top, 8)
             }
         }
         .padding(sectionPadding)

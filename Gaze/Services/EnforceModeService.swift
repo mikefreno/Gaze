@@ -60,14 +60,15 @@ class EnforceModeService: ObservableObject {
     }
 
     private func setupEyeTrackingObservers() {
-        eyeTrackingService.$userLookingAtScreen
+        eyeTrackingService.$trackingResult
             .sink { [weak self] _ in
                 guard let self, self.isCameraActive else { return }
                 self.checkUserCompliance()
             }
             .store(in: &cancellables)
 
-        eyeTrackingService.$faceDetected
+        eyeTrackingService.$trackingResult
+            .map { $0.faceDetected }
             .sink { [weak self] faceDetected in
                 guard let self else { return }
                 if faceDetected {
@@ -166,11 +167,18 @@ class EnforceModeService: ObservableObject {
     }
 
     func evaluateCompliance(
-        isLookingAtScreen: Bool,
+        gazeState: GazeState,
         faceDetected: Bool
     ) -> ComplianceResult {
         guard faceDetected else { return .faceNotDetected }
-        return isLookingAtScreen ? .notCompliant : .compliant
+        switch gazeState {
+        case .lookingAway:
+            return .compliant
+        case .lookingAtScreen:
+            return .notCompliant
+        case .unknown:
+            return .notCompliant
+        }
     }
 
     // MARK: - Camera Control
@@ -214,8 +222,8 @@ class EnforceModeService: ObservableObject {
             return
         }
         let compliance = evaluateCompliance(
-            isLookingAtScreen: eyeTrackingService.userLookingAtScreen,
-            faceDetected: eyeTrackingService.faceDetected
+            gazeState: eyeTrackingService.trackingResult.gazeState,
+            faceDetected: eyeTrackingService.trackingResult.faceDetected
         )
 
         switch compliance {

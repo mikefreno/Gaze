@@ -185,7 +185,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ObservableObject {
     private func showReminder(_ event: ReminderEvent) {
         switch event {
         case .lookAwayTriggered(let countdownSeconds):
-            let view = LookAwayReminderView(countdownSeconds: countdownSeconds) { [weak self] in
+            let view = LookAwayReminderView(
+                countdownSeconds: countdownSeconds,
+                enforceModeService: EnforceModeService.shared
+            ) { [weak self] in
                 self?.timerEngine?.dismissReminder()
             }
             windowManager.showReminderWindow(view, windowType: .overlay)

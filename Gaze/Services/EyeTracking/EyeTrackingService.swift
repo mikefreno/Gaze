@@ -72,12 +72,14 @@ class EyeTrackingService: NSObject, ObservableObject {
             baselineEnabled = false
             centerHorizontal = (calibration.horizontalMin + calibration.horizontalMax) / 2
             centerVertical = (calibration.verticalMin + calibration.verticalMax) / 2
+            processor.setFaceWidthBaseline(calibration.faceWidthRatio)
         } else {
             horizontalThreshold = TrackingConfig.default.horizontalAwayThreshold * scale
             verticalThreshold = TrackingConfig.default.verticalAwayThreshold * scale
             baselineEnabled = TrackingConfig.default.baselineEnabled
             centerHorizontal = TrackingConfig.default.defaultCenterHorizontal
             centerVertical = TrackingConfig.default.defaultCenterVertical
+            processor.resetBaseline()
         }
 
         let config = TrackingConfig(
@@ -125,6 +127,10 @@ class EyeTrackingService: NSObject, ObservableObject {
             trackingResult = TrackingResult.empty
             debugState = EyeTrackingDebugState.empty
         }
+    }
+
+    func currentDebugSnapshot() -> EyeTrackingDebugState {
+        debugState
     }
 }
 

@@ -33,6 +33,7 @@ class EnforceModeService: ObservableObject {
     private var faceDetectionTimer: Timer?
     private var trackingDebugTimer: Timer?
     private var trackingLapStats = TrackingLapStats()
+    private var lastLookAwayTime: Date = .distantPast
 
     // MARK: - Configuration
 
@@ -183,7 +184,7 @@ class EnforceModeService: ObservableObject {
         gazeState: GazeState,
         faceDetected: Bool
     ) -> ComplianceResult {
-        guard faceDetected else { return .faceNotDetected }
+        guard faceDetected else { return .compliant }
         switch gazeState {
         case .lookingAway:
             return .compliant
@@ -242,11 +243,13 @@ class EnforceModeService: ObservableObject {
 
         switch compliance {
         case .compliant:
+            lastLookAwayTime = Date()
             userCompliedWithBreak = true
         case .notCompliant:
             userCompliedWithBreak = false
         case .faceNotDetected:
-            userCompliedWithBreak = false
+            lastLookAwayTime = Date()
+            userCompliedWithBreak = true
         }
     }
 
@@ -321,9 +324,28 @@ class EnforceModeService: ObservableObject {
 
         let timeSinceLastDetection = Date().timeIntervalSince(lastFaceDetectionTime)
         if timeSinceLastDetection > faceDetectionTimeout {
-            logDebug("⏰ Person not detected for \(faceDetectionTimeout)s. Temporarily disabling enforce mode.")
-            disableEnforceMode()
+            logDebug("⏰ Person not detected for \(faceDetectionTimeout)s. Assuming look away.")
+            lastLookAwayTime = Date()
+            userCompliedWithBreak = true
+            lastFaceDetectionTime = Date()
         }
+    }
+
+    func shouldAdvanceLookAwayCountdown() -> Bool {
+        guard isEnforceModeEnabled else { return true }
+        guard isCameraActive else { return true }
+
+        if !eyeTrackingService.trackingResult.faceDetected {
+            lastLookAwayTime = Date()
+            return true
+        }
+
+        if eyeTrackingService.trackingResult.gazeState == .lookingAway {
+            lastLookAwayTime = Date()
+            return true
+        }
+
+        return Date().timeIntervalSince(lastLookAwayTime) <= 0.25
     }
 
     // MARK: - Test Mode

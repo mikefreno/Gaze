@@ -12,15 +12,23 @@ import SwiftUI
 struct LookAwayReminderView: View {
     let countdownSeconds: Int
     var onDismiss: () -> Void
+    var enforceModeService: EnforceModeService?
 
     @State private var remainingSeconds: Int
+    @State private var remainingTime: TimeInterval
     @State private var timer: Timer?
     @State private var keyMonitor: Any?
 
-    init(countdownSeconds: Int, onDismiss: @escaping () -> Void) {
+    init(
+        countdownSeconds: Int,
+        enforceModeService: EnforceModeService? = nil,
+        onDismiss: @escaping () -> Void
+    ) {
         self.countdownSeconds = countdownSeconds
+        self.enforceModeService = enforceModeService
         self.onDismiss = onDismiss
         self._remainingSeconds = State(initialValue: countdownSeconds)
+        self._remainingTime = State(initialValue: TimeInterval(countdownSeconds))
     }
 
     var body: some View {
@@ -100,15 +108,21 @@ struct LookAwayReminderView: View {
     }
 
     private var progress: CGFloat {
-        CGFloat(remainingSeconds) / CGFloat(countdownSeconds)
+        CGFloat(remainingTime) / CGFloat(countdownSeconds)
     }
 
     private func startCountdown() {
-        let timer = Timer(timeInterval: 1.0, repeats: true) { [self] _ in
-            if remainingSeconds > 0 {
-                remainingSeconds -= 1
-            } else {
+        let tickInterval: TimeInterval = 0.25
+        let timer = Timer(timeInterval: tickInterval, repeats: true) { [self] _ in
+            guard remainingTime > 0 else {
                 dismiss()
+                return
+            }
+
+            let shouldAdvance = enforceModeService?.shouldAdvanceLookAwayCountdown() ?? true
+            if shouldAdvance {
+                remainingTime = max(0, remainingTime - tickInterval)
+                remainingSeconds = max(0, Int(ceil(remainingTime)))
             }
         }
         RunLoop.current.add(timer, forMode: .common)

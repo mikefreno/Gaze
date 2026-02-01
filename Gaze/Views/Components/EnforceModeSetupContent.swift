@@ -14,6 +14,7 @@ struct EnforceModeSetupContent: View {
     @ObservedObject var cameraService = CameraAccessService.shared
     @ObservedObject var eyeTrackingService = EyeTrackingService.shared
     @ObservedObject var enforceModeService = EnforceModeService.shared
+    @ObservedObject var calibrationService = EnforceModeCalibrationService.shared
     @Environment(\.isCompactLayout) private var isCompact
 
     let presentation: SetupPresentation
@@ -79,12 +80,7 @@ struct EnforceModeSetupContent: View {
                 if enforceModeService.isEnforceModeEnabled {
                     strictnessControlView
                 }
-                if isTestModeActive && enforceModeService.isCameraActive {
-                    eyeBoxControlView
-                }
-                if enforceModeService.isCameraActive {
-                    trackingLapButton
-                }
+                calibrationActionView
                 privacyInfoView
             }
 
@@ -399,44 +395,16 @@ struct EnforceModeSetupContent: View {
         .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
     }
 
-    private var eyeBoxControlView: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Eye Box Size")
-                .font(headerFont)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Width")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Slider(
-                    value: $settingsManager.settings.enforceModeEyeBoxWidthFactor,
-                    in: 0.12...0.25
-                )
-                .controlSize(.small)
-
-                Text("Height")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-
-                Slider(
-                    value: $settingsManager.settings.enforceModeEyeBoxHeightFactor,
-                    in: 0.02...0.05
-                )
-                .controlSize(.small)
-            }
-        }
-        .padding(sectionPadding)
-        .glassEffectIfAvailable(GlassStyle.regular, in: .rect(cornerRadius: sectionCornerRadius))
-    }
-
-    private var trackingLapButton: some View {
+    private var calibrationActionView: some View {
         Button(action: {
-            enforceModeService.logTrackingLap()
+            calibrationService.presentOverlay()
+            Task { @MainActor in
+                await enforceModeService.startTestMode()
+            }
         }) {
             HStack {
-                Image(systemName: "flag.checkered")
-                Text("Lap Marker")
+                Image(systemName: "target")
+                Text("Calibrate Eye Tracking")
                     .font(.headline)
             }
             .frame(maxWidth: .infinity)
@@ -445,4 +413,6 @@ struct EnforceModeSetupContent: View {
         .buttonStyle(.bordered)
         .controlSize(.regular)
     }
+
+
 }

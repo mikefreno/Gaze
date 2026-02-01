@@ -48,6 +48,11 @@ final class VisionGazeProcessor: @unchecked Sendable {
         faceWidthSmoothed = nil
     }
 
+    func setFaceWidthBaseline(_ value: Double) {
+        faceWidthBaseline = value
+        faceWidthSmoothed = value
+    }
+
     func process(analysis: VisionPipeline.FaceAnalysis) -> ObservationResult {
         guard analysis.faceDetected, let face = analysis.face?.value else {
             return ObservationResult(

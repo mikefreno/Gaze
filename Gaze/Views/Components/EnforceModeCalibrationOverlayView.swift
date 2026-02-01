@@ -31,48 +31,47 @@ struct EnforceModeCalibrationOverlayView: View {
 
     private var eyeBoxStep: some View {
         ZStack {
-            VStack(spacing: 16) {
-                Text("Adjust Eye Box")
-                    .font(.title2)
-                    .foregroundStyle(.white)
+            VStack(spacing: 20) {
+                VStack(spacing: 16) {
+                    Text("Adjust Eye Box")
+                        .font(.title2)
+                        .foregroundStyle(.white)
 
-                Text(
-                    "Use the sliders to fit the boxes around your eyes. It need not be perfect."
-                )
-                .font(.callout)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white.opacity(0.8))
-            }
-            .padding(.horizontal, 40)
-            .padding(.top, 40)
-            .frame(maxWidth: 520)
-            .frame(maxWidth: .infinity, alignment: .top)
-
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Width")
-                    .font(.caption)
+                    Text(
+                        "Use the sliders to fit the boxes around your eyes. It need not be perfect."
+                    )
+                    .font(.callout)
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(.white.opacity(0.8))
-                Slider(
-                    value: $settingsManager.settings.enforceModeEyeBoxWidthFactor,
-                    in: 0.12...0.25
-                )
+                }
+                .padding(.horizontal, 40)
+                .frame(maxWidth: 520)
+                .frame(maxWidth: .infinity, alignment: .top)
 
-                Text("Height")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
-                Slider(
-                    value: $settingsManager.settings.enforceModeEyeBoxHeightFactor,
-                    in: 0.01...0.10
-                )
-            }
-            .padding(16)
-            .background(.black.opacity(0.3))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-            .frame(maxWidth: 420)
-            .frame(maxHeight: .infinity, alignment: .center)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Width")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                    Slider(
+                        value: $settingsManager.settings.enforceModeEyeBoxWidthFactor,
+                        in: 0.12...0.25
+                    )
 
-            VStack {
+                    Text("Height")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                    Slider(
+                        value: $settingsManager.settings.enforceModeEyeBoxHeightFactor,
+                        in: 0.01...0.10
+                    )
+                }
+                .padding(16)
+                .background(.black.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .frame(maxWidth: 420)
+
                 Spacer()
+
                 HStack(spacing: 12) {
                     Button("Cancel") {
                         calibrationService.dismissOverlay()
@@ -85,8 +84,8 @@ struct EnforceModeCalibrationOverlayView: View {
                     }
                     .buttonStyle(.borderedProminent)
                 }
+                .padding(.bottom, 40)
             }
-            .padding(.bottom, 40)
         }
     }
 
@@ -130,7 +129,7 @@ struct EnforceModeCalibrationOverlayView: View {
             Text("Calibration Complete")
                 .font(.title2)
                 .foregroundStyle(.white)
-            Text("You can close this window and start testing.")
+            Text("Enforce Mode is ready to use.")
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.8))
 
@@ -163,6 +162,7 @@ struct EnforceModeCalibrationOverlayView: View {
                     .animation(.linear(duration: 0.02), value: calibrationService.countdownProgress)
             }
             .position(center)
+            .animation(.easeInOut(duration: 0.3), value: center)
         }
         .ignoresSafeArea()
     }

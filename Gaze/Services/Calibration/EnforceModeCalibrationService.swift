@@ -28,10 +28,10 @@ final class EnforceModeCalibrationService: ObservableObject {
 
     private var countdownTimer: Timer?
     private var sampleTimer: Timer?
-    private let countdownDuration: TimeInterval = 1.0
-    private let preCountdownPause: TimeInterval = 0.5
-    private let sampleInterval: TimeInterval = 0.1
-    private let samplesPerTarget = 12
+    private let countdownDuration: TimeInterval = 0.8
+    private let preCountdownPause: TimeInterval = 0.8
+    private let sampleInterval: TimeInterval = 0.02
+    private let samplesPerTarget = 20
     private var windowController: NSWindowController?
 
     func start() {
@@ -89,6 +89,7 @@ final class EnforceModeCalibrationService: ObservableObject {
         switch currentStep {
         case .eyeBox:
             currentStep = .targets
+            // Start countdown immediately when transitioning to targets to avoid first point duplication
             startCountdown()
         case .targets:
             if targetIndex < targets.count - 1 {
@@ -135,13 +136,17 @@ final class EnforceModeCalibrationService: ObservableObject {
             guard let self else { return }
             Task { @MainActor in
                 let elapsed = Date().timeIntervalSince(startTime)
-                let countdownElapsed = max(0, elapsed - self.preCountdownPause)
+                // Pause before starting the countdown
                 if elapsed < self.preCountdownPause {
                     self.countdownProgress = 1.0
                     return
                 }
+                
+                // Start the actual countdown after pause
+                let countdownElapsed = elapsed - self.preCountdownPause
                 let remaining = max(0, self.countdownDuration - countdownElapsed)
                 self.countdownProgress = remaining / self.countdownDuration
+                
                 if remaining <= 0 {
                     self.stopCountdown()
                     self.startSampleCollection()
@@ -153,7 +158,8 @@ final class EnforceModeCalibrationService: ObservableObject {
     private func stopCountdown() {
         countdownTimer?.invalidate()
         countdownTimer = nil
-        countdownProgress = 1.0
+        // Only reset to 1.0 when actually stopping, not during transitions
+        // countdownProgress = 1.0
     }
 
     private func startSampleCollection() {

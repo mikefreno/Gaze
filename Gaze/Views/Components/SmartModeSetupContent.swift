@@ -74,15 +74,18 @@ struct SmartModeSetupContent: View {
                         Text("Auto-pause on Fullscreen")
                             .font(presentation.isCard ? .subheadline : .headline)
                     }
-                    Text("Timers will automatically pause when you enter fullscreen mode (videos, games, presentations)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Timers will automatically pause when you enter fullscreen mode (videos, games, presentations)"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle("", isOn: $settingsManager.settings.smartMode.autoPauseOnFullscreen)
                     .labelsHidden()
                     .controlSize(presentation.isCard ? .small : .regular)
-                    .onChange(of: settingsManager.settings.smartMode.autoPauseOnFullscreen) { _, newValue in
+                    .onChange(of: settingsManager.settings.smartMode.autoPauseOnFullscreen) {
+                        _, newValue in
                         if newValue {
                             permissionManager.requestAuthorizationIfNeeded()
                         }
@@ -175,9 +178,11 @@ struct SmartModeSetupContent: View {
                         Text("Track Usage Statistics")
                             .font(presentation.isCard ? .subheadline : .headline)
                     }
-                    Text("Monitor active and idle time, with automatic reset after the specified duration")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Monitor active and idle time, with automatic reset after the specified duration"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 Spacer()
                 Toggle("", isOn: $settingsManager.settings.smartMode.trackUsage)

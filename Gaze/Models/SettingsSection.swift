@@ -13,9 +13,7 @@ enum SettingsSection: Int, CaseIterable, Identifiable {
     case blink = 2
     case posture = 3
     case userTimers = 4
-    #if DEBUG
-        case enforceMode = 5
-    #endif
+    case enforceMode = 5
     case smartMode = 6
 
     var id: Int { rawValue }
@@ -26,9 +24,7 @@ enum SettingsSection: Int, CaseIterable, Identifiable {
         case .lookAway: return "Look Away"
         case .blink: return "Blink"
         case .posture: return "Posture"
-        #if DEBUG
-            case .enforceMode: return "Enforce Mode"
-        #endif
+        case .enforceMode: return "Enforce Mode"
         case .userTimers: return "User Timers"
         case .smartMode: return "Smart Mode"
         }
@@ -40,9 +36,7 @@ enum SettingsSection: Int, CaseIterable, Identifiable {
         case .lookAway: return "eye.fill"
         case .blink: return "eye.circle.fill"
         case .posture: return "figure.stand"
-        #if DEBUG
-            case .enforceMode: return "video.fill"
-        #endif
+        case .enforceMode: return "video.fill"
         case .userTimers: return "plus.circle"
         case .smartMode: return "brain.fill"
         }

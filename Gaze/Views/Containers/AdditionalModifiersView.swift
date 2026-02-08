@@ -44,39 +44,30 @@ struct AdditionalModifiersView: View {
                     .font(isCompact ? .subheadline : .title3)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                #if !DEBUG
-                    Text("More to come soon")
-                        .font(isCompact ? .subheadline : .title3)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                #endif
-
                 Spacer()
 
                 ZStack {
-                    #if DEBUG
-                        setupCard(
-                            presentation: .card,
-                            content:
-                                EnforceModeSetupContent(
-                                    settingsManager: settingsManager,
-                                    presentation: .card,
-                                    isTestModeActive: $isTestModeActive,
-                                    cachedPreviewLayer: $cachedPreviewLayer,
-                                    isProcessingToggle: isProcessingToggle,
-                                    handleEnforceModeToggle: { enabled in
-                                        if enabled {
-                                            Task { @MainActor in
-                                                try await cameraService.requestCameraAccess()
-                                            }
+                    setupCard(
+                        presentation: .card,
+                        content:
+                            EnforceModeSetupContent(
+                                settingsManager: settingsManager,
+                                presentation: .card,
+                                isTestModeActive: $isTestModeActive,
+                                cachedPreviewLayer: $cachedPreviewLayer,
+                                isProcessingToggle: isProcessingToggle,
+                                handleEnforceModeToggle: { enabled in
+                                    if enabled {
+                                        Task { @MainActor in
+                                            try await cameraService.requestCameraAccess()
                                         }
                                     }
-                                ),
-                            width: cardWidth,
-                            height: cardHeight,
-                            index: 0
-                        )
-                    #endif
+                                }
+                            ),
+                        width: cardWidth,
+                        height: cardHeight,
+                        index: 0
+                    )
                     setupCard(
                         presentation: .card,
                         content: SmartModeSetupContent(
@@ -93,42 +84,40 @@ struct AdditionalModifiersView: View {
 
                 Spacer()
 
-                #if DEBUG
-                    HStack(spacing: isCompact ? 12 : 20) {
-                        Button(action: { swapCards() }) {
-                            Image(systemName: "chevron.left")
-                                .font(isCompact ? .body : .title2)
-                                .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
-                                .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffectIfAvailable(
-                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
-                        )
-                        .opacity(frontCardIndex == 0 ? 0.3 : 1.0)
-                        .disabled(frontCardIndex == 0)
-
-                        // Page indicators with labels
-                        HStack(spacing: isCompact ? 10 : 16) {
-                            cardIndicator(index: 0, icon: "video.fill", label: "Enforce")
-                            cardIndicator(index: 1, icon: "brain.fill", label: "Smart")
-                        }.padding(.all, 20)
-
-                        Button(action: { swapCards() }) {
-                            Image(systemName: "chevron.right")
-                                .font(isCompact ? .body : .title2)
-                                .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
-                                .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                        .glassEffectIfAvailable(
-                            GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
-                        )
-                        .opacity(frontCardIndex == 1 ? 0.3 : 1.0)
-                        .disabled(frontCardIndex == 1)
+                HStack(spacing: isCompact ? 12 : 20) {
+                    Button(action: { swapCards() }) {
+                        Image(systemName: "chevron.left")
+                            .font(isCompact ? .body : .title2)
+                            .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
+                            .contentShape(.rect)
                     }
-                    .padding(.bottom, isCompact ? 6 : 10)
-                #endif
+                    .buttonStyle(.plain)
+                    .glassEffectIfAvailable(
+                        GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
+                    )
+                    .opacity(frontCardIndex == 0 ? 0.3 : 1.0)
+                    .disabled(frontCardIndex == 0)
+
+                    // Page indicators with labels
+                    HStack(spacing: isCompact ? 10 : 16) {
+                        cardIndicator(index: 0, icon: "video.fill", label: "Enforce")
+                        cardIndicator(index: 1, icon: "brain.fill", label: "Smart")
+                    }.padding(.all, 20)
+
+                    Button(action: { swapCards() }) {
+                        Image(systemName: "chevron.right")
+                            .font(isCompact ? .body : .title2)
+                            .frame(width: isCompact ? 36 : 44, height: isCompact ? 36 : 44)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffectIfAvailable(
+                        GlassStyle.regular.interactive(), in: .rect(cornerRadius: 10)
+                    )
+                    .opacity(frontCardIndex == 1 ? 0.3 : 1.0)
+                    .disabled(frontCardIndex == 1)
+                }
+                .padding(.bottom, isCompact ? 6 : 10)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding()

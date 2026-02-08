@@ -40,6 +40,14 @@ class EnforceModeService: ObservableObject {
     private(set) var lastFaceDetectionTime: Date = .distantPast
     var faceDetectionTimeout: TimeInterval = 5.0
 
+    var hasCalibration: Bool {
+        settingsManager.settings.enforceModeCalibration != nil
+    }
+
+    var isReady: Bool {
+        isEnforceModeEnabled && hasCalibration
+    }
+
     // MARK: - Initialization
 
     private init() {

@@ -41,7 +41,7 @@ struct LookAwayReminderView: View {
 
             // Compliance border overlay
             if let enforceModeService = enforceModeService,
-                enforceModeService.isEnforceModeEnabled,
+                enforceModeService.isReady,
                 enforceModeService.isCameraActive
             {
                 Color.clear
@@ -65,7 +65,7 @@ struct LookAwayReminderView: View {
 
                     // Enforce mode indicator
                     if let enforceModeService = enforceModeService,
-                        enforceModeService.isEnforceModeEnabled
+                        enforceModeService.isReady
                     {
                         Image(systemName: "lock.shield")
                             .foregroundColor(.white)

@@ -40,7 +40,7 @@ struct UserTimerOverlayReminderView: View {
 
             // Compliance border overlay
             if let enforceModeService = enforceModeService,
-                enforceModeService.isEnforceModeEnabled,
+                enforceModeService.isReady,
                 enforceModeService.isCameraActive
             {
                 Color.clear
@@ -64,7 +64,7 @@ struct UserTimerOverlayReminderView: View {
 
                     // Enforce mode indicator
                     if timer.enforceModeEnabled, let enforceModeService = enforceModeService,
-                        enforceModeService.isEnforceModeEnabled
+                        enforceModeService.isReady
                     {
                         Image(systemName: "lock.shield")
                             .foregroundColor(.white)
@@ -81,9 +81,9 @@ struct UserTimerOverlayReminderView: View {
                         .padding(.horizontal, 40)
                 }
 
-                if timer.enforceModeEnabled {
+                if timer.enforceModeEnabled, let enforceModeService = enforceModeService, enforceModeService.isReady {
                     let shouldShowWarning =
-                        enforceModeService?.shouldAdvanceCountdown(for: timer) == false
+                        enforceModeService.shouldAdvanceCountdown(for: timer) == false
                     if shouldShowWarning {
                         Text("Look away to continue")
                             .font(.title3)
@@ -115,9 +115,7 @@ struct UserTimerOverlayReminderView: View {
                         .monospacedDigit()
                 }
 
-                if let enforceModeService = enforceModeService,
-                    enforceModeService.isEnforceModeEnabled
-                {
+                if let enforceModeService = enforceModeService, enforceModeService.isReady {
                     Text("CMD+Q if you need to kill app")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
@@ -130,7 +128,7 @@ struct UserTimerOverlayReminderView: View {
 
             // Dismiss button in corner
 
-            if let enforceModeService = enforceModeService, !enforceModeService.isEnforceModeEnabled
+            if let enforceModeService = enforceModeService, !enforceModeService.isReady
             {
                 VStack {
                     HStack {
@@ -183,7 +181,7 @@ struct UserTimerOverlayReminderView: View {
     private func handleDismiss() {
         // Apply dismiss buffer for enforce mode overlays
         if let enforceModeService = self.enforceModeService,
-            enforceModeService.isEnforceModeEnabled,
+            enforceModeService.isReady,
             !self.dismissBufferActive
         {
             // Start the 0.5 second buffer
@@ -208,7 +206,7 @@ struct UserTimerOverlayReminderView: View {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [self] event in
             // Check if we're in enforce mode and should block certain keys
             if let enforceModeService = self.enforceModeService,
-                enforceModeService.isEnforceModeEnabled
+                enforceModeService.isReady
             {
                 // Block ESC and Space keys
                 if event.keyCode == 53 {  // ESC key

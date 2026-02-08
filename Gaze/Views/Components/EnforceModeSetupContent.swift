@@ -67,6 +67,9 @@ struct EnforceModeSetupContent: View {
             VStack(spacing: presentation.isCard ? 10 : 20) {
                 enforceModeToggleView
                 cameraStatusView
+                if enforceModeService.isEnforceModeEnabled && !enforceModeService.hasCalibration {
+                    requiresCalibrationView
+                }
                 if enforceModeService.isEnforceModeEnabled {
                     testModeButton
                 }
@@ -262,11 +265,15 @@ struct EnforceModeSetupContent: View {
 
     private var enforceModeToggleView: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Enable Enforce Mode")
                     .font(headerFont)
                 if !cameraHardwareAvailable {
                     Text("No camera hardware detected")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                } else if !enforceModeService.hasCalibration {
+                    Text("Complete calibration to enable")
                         .font(.caption2)
                         .foregroundStyle(.orange)
                 } else {
@@ -289,7 +296,7 @@ struct EnforceModeSetupContent: View {
                 )
             )
             .labelsHidden()
-            .disabled(isProcessingToggle || !cameraHardwareAvailable)
+            .disabled(isProcessingToggle || !cameraHardwareAvailable || !enforceModeService.hasCalibration)
             .controlSize(presentation.isCard ? .small : (isCompact ? .small : .regular))
         }
         .padding(sectionPadding)
@@ -384,6 +391,18 @@ struct EnforceModeSetupContent: View {
         }
         .buttonStyle(.bordered)
         .controlSize(.regular)
+    }
+
+    private var requiresCalibrationView: some View {
+        HStack {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            Text("Calibrate before enabling")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
     }
 
 

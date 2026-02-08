@@ -190,6 +190,13 @@ class TimerEngine: ObservableObject {
         pauseTimer(identifier: identifier)
 
         if let reminder = reminderService.reminderEvent(for: identifier) {
+            // Prepare enforce mode for lookaway timer before showing reminder
+            if case .builtIn(.lookAway) = identifier {
+                Task {
+                    await reminderService.prepareEnforceMode(
+                        secondsRemaining: settingsProvider.settings.lookAwayCountdownSeconds)
+                }
+            }
             stateManager.setReminder(reminder)
         }
     }

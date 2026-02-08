@@ -17,10 +17,18 @@ struct UserTimersView: View {
         VStack(spacing: 0) {
             VStack(spacing: isCompact ? 10 : 16) {
                 Image(systemName: "clock.badge.checkmark")
-                    .font(.system(size: isCompact ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon))
+                    .font(
+                        .system(
+                            size: isCompact
+                                ? AdaptiveLayout.Font.heroIconSmall : AdaptiveLayout.Font.heroIcon)
+                    )
                     .foregroundStyle(.purple)
                 Text("Custom Timers")
-                    .font(.system(size: isCompact ? AdaptiveLayout.Font.heroTitleSmall : AdaptiveLayout.Font.heroTitle, weight: .bold))
+                    .font(
+                        .system(
+                            size: isCompact
+                                ? AdaptiveLayout.Font.heroTitleSmall
+                                : AdaptiveLayout.Font.heroTitle, weight: .bold))
             }
             .padding(.top, isCompact ? 12 : 20)
             .padding(.bottom, isCompact ? 16 : 30)
@@ -214,7 +222,8 @@ struct UserTimerRow: View {
     }
 
     private var timerDetailsText: String {
-        let base = "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
+        let base =
+            "\(timer.type.displayName) • \(timer.timeOnScreenSeconds)s on screen • \(timer.intervalMinutes) min interval"
         guard timer.type == .overlay else { return base }
         return base + (timer.enforceModeEnabled ? " • Enforce On" : " • Enforce Off")
     }
@@ -258,7 +267,8 @@ struct UserTimerEditSheet: View {
         _selectedColorHex = State(
             initialValue: timer?.colorHex
                 ?? UserTimer.defaultColors[existingTimersCount % UserTimer.defaultColors.count])
-        _enforceModeEnabled = State(initialValue: timer?.enforceModeEnabled ?? (timerType == .overlay))
+        _enforceModeEnabled = State(
+            initialValue: timer?.enforceModeEnabled ?? (timerType == .overlay))
     }
 
     var body: some View {
@@ -338,9 +348,25 @@ struct UserTimerEditSheet: View {
 
                 if type == .overlay {
                     VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Enforce Mode")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                Text("Require looking away during overlay countdown")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Toggle("", isOn: $enforceModeEnabled)
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
+                        }
                         Text("Duration on Screen")
                             .font(.subheadline)
                             .fontWeight(.medium)
+
                         HStack {
                             Slider(
                                 value: Binding(
@@ -357,21 +383,6 @@ struct UserTimerEditSheet: View {
                         }
                     }
 
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Enforce Mode")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                            Text("Require looking away during overlay countdown")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Toggle("", isOn: $enforceModeEnabled)
-                            .labelsHidden()
-                            .toggleStyle(.switch)
-                            .controlSize(.small)
-                    }
                 }
 
                 VStack(alignment: .leading, spacing: 6) {

@@ -38,14 +38,34 @@ struct UserTimerOverlayReminderView: View {
             Color.black.opacity(0.5)
                 .ignoresSafeArea()
 
+            // Compliance border overlay
+            if let enforceModeService = enforceModeService,
+                enforceModeService.isEnforceModeEnabled,
+                enforceModeService.isCameraActive
+            {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 0)
+                            .strokeBorder(
+                                enforceModeService.userCompliedWithBreak
+                                    ? Color.green.opacity(0.3)
+                                    : Color.red.opacity(0.5),
+                                lineWidth: 6
+                            )
+                    )
+            }
+
             VStack(spacing: 40) {
                 HStack {
                     Text(timer.title)
                         .font(.system(size: 64, weight: .bold))
                         .foregroundStyle(.white)
-                    
+
                     // Enforce mode indicator
-                    if timer.enforceModeEnabled, let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    if timer.enforceModeEnabled, let enforceModeService = enforceModeService,
+                        enforceModeService.isEnforceModeEnabled
+                    {
                         Image(systemName: "lock.shield")
                             .foregroundColor(.white)
                             .font(.system(size: 24))
@@ -62,7 +82,8 @@ struct UserTimerOverlayReminderView: View {
                 }
 
                 if timer.enforceModeEnabled {
-                    let shouldShowWarning = enforceModeService?.shouldAdvanceCountdown(for: timer) == false
+                    let shouldShowWarning =
+                        enforceModeService?.shouldAdvanceCountdown(for: timer) == false
                     if shouldShowWarning {
                         Text("Look away to continue")
                             .font(.title3)
@@ -94,7 +115,9 @@ struct UserTimerOverlayReminderView: View {
                         .monospacedDigit()
                 }
 
-                if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                if let enforceModeService = enforceModeService,
+                    enforceModeService.isEnforceModeEnabled
+                {
                     Text("Press CMD+Q to dismiss")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
@@ -106,18 +129,22 @@ struct UserTimerOverlayReminderView: View {
             }
 
             // Dismiss button in corner
-            VStack {
-                HStack {
-                    Spacer()
-                    Button(action: handleDismiss) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.white.opacity(0.7))
+
+            if let enforceModeService = enforceModeService, !enforceModeService.isEnforceModeEnabled
+            {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: handleDismiss) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(30)
                     }
-                    .buttonStyle(.plain)
-                    .padding(30)
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .onAppear {
@@ -155,12 +182,13 @@ struct UserTimerOverlayReminderView: View {
 
     private func handleDismiss() {
         // Apply dismiss buffer for enforce mode overlays
-        if let enforceModeService = self.enforceModeService, 
-           enforceModeService.isEnforceModeEnabled,
-           !self.dismissBufferActive {
+        if let enforceModeService = self.enforceModeService,
+            enforceModeService.isEnforceModeEnabled,
+            !self.dismissBufferActive
+        {
             // Start the 0.5 second buffer
             self.dismissBufferActive = true
-            
+
             // After buffer period, allow dismissal
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 self.dismissBufferActive = false
@@ -179,17 +207,18 @@ struct UserTimerOverlayReminderView: View {
     private func setupKeyMonitor() {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [self] event in
             // Check if we're in enforce mode and should block certain keys
-            if let enforceModeService = self.enforceModeService, 
-               enforceModeService.isEnforceModeEnabled {
+            if let enforceModeService = self.enforceModeService,
+                enforceModeService.isEnforceModeEnabled
+            {
                 // Block ESC and Space keys
                 if event.keyCode == 53 {  // ESC key
-                    return nil // Block it
+                    return nil  // Block it
                 } else if event.keyCode == 49 {  // Space key
-                    return nil // Block it
+                    return nil  // Block it
                 }
                 // Allow CMD+Q to pass through for force dismissal
-                else if event.modifierFlags.contains(.command) && event.keyCode == 12 { // CMD+Q
-                    return event // Let it pass through
+                else if event.modifierFlags.contains(.command) && event.keyCode == 12 {  // CMD+Q
+                    return event  // Let it pass through
                 }
             } else {
                 // In non-enforce mode, allow ESC and Space keys normally
@@ -201,7 +230,7 @@ struct UserTimerOverlayReminderView: View {
                     return nil
                 }
             }
-            
+
             return event
         }
     }

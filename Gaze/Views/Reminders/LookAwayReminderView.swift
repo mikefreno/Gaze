@@ -39,14 +39,33 @@ struct LookAwayReminderView: View {
             Color.black.opacity(0.5)
                 .ignoresSafeArea()
 
+            // Compliance border overlay
+            if let enforceModeService = enforceModeService,
+               enforceModeService.isEnforceModeEnabled,
+               enforceModeService.isCameraActive {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 0)
+                            .strokeBorder(
+                                enforceModeService.userCompliedWithBreak
+                                    ? Color.green.opacity(0.3)
+                                    : Color.red.opacity(0.5),
+                                lineWidth: 6
+                            )
+                    )
+            }
+
             VStack(spacing: 40) {
                 HStack {
                     Text("Look Away")
                         .font(.system(size: 64, weight: .bold))
                         .foregroundStyle(.white)
-                    
+
                     // Enforce mode indicator
-                    if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
+                    if let enforceModeService = enforceModeService,
+                        enforceModeService.isEnforceModeEnabled
+                    {
                         Image(systemName: "lock.shield")
                             .foregroundColor(.white)
                             .font(.system(size: 24))
@@ -67,7 +86,8 @@ struct LookAwayReminderView: View {
                 .padding(.vertical, 30)
 
                 if let enforceModeService, enforceModeService.isEnforceModeEnabled {
-                    let shouldShowWarning = enforceModeService.shouldAdvanceLookAwayCountdown() == false
+                    let shouldShowWarning =
+                        enforceModeService.shouldAdvanceLookAwayCountdown() == false
                     if shouldShowWarning {
                         Text("Look away to continue")
                             .font(.title3)
@@ -95,8 +115,10 @@ struct LookAwayReminderView: View {
                         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.countdownLabel)
                 }
 
-                if let enforceModeService = enforceModeService, enforceModeService.isEnforceModeEnabled {
-                    Text("Press CMD+Q to dismiss")
+                if let enforceModeService = enforceModeService,
+                    enforceModeService.isEnforceModeEnabled
+                {
+                    Text("Press CMD+Q to kill app")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                 } else {
@@ -105,21 +127,23 @@ struct LookAwayReminderView: View {
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }
-
-            // Skip button in corner
-            VStack {
-                HStack {
-                    Spacer()
-                    Button(action: handleDismiss) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 32))
-                            .foregroundStyle(.white.opacity(0.7))
+            if let enforceModeService = enforceModeService,
+                !enforceModeService.isEnforceModeEnabled
+            {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: handleDismiss) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 32))
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.dismissButton)
+                        .padding(30)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.dismissButton)
-                    .padding(30)
+                    Spacer()
                 }
-                Spacer()
             }
         }
         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.lookAwayView)
@@ -158,12 +182,12 @@ struct LookAwayReminderView: View {
     private func handleDismiss() {
         // Apply dismiss buffer to prevent accidental dismissals
         guard !dismissBufferActive else { return }
-        
+
         dismissBufferActive = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             dismissBufferActive = false
         }
-        
+
         timer?.invalidate()
         onDismiss()
     }
@@ -177,19 +201,23 @@ struct LookAwayReminderView: View {
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.keyCode == 53 {  // ESC key
                 // In enforce mode, ignore ESC key
-                if let enforceModeService = self.enforceModeService, enforceModeService.isEnforceModeEnabled {
+                if let enforceModeService = self.enforceModeService,
+                    enforceModeService.isEnforceModeEnabled
+                {
                     return event
                 }
                 handleDismiss()
                 return nil
             } else if event.keyCode == 49 {  // Space key
                 // In enforce mode, ignore Space key
-                if let enforceModeService = self.enforceModeService, enforceModeService.isEnforceModeEnabled {
+                if let enforceModeService = self.enforceModeService,
+                    enforceModeService.isEnforceModeEnabled
+                {
                     return event
                 }
                 handleDismiss()
                 return nil
-            } else if event.keyCode == 12 ? event.modifierFlags.contains(.command) : false { // CMD+Q key
+            } else if event.keyCode == 12 ? event.modifierFlags.contains(.command) : false {  // CMD+Q key
                 handleDismiss()
                 return nil
             }

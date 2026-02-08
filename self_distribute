@@ -27,7 +27,7 @@ ask_version_bump() {
     fi
     
     # Check for uncommitted changes
-    if ! git diff-index --quiet HEAD --; then
+    if git status --porcelain | grep -q .; then
         echo "Warning: You have uncommitted changes"
         git status --short
         echo ""
@@ -54,7 +54,7 @@ ask_version_bump() {
         echo "Using version from project file as fallback"
     fi
 
-    echo "Current version: v${CURRENT_VERSION}"
+    echo "Current version: V${CURRENT_VERSION}"
     
     IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
@@ -264,7 +264,7 @@ if [ -z "$BUILD_NUMBER" ]; then
     BUILD_NUMBER="1"
 fi
 
-echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER}) for distribution"
+echo "📦 Building Gaze V${VERSION} (build ${BUILD_NUMBER}) for distribution"
 
 RELEASES_DIR="./releases"
 ARCHIVE_PATH="./build/Gaze.xcarchive"
@@ -347,7 +347,7 @@ if [ -z "$BUILD_NUMBER" ]; then
     BUILD_NUMBER="1"
 fi
 
-echo "📦 Building Gaze v${VERSION} (build ${BUILD_NUMBER}) for distribution"
+echo "📦 Building Gaze V${VERSION} (build ${BUILD_NUMBER}) for distribution"
 
 RELEASES_DIR="./releases"
 ARCHIVE_PATH="./build/Gaze.xcarchive"

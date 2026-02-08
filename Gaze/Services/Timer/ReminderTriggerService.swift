@@ -55,6 +55,10 @@ final class ReminderTriggerService {
         await enforceModeService?.startCameraForLookawayTimer(secondsRemaining: secondsRemaining)
     }
 
+    func prepareUserTimerEnforceMode() async {
+        await enforceModeService?.startCameraForUserTimer()
+    }
+
     func handleReminderDismissed() {
         enforceModeService?.handleReminderDismissed()
     }

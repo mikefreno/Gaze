@@ -118,7 +118,7 @@ struct UserTimerOverlayReminderView: View {
                 if let enforceModeService = enforceModeService,
                     enforceModeService.isEnforceModeEnabled
                 {
-                    Text("Press CMD+Q to dismiss")
+                    Text("CMD+Q if you need to kill app")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                 } else {

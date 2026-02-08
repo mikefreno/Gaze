@@ -197,6 +197,12 @@ class TimerEngine: ObservableObject {
                         secondsRemaining: settingsProvider.settings.lookAwayCountdownSeconds)
                 }
             }
+            // Prepare enforce mode for user timer before showing reminder
+            if case .user = identifier {
+                Task {
+                    await reminderService.prepareUserTimerEnforceMode()
+                }
+            }
             stateManager.setReminder(reminder)
         }
     }

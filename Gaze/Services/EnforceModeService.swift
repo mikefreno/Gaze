@@ -216,6 +216,19 @@ class EnforceModeService: ObservableObject {
         }
     }
 
+    func startCameraForUserTimer() async {
+        guard isEnforceModeEnabled else { return }
+
+        logDebug("👁️ Starting camera for user timer reminder")
+
+        do {
+            try await startCamera()
+            logDebug("✓ Camera active")
+        } catch {
+            logError("⚠️ Failed to start camera: \(error.localizedDescription)")
+        }
+    }
+
     private func startCamera() async throws {
         guard !isCameraActive else { return }
         try await eyeTrackingService.startEyeTracking()

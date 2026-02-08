@@ -41,8 +41,9 @@ struct LookAwayReminderView: View {
 
             // Compliance border overlay
             if let enforceModeService = enforceModeService,
-               enforceModeService.isEnforceModeEnabled,
-               enforceModeService.isCameraActive {
+                enforceModeService.isEnforceModeEnabled,
+                enforceModeService.isCameraActive
+            {
                 Color.clear
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .overlay(
@@ -118,7 +119,7 @@ struct LookAwayReminderView: View {
                 if let enforceModeService = enforceModeService,
                     enforceModeService.isEnforceModeEnabled
                 {
-                    Text("Press CMD+Q to kill app")
+                    Text("CMD+Q if you need to kill app")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
                 } else {

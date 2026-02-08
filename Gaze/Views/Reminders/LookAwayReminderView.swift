@@ -86,7 +86,7 @@ struct LookAwayReminderView: View {
                 .frame(width: 200, height: 200)
                 .padding(.vertical, 30)
 
-                if let enforceModeService, enforceModeService.isEnforceModeEnabled {
+                if let enforceModeService, enforceModeService.isReady {
                     let shouldShowWarning =
                         enforceModeService.shouldAdvanceLookAwayCountdown() == false
                     if shouldShowWarning {
@@ -116,9 +116,7 @@ struct LookAwayReminderView: View {
                         .accessibilityIdentifier(AccessibilityIdentifiers.Reminders.countdownLabel)
                 }
 
-                if let enforceModeService = enforceModeService,
-                    enforceModeService.isEnforceModeEnabled
-                {
+                if let enforceModeService = enforceModeService, enforceModeService.isReady {
                     Text("CMD+Q if you need to kill app")
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.6))
@@ -129,7 +127,7 @@ struct LookAwayReminderView: View {
                 }
             }
             if let enforceModeService = enforceModeService,
-                !enforceModeService.isEnforceModeEnabled
+                !enforceModeService.isReady
             {
                 VStack {
                     HStack {
@@ -203,7 +201,7 @@ struct LookAwayReminderView: View {
             if event.keyCode == 53 {  // ESC key
                 // In enforce mode, ignore ESC key
                 if let enforceModeService = self.enforceModeService,
-                    enforceModeService.isEnforceModeEnabled
+                    enforceModeService.isReady
                 {
                     return event
                 }
@@ -212,7 +210,7 @@ struct LookAwayReminderView: View {
             } else if event.keyCode == 49 {  // Space key
                 // In enforce mode, ignore Space key
                 if let enforceModeService = self.enforceModeService,
-                    enforceModeService.isEnforceModeEnabled
+                    enforceModeService.isReady
                 {
                     return event
                 }

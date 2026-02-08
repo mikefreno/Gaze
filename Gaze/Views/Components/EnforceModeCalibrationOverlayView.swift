@@ -103,6 +103,18 @@ struct EnforceModeCalibrationOverlayView: View {
                 ProgressView(value: calibrationService.progress)
                     .progressViewStyle(.linear)
                     .tint(.blue)
+
+                // Gaze validation warning
+                if calibrationService.isPausedForGaze {
+                    HStack(spacing: 6) {
+                        Image(systemName: gazeWarningIcon)
+                            .foregroundStyle(.yellow)
+                        Text(gazeWarningText)
+                            .font(.caption)
+                            .foregroundStyle(.yellow)
+                    }
+                    .transition(.opacity)
+                }
             }
             .padding()
             .background(Color.black.opacity(0.7))
@@ -121,6 +133,29 @@ struct EnforceModeCalibrationOverlayView: View {
                 }
             }
             .padding(.bottom, 40)
+        }
+        .animation(.easeInOut(duration: 0.2), value: calibrationService.isPausedForGaze)
+    }
+
+    private var gazeWarningIcon: String {
+        switch calibrationService.gazeValidation {
+        case .noFace:
+            return "eye.slash"
+        case .wrongDirection:
+            return "exclamationmark.triangle"
+        case .valid:
+            return "checkmark.circle"
+        }
+    }
+
+    private var gazeWarningText: String {
+        switch calibrationService.gazeValidation {
+        case .noFace:
+            return "Face not detected -- paused"
+        case .wrongDirection:
+            return "Look at the dot -- paused"
+        case .valid:
+            return ""
         }
     }
 
@@ -148,21 +183,23 @@ struct EnforceModeCalibrationOverlayView: View {
                 x: geometry.size.width * target.x,
                 y: geometry.size.height * target.y
             )
+            let dotColor: Color = calibrationService.isPausedForGaze ? .orange : .blue
 
             ZStack {
                 Circle()
-                    .fill(Color.blue)
+                    .fill(dotColor)
                     .frame(width: 120, height: 120)
 
                 Circle()
                     .trim(from: 0, to: CGFloat(calibrationService.countdownProgress))
-                    .stroke(Color.blue.opacity(0.8), lineWidth: 8)
+                    .stroke(dotColor.opacity(0.8), lineWidth: 8)
                     .frame(width: 160, height: 160)
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 0.02), value: calibrationService.countdownProgress)
             }
             .position(center)
             .animation(.easeInOut(duration: 0.3), value: center)
+            .animation(.easeInOut(duration: 0.2), value: calibrationService.isPausedForGaze)
         }
         .ignoresSafeArea()
     }

@@ -296,7 +296,9 @@ struct EnforceModeSetupContent: View {
                 )
             )
             .labelsHidden()
-            .disabled(isProcessingToggle || !cameraHardwareAvailable || !enforceModeService.hasCalibration)
+            .disabled(
+                isProcessingToggle || !cameraHardwareAvailable || !enforceModeService.hasCalibration
+            )
             .controlSize(presentation.isCard ? .small : (isCompact ? .small : .regular))
         }
         .padding(sectionPadding)
@@ -398,12 +400,11 @@ struct EnforceModeSetupContent: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(.orange)
-            Text("Calibrate before enabling")
+            Text("Calibration required")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }
-
 
 }

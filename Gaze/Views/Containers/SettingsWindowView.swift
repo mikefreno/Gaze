@@ -79,10 +79,8 @@ struct SettingsWindowView: View {
             BlinkSetupView(settingsManager: settingsManager)
         case .posture:
             PostureSetupView(settingsManager: settingsManager)
-        #if DEBUG
-            case .enforceMode:
-                EnforceModeSetupView(settingsManager: settingsManager)
-        #endif
+        case .enforceMode:
+            EnforceModeSetupView(settingsManager: settingsManager)
         case .userTimers:
             UserTimersView(
                 userTimers: Binding(

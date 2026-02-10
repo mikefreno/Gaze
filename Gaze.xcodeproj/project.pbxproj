@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		275915892F132A9200D0E60D /* Lottie in Frameworks */ = {isa = PBXBuildFile; productRef = 27AE10B12F10B1FC00E00DBC /* Lottie */; };
 		27CF3CCB2F2D266600D67058 /* MacroVisionKit in Frameworks */ = {isa = PBXBuildFile; productRef = 27CF3CCA2F2D266600D67058 /* MacroVisionKit */; };
-		27SPARKLE00000000003 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 27SPARKLE00000000002 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -625,20 +624,20 @@
 				minimumVersion = 4.6.0;
 			};
 		};
-		27CF3CC92F2D266600D67058 /* XCRemoteSwiftPackageReference "MacroVisionKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/TheBoredTeam/MacroVisionKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
-			};
-		};
 		27SPARKLE00000000001 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
 				kind = exactVersion;
 				version = 2.8.1;
+			};
+		};
+		27CF3CC92F2D266600D67058 /* XCRemoteSwiftPackageReference "MacroVisionKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/TheBoredTeam/MacroVisionKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -649,15 +648,15 @@
 			package = 27AE10B02F10B1FC00E00DBC /* XCRemoteSwiftPackageReference "lottie-spm" */;
 			productName = Lottie;
 		};
-		27CF3CCA2F2D266600D67058 /* MacroVisionKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 27CF3CC92F2D266600D67058 /* XCRemoteSwiftPackageReference "MacroVisionKit" */;
-			productName = MacroVisionKit;
-		};
 		27SPARKLE00000000002 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 27SPARKLE00000000001 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		27CF3CCA2F2D266600D67058 /* MacroVisionKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27CF3CC92F2D266600D67058 /* XCRemoteSwiftPackageReference "MacroVisionKit" */;
+			productName = MacroVisionKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

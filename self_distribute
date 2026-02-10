@@ -31,7 +31,7 @@ ask_version_bump() {
         echo "Warning: You have uncommitted changes"
         git status --short
         echo ""
-        read -p "Continue anyway? (y/n) " -n 1 -r
+        read -p "Continue anyway? (y/N) " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo "Aborted"
@@ -137,7 +137,7 @@ ask_version_bump() {
         echo "  3. Create git tag v${NEW_VERSION}"
     fi
     echo ""
-    read -p "Proceed with version bump? (y/n) " -n 1 -r
+    read -p "Proceed with version bump? (y/N) " -n 1 -r
     echo ""
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
         echo "Aborted"
@@ -185,7 +185,7 @@ ask_version_bump() {
 }
 
 # Ask whether to bump version before continuing
-read -p "Do you want to bump the version before building? (y/n) " -n 1 -r
+read -p "Do you want to bump the version before building? (y/N) " -n 1 -r
 echo ""
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     ask_version_bump

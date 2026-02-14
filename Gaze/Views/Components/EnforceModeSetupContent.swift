@@ -70,9 +70,11 @@ struct EnforceModeSetupContent: View {
                 if enforceModeService.isEnforceModeEnabled && !enforceModeService.hasCalibration {
                     requiresCalibrationView
                 }
-                if enforceModeService.isEnforceModeEnabled {
-                    testModeButton
-                }
+                #if DEBUG
+                    if enforceModeService.isEnforceModeEnabled {
+                        testModeButton
+                    }
+                #endif
                 if isTestModeActive && enforceModeService.isCameraActive {
                     testModePreviewView
                     trackingConstantsView

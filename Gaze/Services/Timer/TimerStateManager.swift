@@ -61,9 +61,9 @@ final class TimerStateManager: ObservableObject {
         timerStates[identifier] = state
     }
 
-    func resetTimer(identifier: TimerIdentifier, intervalSeconds: Int) {
+    func resetTimer(identifier: TimerIdentifier, intervalSeconds: Int, keepPaused: Bool = true) {
         guard var state = timerStates[identifier] else { return }
-        state.reset(intervalSeconds: intervalSeconds, keepPaused: true)
+        state.reset(intervalSeconds: intervalSeconds, keepPaused: keepPaused)
         timerStates[identifier] = state
     }
 

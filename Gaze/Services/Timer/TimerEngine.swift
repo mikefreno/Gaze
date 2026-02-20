@@ -135,7 +135,7 @@ class TimerEngine: ObservableObject {
 
     func skipNext(identifier: TimerIdentifier) {
         let intervalSeconds = getTimerInterval(for: identifier)
-        stateManager.resetTimer(identifier: identifier, intervalSeconds: intervalSeconds)
+        stateManager.resetTimer(identifier: identifier, intervalSeconds: intervalSeconds, keepPaused: false)
     }
 
     /// Unified way to get interval for any timer type
